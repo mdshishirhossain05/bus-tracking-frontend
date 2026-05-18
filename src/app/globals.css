@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0e16;
+  --foreground: #e2e8f0;
+
+  --card: #111722;
+  --card-foreground: #e2e8f0;
+
+  --muted: #1a2230;
+  --muted-foreground: #94a3b8;
+
+  --border: rgba(148, 163, 184, 0.12);
+  --input: rgba(148, 163, 184, 0.16);
+
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+
+  --secondary: #1a2230;
+  --secondary-foreground: #e2e8f0;
+
+  --accent: #2563eb;
+  --accent-foreground: #ffffff;
+
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+
+  --ring: rgba(59, 130, 246, 0.35);
+
+  --sidebar: rgba(13, 18, 28, 0.92);
+  --topbar: rgba(13, 18, 28, 0.85);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+.glass-panel {
+  background: rgba(17, 23, 34, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.soft-shadow {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.32);
+}
+
+.panel-shadow {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+@keyframes ubts-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: ubts-fade-in 0.24s ease-out;
+}

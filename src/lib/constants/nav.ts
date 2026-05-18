@@ -14,6 +14,7 @@ import {
   UserCircle2,
   Satellite,
   ScrollText,
+  TimerReset,
 } from "lucide-react";
 import type { UserRole } from "@/types/auth";
 
@@ -115,6 +116,13 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
     href: "/admin/audit-logs",
     icon: ScrollText,
     description: "Security and operations action history",
+    roles: ["ADMIN"],
+  },
+  {
+    label: "Delay Report",
+    href: "/admin/delay-report",
+    icon: TimerReset,
+    description: "Scheduled vs actual arrival performance",
     roles: ["ADMIN"],
   },
   {

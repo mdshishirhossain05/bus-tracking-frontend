@@ -15,6 +15,7 @@ import {
   Satellite,
   ScrollText,
   TimerReset,
+  BarChart3,
 } from "lucide-react";
 import type { UserRole } from "@/types/auth";
 
@@ -60,6 +61,13 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
     href: "/admin/operations",
     icon: ShieldCheck,
     description: "Operations monitoring and route health",
+    roles: ["ADMIN"],
+  },
+  {
+    label: "Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3,
+    description: "Trip volume, route activity, and arrival performance",
     roles: ["ADMIN"],
   },
   {

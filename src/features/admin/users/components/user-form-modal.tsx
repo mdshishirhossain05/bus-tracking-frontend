@@ -24,6 +24,9 @@ interface UserFormModalProps {
     isActive?: boolean;
     studentId?: string;
     phoneNumber?: string;
+    academicDepartment?: string;
+    academicBatch?: string;
+    transportPickupPoint?: string;
   }) => Promise<void>;
   onClose: () => void;
 }
@@ -36,6 +39,9 @@ interface FormState {
   isActive: boolean;
   studentId: string;
   phoneNumber: string;
+  academicDepartment: string;
+  academicBatch: string;
+  transportPickupPoint: string;
 }
 
 function isPassengerRole(value: string | undefined | null) {
@@ -63,6 +69,9 @@ export function UserFormModal({
     isActive: initial?.isActive ?? true,
     studentId: "",
     phoneNumber: "",
+    academicDepartment: "",
+    academicBatch: "",
+    transportPickupPoint: "",
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>(
@@ -142,6 +151,15 @@ export function UserFormModal({
         isActive: values.isActive,
         studentId: values.studentId.trim() || undefined,
         phoneNumber: values.phoneNumber.trim() || undefined,
+        academicDepartment: isPassengerRole(values.role)
+          ? values.academicDepartment.trim() || undefined
+          : undefined,
+        academicBatch: isPassengerRole(values.role)
+          ? values.academicBatch.trim() || undefined
+          : undefined,
+        transportPickupPoint: isPassengerRole(values.role)
+          ? values.transportPickupPoint.trim() || undefined
+          : undefined,
       });
       return;
     }
@@ -309,6 +327,60 @@ export function UserFormModal({
                     ) : null}
                   </div>
                 </div>
+              ) : null}
+
+              {isPassengerRole(values.role) ? (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-300">
+                        Academic department
+                      </label>
+                      <Input
+                        placeholder="e.g. Computer Science"
+                        value={values.academicDepartment}
+                        onChange={(e) =>
+                          setValues((prev) => ({
+                            ...prev,
+                            academicDepartment: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-300">
+                        Academic batch
+                      </label>
+                      <Input
+                        placeholder="e.g. 2022"
+                        value={values.academicBatch}
+                        onChange={(e) =>
+                          setValues((prev) => ({
+                            ...prev,
+                            academicBatch: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300">
+                      Transport pickup point
+                    </label>
+                    <Input
+                      placeholder="e.g. Main Gate"
+                      value={values.transportPickupPoint}
+                      onChange={(e) =>
+                        setValues((prev) => ({
+                          ...prev,
+                          transportPickupPoint: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </>
               ) : null}
 
               <div className="space-y-2">

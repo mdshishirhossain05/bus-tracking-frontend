@@ -121,6 +121,9 @@ export async function createAdminUser(payload: {
   isActive?: boolean;
   studentId?: string;
   phoneNumber?: string;
+  academicDepartment?: string;
+  academicBatch?: string;
+  transportPickupPoint?: string;
 }) {
   const res = await api.post("/admin/users", payload);
   return res.data?.data ?? res.data;

@@ -1,10 +1,12 @@
 import {
   Activity,
   Clock3,
+  Eye,
   RadioTower,
   Satellite,
   Smartphone,
   TriangleAlert,
+  Users,
 } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 
@@ -15,6 +17,8 @@ interface AdminKpiGridProps {
   gpsSelectedTrips: number;
   driverSelectedTrips: number;
   averageEta: number | null;
+  onlineUsers: number;
+  liveWatchers: number;
 }
 
 export function AdminKpiGrid({
@@ -24,9 +28,27 @@ export function AdminKpiGrid({
   gpsSelectedTrips,
   driverSelectedTrips,
   averageEta,
+  onlineUsers,
+  liveWatchers,
 }: AdminKpiGridProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        label="Online Users"
+        value={onlineUsers}
+        helper="Users connected to the realtime system"
+        tone={onlineUsers > 0 ? "success" : "neutral"}
+        trendLabel="Live"
+        icon={<Users className="h-5 w-5" />}
+      />
+      <StatCard
+        label="Live Watchers"
+        value={liveWatchers}
+        helper="Users currently tracking a live trip"
+        tone={liveWatchers > 0 ? "info" : "neutral"}
+        trendLabel="Tracking"
+        icon={<Eye className="h-5 w-5" />}
+      />
       <StatCard
         label="Active Trips"
         value={activeTripsCount}

@@ -87,6 +87,8 @@ export interface AdminOverviewData {
     gpsSelectedTrips: number;
     driverSelectedTrips: number;
     averageEtaMinutes: number | null;
+    onlineUsers: number;
+    liveWatchers: number;
   };
   trips: AdminOverviewTrip[];
 }

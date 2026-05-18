@@ -13,6 +13,7 @@ import {
   Warehouse,
   UserCircle2,
   Satellite,
+  ScrollText,
 } from "lucide-react";
 import type { UserRole } from "@/types/auth";
 
@@ -107,6 +108,13 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
     href: "/admin/users",
     icon: Users,
     description: "Manage system users",
+    roles: ["ADMIN"],
+  },
+  {
+    label: "Audit Log",
+    href: "/admin/audit-logs",
+    icon: ScrollText,
+    description: "Security and operations action history",
     roles: ["ADMIN"],
   },
   {

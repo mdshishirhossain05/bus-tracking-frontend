@@ -48,6 +48,8 @@ export function AdminOperationsShell() {
     gpsSelectedTrips,
     driverSelectedTrips,
     averageEta,
+    onlineUsers,
+    liveWatchers,
     retry,
     actionLoading,
     actionMessage,
@@ -138,6 +140,8 @@ export function AdminOperationsShell() {
           gpsSelectedTrips={gpsSelectedTrips}
           driverSelectedTrips={driverSelectedTrips}
           averageEta={averageEta}
+          onlineUsers={onlineUsers}
+          liveWatchers={liveWatchers}
         />
       </PageSection>
 

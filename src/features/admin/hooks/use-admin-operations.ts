@@ -550,6 +550,8 @@ export function useAdminOperations() {
     gpsSelectedTrips: overview?.kpis.gpsSelectedTrips ?? 0,
     driverSelectedTrips: overview?.kpis.driverSelectedTrips ?? 0,
     averageEta: overview?.kpis.averageEtaMinutes ?? null,
+    onlineUsers: overview?.kpis.onlineUsers ?? 0,
+    liveWatchers: overview?.kpis.liveWatchers ?? 0,
     retry,
     actionLoading,
     actionMessage,

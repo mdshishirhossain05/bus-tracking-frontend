@@ -49,6 +49,8 @@ export function AdminUsersPage() {
     setIsActive,
     setApprovalStatus,
     setRegistrationSource,
+    setAcademicDepartment,
+    setAcademicBatch,
     create,
     update,
     updateRole,
@@ -66,6 +68,10 @@ export function AdminUsersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState(query.search);
+  const [departmentInput, setDepartmentInput] = useState(
+    query.academicDepartment,
+  );
+  const [batchInput, setBatchInput] = useState(query.academicBatch);
   const [rejectingUser, setRejectingUser] = useState<AdminUserItem | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [deletingUser, setDeletingUser] = useState<AdminUserItem | null>(null);
@@ -270,6 +276,8 @@ export function AdminUsersPage() {
 
   function applySearch() {
     setSearch(searchInput);
+    setAcademicDepartment(departmentInput);
+    setAcademicBatch(batchInput);
   }
 
   if (loading && users.length === 0) {
@@ -380,11 +388,29 @@ export function AdminUsersPage() {
           </Card>
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_160px_180px_160px_140px_auto]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_150px_150px_160px_150px_150px_150px_130px_auto]">
           <Input
             placeholder="Search by name, email, or student ID"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") applySearch();
+            }}
+          />
+
+          <Input
+            placeholder="Department"
+            value={departmentInput}
+            onChange={(e) => setDepartmentInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") applySearch();
+            }}
+          />
+
+          <Input
+            placeholder="Batch"
+            value={batchInput}
+            onChange={(e) => setBatchInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") applySearch();
             }}

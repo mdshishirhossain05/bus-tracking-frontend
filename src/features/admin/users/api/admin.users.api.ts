@@ -87,6 +87,8 @@ export async function getAdminUsers(params: {
   isActive?: boolean;
   approvalStatus?: UserApprovalStatus;
   registrationSource?: UserRegistrationSource;
+  academicDepartment?: string;
+  academicBatch?: string;
 }): Promise<AdminUsersResponse> {
   const res = await api.get("/admin/users", { params });
   return normalizeAdminUsersResponse(res.data);

@@ -27,6 +27,8 @@ interface UserQueryState {
   isActive: "ALL" | "true" | "false";
   approvalStatus: UserApprovalStatus | "ALL";
   registrationSource: UserRegistrationSource | "ALL";
+  academicDepartment: string;
+  academicBatch: string;
 }
 
 export function useAdminUsers() {
@@ -49,6 +51,8 @@ export function useAdminUsers() {
     isActive: "ALL",
     approvalStatus: "ALL",
     registrationSource: "ALL",
+    academicDepartment: "",
+    academicBatch: "",
   });
 
   const [meta, setMeta] = useState({
@@ -76,6 +80,8 @@ export function useAdminUsers() {
         currentQuery.registrationSource === "ALL"
           ? undefined
           : currentQuery.registrationSource,
+      academicDepartment: currentQuery.academicDepartment.trim() || undefined,
+      academicBatch: currentQuery.academicBatch.trim() || undefined,
     };
   }, []);
 
@@ -280,6 +286,18 @@ export function useAdminUsers() {
       setQuery((prev) => ({
         ...prev,
         registrationSource,
+        page: 1,
+      })),
+    setAcademicDepartment: (academicDepartment: string) =>
+      setQuery((prev) => ({
+        ...prev,
+        academicDepartment,
+        page: 1,
+      })),
+    setAcademicBatch: (academicBatch: string) =>
+      setQuery((prev) => ({
+        ...prev,
+        academicBatch,
         page: 1,
       })),
     create: createAdminUser,

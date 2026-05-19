@@ -21,6 +21,7 @@ import { TripSelectorPanel } from "@/features/passenger/components/trip-selector
 import { EtaCard } from "@/features/passenger/components/eta-card";
 import { LiveTripDetails } from "@/features/passenger/components/live-trip-details";
 import { usePassengerLiveTrip } from "@/features/passenger/hooks/use-passenger-live-trip";
+import { useFavoriteRoutes } from "@/features/passenger/hooks/use-favorite-routes";
 import { useRoutePresentation } from "@/features/routes/hooks/use-route-presentation";
 
 const LiveTripMap = dynamic(() => import("@/components/map/live-trip-map"), {
@@ -55,6 +56,8 @@ function PassengerLiveContent() {
   } = usePassengerLiveTrip(tripFromUrl);
 
   const { data: routePresentation } = useRoutePresentation(selectedTrip?.routeId);
+
+  const { favoriteRouteIds, toggleFavorite } = useFavoriteRoutes();
 
   useEffect(() => {
     if (!selectedTripId || tripFromUrl === selectedTripId) return;
@@ -184,6 +187,8 @@ function PassengerLiveContent() {
           selectedTripId={selectedTripId}
           liveState={liveState}
           onSelect={(tripId) => void selectTrip(tripId)}
+          favoriteRouteIds={favoriteRouteIds}
+          onToggleFavorite={(routeId) => void toggleFavorite(routeId)}
         />
 
         <div className="space-y-4">

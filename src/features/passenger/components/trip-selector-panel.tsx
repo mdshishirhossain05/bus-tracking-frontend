@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BusFront, Clock3, Route, Search, SearchX } from "lucide-react";
+import { BusFront, Clock3, Route, Search, SearchX, Star } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ interface TripSelectorPanelProps {
   selectedTripId?: string;
   liveState?: LiveBusLocation | null;
   onSelect: (tripId: string) => void;
+  favoriteRouteIds?: Set<string>;
+  onToggleFavorite?: (routeId: string) => void;
 }
 
 export function TripSelectorPanel({
@@ -22,6 +24,8 @@ export function TripSelectorPanel({
   selectedTripId,
   liveState,
   onSelect,
+  favoriteRouteIds,
+  onToggleFavorite,
 }: TripSelectorPanelProps) {
   const [search, setSearch] = useState("");
   const [routeFilter, setRouteFilter] = useState("all");
@@ -140,9 +144,43 @@ export function TripSelectorPanel({
                         </p>
                       </div>
 
-                      <Badge tone={active ? "info" : "neutral"}>
-                        {trip.status}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        {onToggleFavorite ? (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            aria-label={
+                              favoriteRouteIds?.has(trip.routeId)
+                                ? "Remove route from favorites"
+                                : "Add route to favorites"
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleFavorite(trip.routeId);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onToggleFavorite(trip.routeId);
+                              }
+                            }}
+                            className="rounded-sm p-1 text-slate-400 transition-colors hover:text-amber-400"
+                          >
+                            <Star
+                              className={`h-4 w-4 ${
+                                favoriteRouteIds?.has(trip.routeId)
+                                  ? "fill-amber-400 text-amber-400"
+                                  : ""
+                              }`}
+                            />
+                          </span>
+                        ) : null}
+
+                        <Badge tone={active ? "info" : "neutral"}>
+                          {trip.status}
+                        </Badge>
+                      </div>
                     </div>
 
                     <div

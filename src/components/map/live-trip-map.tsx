@@ -150,6 +150,58 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
+/** Max distance from the route within which the bus marker is snapped to it. */
+const ROUTE_SNAP_MAX_METERS = 55;
+
+/**
+ * Projects a raw GPS point onto the nearest point of the route polyline so
+ * the bus marker rides cleanly on its road instead of wobbling with GPS
+ * noise. If the bus is genuinely far off-route (beyond the threshold) the
+ * raw point is kept, so a real detour is never hidden.
+ */
+function snapPointToRoute(
+  point: LatLngPoint,
+  path: LatLngPoint[],
+): LatLngPoint {
+  if (path.length < 2) return point;
+
+  const mPerDegLat = 111320;
+  const mPerDegLng = 111320 * Math.cos((point.lat * Math.PI) / 180);
+  const toXY = (p: LatLngPoint) => ({
+    x: p.lng * mPerDegLng,
+    y: p.lat * mPerDegLat,
+  });
+
+  const px = toXY(point);
+  let best: LatLngPoint | null = null;
+  let bestDistanceSq = Infinity;
+
+  for (let i = 0; i < path.length - 1; i += 1) {
+    const a = toXY(path[i]!);
+    const b = toXY(path[i + 1]!);
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const lengthSq = dx * dx + dy * dy;
+
+    let t = 0;
+    if (lengthSq > 0) {
+      t = clamp(((px.x - a.x) * dx + (px.y - a.y) * dy) / lengthSq, 0, 1);
+    }
+
+    const projX = a.x + t * dx;
+    const projY = a.y + t * dy;
+    const distanceSq = (px.x - projX) ** 2 + (px.y - projY) ** 2;
+
+    if (distanceSq < bestDistanceSq) {
+      bestDistanceSq = distanceSq;
+      best = { lat: projY / mPerDegLat, lng: projX / mPerDegLng };
+    }
+  }
+
+  if (!best) return point;
+  return Math.sqrt(bestDistanceSq) <= ROUTE_SNAP_MAX_METERS ? best : point;
+}
+
 function fitMapToPoints(map: google.maps.Map | null, points: LatLngPoint[]) {
   if (!map || !points.length || typeof google === "undefined") return;
 
@@ -702,6 +754,14 @@ export default function LiveTripMap({
 
   const hasSavedGoogleRoadRoute = routePath.length >= 2;
 
+  // The bus marker is snapped onto the route polyline for a precise,
+  // jitter-free position; raw GPS is kept if the bus is far off-route.
+  const snappedVehiclePoint = useMemo<LatLngPoint | null>(() => {
+    if (!livePoint) return null;
+    if (routePath.length < 2) return livePoint;
+    return snapPointToRoute(livePoint, routePath);
+  }, [livePoint, routePath]);
+
   const staticRouteBoundsPoints = useMemo<LatLngPoint[]>(() => {
     const points: LatLngPoint[] = [];
 
@@ -1118,10 +1178,10 @@ export default function LiveTripMap({
           </OverlayViewF>
         ) : null}
 
-        {hasVehiclePosition && livePoint ? (
+        {hasVehiclePosition && snappedVehiclePoint ? (
           <AnimatedVehicleMarker
-            latitude={latitude!}
-            longitude={longitude!}
+            latitude={snappedVehiclePoint.lat}
+            longitude={snappedVehiclePoint.lng}
             routeName={routeName}
             busLabel={busLabel}
             updatedAt={updatedAt}

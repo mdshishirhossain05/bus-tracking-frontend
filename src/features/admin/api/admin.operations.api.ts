@@ -38,3 +38,10 @@ export async function forceRecoverAdminTrip(tripId: string) {
   const res = await api.post(API_ENDPOINTS.admin.forceRecoverTrip(tripId));
   return res.data?.data ?? res.data;
 }
+
+export async function startAdminTrip(serviceScheduleId: string) {
+  const res = await api.post("/admin/operations/trips/start", {
+    serviceScheduleId,
+  });
+  return res.data?.data ?? res.data;
+}

@@ -27,6 +27,8 @@ import {
   markNotificationRead,
   type AppNotification,
 } from "@/features/notifications/api/notifications.api";
+import { connectSocket } from "@/lib/socket/socket-client";
+import { SOCKET_EVENTS } from "@/lib/socket/socket-events";
 
 interface AppTopbarProps {
   onOpenSidebar?: () => void;
@@ -78,6 +80,18 @@ export function AppTopbar({ onOpenSidebar }: AppTopbarProps) {
 
   useEffect(() => {
     void loadNotifications();
+  }, [loadNotifications]);
+
+  // Refresh notifications the moment the server pushes one.
+  useEffect(() => {
+    const socket = connectSocket();
+    const handler = () => {
+      void loadNotifications();
+    };
+    socket.on(SOCKET_EVENTS.NOTIFICATION, handler);
+    return () => {
+      socket.off(SOCKET_EVENTS.NOTIFICATION, handler);
+    };
   }, [loadNotifications]);
 
   const handleMarkAllRead = async () => {

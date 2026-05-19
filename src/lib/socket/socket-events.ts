@@ -11,6 +11,7 @@ export const SOCKET_EVENTS = {
   TRIP_STOP_ARRIVAL: "trip:stop_arrival",
   TRIP_STARTED: "trip:started",
   TRIP_ENDED: "trip:ended",
+  NOTIFICATION: "notification",
 } as const;
 
 export type SocketEventName =
@@ -46,4 +47,5 @@ export interface ServerToClientEvents {
   "trip:stop_arrival": (payload: unknown) => void;
   "trip:started": (payload: unknown) => void;
   "trip:ended": (payload: unknown) => void;
+  notification: (payload: unknown) => void;
 }

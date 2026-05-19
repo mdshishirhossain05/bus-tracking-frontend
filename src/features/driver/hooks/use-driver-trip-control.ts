@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { connectSocket } from "@/lib/socket/socket-client";
+import { connectSocket, getSocket } from "@/lib/socket/socket-client";
+import type { AppSocket } from "@/lib/socket/socket-client";
 import { SOCKET_EVENTS } from "@/lib/socket/socket-events";
+import type { DriverLocationAck } from "@/lib/socket/socket-events";
 import {
   endTrip,
   sendDriverLocation,
@@ -66,6 +68,7 @@ const DEFAULT_MOVING_INTERVAL_MS = 1000;
 const DEFAULT_STATIONARY_INTERVAL_MS = 4000;
 const HEARTBEAT_INTERVAL_MS = 10000;
 const MANUAL_SEND_GUARD_MS = 1000;
+const SOCKET_ACK_TIMEOUT_MS = 6000;
 
 const MAX_ACCEPTABLE_ACCURACY_M = 120;
 const START_BOOTSTRAP_ACCEPTABLE_ACCURACY_M = 220;
@@ -194,6 +197,86 @@ function buildLocationPayload(
   if (safeAccuracy !== undefined) payload.accuracyM = safeAccuracy;
 
   return payload;
+}
+
+/**
+ * Server-side rejection of a streamed location packet. Distinct from a
+ * transport failure: an HTTP retry would be rejected identically, so the
+ * caller surfaces it as an error instead of falling back.
+ */
+class SocketAckRejection extends Error {
+  code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "SocketAckRejection";
+    this.code = code;
+  }
+}
+
+function emitDriverLocationOverSocket(
+  socket: AppSocket,
+  tripId: string,
+  payload: DriverLocationPublishPayload,
+): Promise<DriverLocationAck> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("SOCKET_ACK_TIMEOUT"));
+    }, SOCKET_ACK_TIMEOUT_MS);
+
+    socket.emit(
+      SOCKET_EVENTS.DRIVER_LOCATION,
+      { tripId, location: payload },
+      (response: DriverLocationAck) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(response);
+      },
+    );
+  });
+}
+
+/**
+ * Publishes a GPS fix over the realtime socket when it is connected, falling
+ * back to the HTTP endpoint when the socket is unavailable or unresponsive.
+ * This gives the driver a continuous native-app-style stream while keeping a
+ * dependable delivery path.
+ */
+async function publishLocationPayload(
+  tripId: string,
+  payload: DriverLocationPublishPayload,
+): Promise<{ data: any; transport: "socket" | "http" }> {
+  const socket = getSocket();
+
+  if (socket.connected) {
+    try {
+      const ack = await emitDriverLocationOverSocket(socket, tripId, payload);
+
+      if (ack && ack.ok) {
+        return { data: ack.data, transport: "socket" };
+      }
+
+      if (ack && ack.ok === false) {
+        // The server rejected this packet; an HTTP retry would fail the same
+        // way, so propagate instead of falling back.
+        throw new SocketAckRejection(
+          ack.code ?? "SOCKET_REJECTED",
+          ack.message ?? "Location update rejected.",
+        );
+      }
+    } catch (err) {
+      if (err instanceof SocketAckRejection) throw err;
+      // Transport-level failure (ack timeout / disconnect): fall back to HTTP.
+    }
+  }
+
+  const data = await sendDriverLocation(tripId, payload);
+  return { data, transport: "http" };
 }
 
 function normalizeSourceType(value: unknown): DriverTrackingSourceType | null {
@@ -1011,7 +1094,10 @@ export function useDriverTripControl() {
         publishInFlightRef.current = true;
         setPublishState("sending");
 
-        const response = await sendDriverLocation(activeTripId, payload);
+        const { data: response } = await publishLocationPayload(
+          activeTripId,
+          payload,
+        );
 
         const serverLiveState = mapBackendLiveStateToFrontend({
           tripId: activeTripId,

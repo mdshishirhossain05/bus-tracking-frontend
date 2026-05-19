@@ -6,6 +6,7 @@ export const SOCKET_EVENTS = {
   JOIN_DENIED: "join_denied",
   LEAVE_TRIP: "leave_trip",
   LEFT_TRIP: "left_trip",
+  DRIVER_LOCATION: "driver:location",
   TRIP_LOCATION_UPDATED: "trip:location_updated",
   TRIP_ETA_UPDATED: "trip:eta_updated",
   TRIP_STOP_ARRIVAL: "trip:stop_arrival",
@@ -22,6 +23,27 @@ export interface TripRoomPayload {
   tripId: string;
 }
 
+/** GPS fix the driver streams over the realtime `driver:location` channel. */
+export interface DriverLocationSocketPayload {
+  tripId: string;
+  location: {
+    lat: number;
+    lng: number;
+    speedKmh?: number;
+    heading?: number;
+    accuracyM?: number;
+    recordedAt?: string;
+  };
+}
+
+/**
+ * Server acknowledgement for a `driver:location` emit. On success `data`
+ * carries the same authoritative payload the HTTP fallback returns.
+ */
+export type DriverLocationAck =
+  | { ok: true; data: unknown }
+  | { ok: false; code: string; message: string; details?: unknown };
+
 /**
  * Events a client emits to the server. socket.io enforces these payload
  * shapes at every emit site once the socket is typed with AppSocket.
@@ -29,6 +51,10 @@ export interface TripRoomPayload {
 export interface ClientToServerEvents {
   join_trip: (payload: TripRoomPayload) => void;
   leave_trip: (payload: TripRoomPayload) => void;
+  "driver:location": (
+    payload: DriverLocationSocketPayload,
+    ack: (response: DriverLocationAck) => void,
+  ) => void;
 }
 
 /**

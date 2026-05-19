@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { RefreshCcw } from "lucide-react";
+import { useState } from "react";
+import { Play, RefreshCcw } from "lucide-react";
 import { useRoutePresentation } from "@/features/routes/hooks/use-route-presentation";
 import { SectionSkeleton } from "@/components/states/section-skeleton";
 import { ErrorState } from "@/components/states/error-state";
@@ -23,6 +24,7 @@ import { AdminKpiGrid } from "@/features/admin/components/admin-kpi-grid";
 import { AdminTripMonitorList } from "@/features/admin/components/admin-trip-monitor-list";
 import { AdminEventFeed } from "@/features/admin/components/admin-event-feed";
 import { AdminTripDetailsPanel } from "@/features/admin/components/admin-trip-details-panel";
+import { StartTripModal } from "@/features/admin/components/start-trip-modal";
 
 const LiveTripMap = dynamic(() => import("@/components/map/live-trip-map"), {
   ssr: false,
@@ -60,6 +62,8 @@ export function AdminOperationsShell() {
   } = useAdminOperations();
 
   const { data: routePresentation } = useRoutePresentation(selectedTrip?.routeId);
+
+  const [startTripOpen, setStartTripOpen] = useState(false);
 
   const hasFreshLivePoint = Boolean(
     selectedSnapshot?.liveState?.latitude != null &&
@@ -124,13 +128,28 @@ export function AdminOperationsShell() {
         </Card>
       )}
 
+      {startTripOpen ? (
+        <StartTripModal
+          onClose={() => setStartTripOpen(false)}
+          onStarted={() => void retry()}
+        />
+      ) : null}
+
       <PageSection
         title="Fleet overview"
         action={
-          <Button variant="secondary" onClick={() => void retry()}>
-            <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-            Refresh dashboard
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setStartTripOpen(true)}>
+              <Play className="h-4 w-4" />
+              Start trip
+            </Button>
+            <Button variant="secondary" onClick={() => void retry()}>
+              <RefreshCcw
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              />
+              Refresh dashboard
+            </Button>
+          </div>
         }
       >
         <AdminKpiGrid

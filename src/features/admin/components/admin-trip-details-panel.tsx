@@ -22,9 +22,10 @@ interface AdminTripDetailsPanelProps {
   snapshot?: AdminTripSnapshot | null;
   detail?: AdminTripDetail | null;
   loading?: boolean;
-  actionLoading?: "force-end" | "force-recover" | null;
+  actionLoading?: "force-end" | "force-recover" | "auto-end" | null;
   onForceEnd: () => void;
   onForceRecover: () => void;
+  onToggleAutoEnd: (disabled: boolean) => void;
 }
 
 function toneForSourceStatus(status: string | null | undefined) {
@@ -120,6 +121,7 @@ export function AdminTripDetailsPanel({
   actionLoading,
   onForceEnd,
   onForceRecover,
+  onToggleAutoEnd,
 }: AdminTripDetailsPanelProps) {
   const [confirmAction, setConfirmAction] = useState<
     "force-end" | "force-recover" | null
@@ -363,6 +365,22 @@ export function AdminTripDetailsPanel({
                     disabled={!canForceEnd || actionLoading !== null}
                   >
                     {actionLoading === "force-end" ? "Ending..." : "Force end"}
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      onToggleAutoEnd(
+                        !(snapshot?.trip.autoEndDisabled ?? false),
+                      )
+                    }
+                    disabled={!canForceEnd || actionLoading !== null}
+                  >
+                    {actionLoading === "auto-end"
+                      ? "Updating..."
+                      : snapshot?.trip.autoEndDisabled
+                        ? "Enable auto-end"
+                        : "Disable auto-end"}
                   </Button>
                 </div>
               </div>

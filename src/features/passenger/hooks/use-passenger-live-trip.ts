@@ -396,11 +396,11 @@ export function usePassengerLiveTrip(initialTripId?: string | null) {
   );
 
   const loadInitial = useCallback(
-    async (mode: "initial" | "refresh" = "initial") => {
+    async (mode: "initial" | "refresh" | "silent" = "initial") => {
       if (mode === "initial") setLoading(true);
       if (mode === "refresh") setRefreshing(true);
 
-      setError(null);
+      if (mode !== "silent") setError(null);
 
       try {
         const activeTrips = await getActiveTrips();
@@ -436,6 +436,10 @@ export function usePassengerLiveTrip(initialTripId?: string | null) {
         await loadTripData(nextTripId);
       } catch (err: any) {
         console.error(err);
+        if (mode === "silent") {
+          // A background refresh failure must never wipe the live view.
+          return;
+        }
         setTrips([]);
         setSelectedTripId("");
         setLiveStateSafe(null);
@@ -523,6 +527,26 @@ export function usePassengerLiveTrip(initialTripId?: string | null) {
       clearArrivalVisibilityTimer();
     };
   }, [clearArrivalVisibilityTimer, clearStaleTimer, loadInitial]);
+
+  // Native-app feel: keep data fresh with a silent background refresh and an
+  // instant resync when the tab regains focus — no skeleton, no spinner, and
+  // a failed refresh never disturbs the visible state.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void loadInitial("silent");
+    }, 30_000);
+
+    const handleVisibility = () => {
+      if (!document.hidden) void loadInitial("silent");
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [loadInitial]);
 
   useEffect(() => {
     if (!selectedTripId) return;

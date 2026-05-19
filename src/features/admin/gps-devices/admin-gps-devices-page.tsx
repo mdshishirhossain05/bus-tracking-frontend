@@ -1066,6 +1066,21 @@ export function AdminGpsDevicesPage() {
                           <Badge tone={device.isActive ? "success" : "warning"}>
                             {device.isActive ? "Active" : "Inactive"}
                           </Badge>
+                          <Badge
+                            tone={
+                              device.health === "ONLINE"
+                                ? "success"
+                                : device.health === "STALE"
+                                  ? "warning"
+                                  : device.health === "OFFLINE"
+                                    ? "danger"
+                                    : "neutral"
+                            }
+                          >
+                            {device.health === "NEVER_SEEN"
+                              ? "Never seen"
+                              : device.health}
+                          </Badge>
                           <Badge tone={toneForStatus(device.lastStatus)}>
                             {device.lastStatus ?? "UNKNOWN"}
                           </Badge>

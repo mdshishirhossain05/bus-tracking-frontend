@@ -440,6 +440,17 @@ export function usePassengerLiveTrip(initialTripId?: string | null) {
           // A background refresh failure must never wipe the live view.
           return;
         }
+        if (mode === "refresh") {
+          // A manual refresh failure keeps whatever is already on screen and
+          // surfaces the problem inline, instead of blanking the live map.
+          setError(
+            err?.response?.data?.message ||
+              "Failed to refresh live tracking data.",
+          );
+          return;
+        }
+        // Initial load failed with nothing to show — fall back to the full
+        // error screen.
         setTrips([]);
         setSelectedTripId("");
         setLiveStateSafe(null);

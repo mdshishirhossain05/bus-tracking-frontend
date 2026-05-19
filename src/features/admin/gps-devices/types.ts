@@ -48,6 +48,8 @@ export interface AdminGpsDeviceItem {
   lastSeenAt?: string | null;
   lastRecordedAt?: string | null;
   lastStatus?: "HEALTHY" | "STALE" | "UNHEALTHY" | "DISCONNECTED" | null;
+  health: "ONLINE" | "STALE" | "OFFLINE" | "NEVER_SEEN";
+  lastSeenAgeSeconds: number | null;
   traccarManaged: boolean;
   traccarDeviceId: number | null;
   traccarUniqueId: string | null;

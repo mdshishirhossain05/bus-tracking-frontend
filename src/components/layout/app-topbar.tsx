@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -21,18 +21,16 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/auth-provider";
 import { SIDEBAR_NAV_ITEMS } from "@/lib/constants/nav";
 import { cn } from "@/lib/utils/cn";
+import {
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  type AppNotification,
+} from "@/features/notifications/api/notifications.api";
 
 interface AppTopbarProps {
   onOpenSidebar?: () => void;
 }
-
-type NotificationItem = {
-  id: string;
-  title: string;
-  description: string;
-  tone: "info" | "success" | "warning";
-  href?: string;
-};
 
 export function AppTopbar({ onOpenSidebar }: AppTopbarProps) {
   const router = useRouter();
@@ -65,70 +63,48 @@ export function AppTopbar({ onOpenSidebar }: AppTopbarProps) {
     });
   }, [searchQuery, visibleItems]);
 
-  const notifications = useMemo<NotificationItem[]>(() => {
-    const items: NotificationItem[] = [
-      {
-        id: "system-live",
-        title: "Realtime system connected",
-        description:
-          "Passenger, driver, and admin modules are available from the current shell.",
-        tone: "success",
-        href: "/",
-      },
-      {
-        id: "account-tools",
-        title: "Account center available",
-        description:
-          "Update your profile, change password, and manage signed-in sessions.",
-        tone: "info",
-        href: "/account",
-      },
-    ];
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-    if (user?.role === "ADMIN") {
-      items.unshift({
-        id: "admin-users",
-        title: "User management ready",
-        description:
-          "Manage roles, sessions, and user status from the admin users page.",
-        tone: "info",
-        href: "/admin/users",
-      });
+  const loadNotifications = useCallback(async () => {
+    try {
+      const state = await getNotifications();
+      setNotifications(state.items);
+      setUnreadCount(state.unreadCount);
+    } catch {
+      // Notifications are non-critical.
+    }
+  }, []);
 
-      items.unshift({
-        id: "admin-ops",
-        title: "Operations monitoring active",
-        description:
-          "Admin operations dashboard is available for realtime monitoring.",
-        tone: "success",
-        href: "/admin/operations",
-      });
+  useEffect(() => {
+    void loadNotifications();
+  }, [loadNotifications]);
+
+  const handleMarkAllRead = async () => {
+    try {
+      const state = await markAllNotificationsRead();
+      setNotifications(state.items);
+      setUnreadCount(state.unreadCount);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleNotificationClick = async (item: AppNotification) => {
+    setNotificationsOpen(false);
+
+    if (!item.isRead) {
+      try {
+        const state = await markNotificationRead(item.id);
+        setNotifications(state.items);
+        setUnreadCount(state.unreadCount);
+      } catch {
+        // ignore
+      }
     }
 
-    if (user?.role === "DRIVER") {
-      items.unshift({
-        id: "driver-console",
-        title: "Driver console available",
-        description:
-          "Start trips, manage GPS permission, and publish live movement.",
-        tone: "info",
-        href: "/driver/trips",
-      });
-    }
-
-    if (user?.role === "PASSENGER") {
-      items.unshift({
-        id: "passenger-live",
-        title: "Passenger live tracking ready",
-        description:
-          "Track active trips with route path, ETA, and live movement.",
-        tone: "info",
-        href: "/passenger/live",
-      });
-    }
-
-    return items;
-  }, [user?.role]);
+    if (item.link) router.push(item.link);
+  };
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -287,47 +263,87 @@ export function AppTopbar({ onOpenSidebar }: AppTopbarProps) {
               variant="secondary"
               size="icon"
               aria-label="Notifications"
+              className="relative"
               onClick={() => {
-                setNotificationsOpen((prev) => !prev);
+                setNotificationsOpen((prev) => {
+                  const next = !prev;
+                  if (next) void loadNotifications();
+                  return next;
+                });
                 setProfileOpen(false);
                 setSearchOpen(false);
               }}
             >
               <Bell className="h-4.5 w-4.5" />
+              {unreadCount > 0 ? (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              ) : null}
             </Button>
 
             {notificationsOpen ? (
               <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(92vw,360px)] overflow-hidden rounded-sm border border-slate-800 bg-slate-900 shadow-xl">
-                <div className="border-b border-slate-800 px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-100">
-                    Notifications
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Quick operational shortcuts and account reminders.
-                  </p>
+                <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-100">
+                      Notifications
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {unreadCount > 0
+                        ? `${unreadCount} unread`
+                        : "You're all caught up"}
+                    </p>
+                  </div>
+                  {unreadCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleMarkAllRead()}
+                      className="text-xs font-medium text-blue-400 hover:text-blue-300"
+                    >
+                      Mark all read
+                    </button>
+                  ) : null}
                 </div>
 
                 <div className="max-h-96 overflow-y-auto p-2">
-                  {notifications.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => goToHref(item.href)}
-                      className="w-full rounded-sm px-3 py-3 text-left hover:bg-slate-800"
-                    >
-                      <div className="flex items-start gap-3">
-                        <Badge tone={item.tone}>{item.tone}</Badge>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-slate-100">
-                            {item.title}
-                          </p>
-                          <p className="mt-1 text-xs leading-5 text-slate-500">
-                            {item.description}
-                          </p>
+                  {notifications.length === 0 ? (
+                    <p className="px-3 py-6 text-center text-sm text-slate-500">
+                      No notifications yet.
+                    </p>
+                  ) : (
+                    notifications.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => void handleNotificationClick(item)}
+                        className={cn(
+                          "w-full rounded-sm px-3 py-3 text-left hover:bg-slate-800",
+                          !item.isRead && "bg-slate-800/50",
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span
+                            className={cn(
+                              "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                              item.isRead ? "bg-slate-700" : "bg-blue-500",
+                            )}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-100">
+                              {item.title}
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                              {item.body}
+                            </p>
+                            <p className="mt-1 text-[10px] text-slate-600">
+                              {new Date(item.createdAt).toLocaleString()}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
             ) : null}

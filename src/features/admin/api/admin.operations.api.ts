@@ -45,3 +45,11 @@ export async function startAdminTrip(serviceScheduleId: string) {
   });
   return res.data?.data ?? res.data;
 }
+
+export async function setAdminTripAutoEnd(tripId: string, disabled: boolean) {
+  const res = await api.post(
+    `/admin/operations/trips/${tripId}/auto-end`,
+    { disabled },
+  );
+  return res.data?.data ?? res.data;
+}

@@ -58,6 +58,7 @@ export function AdminOperationsShell() {
     actionError,
     forceEndSelectedTrip,
     forceRecoverSelectedTrip,
+    toggleSelectedTripAutoEnd,
     clearActionState,
   } = useAdminOperations();
 
@@ -242,6 +243,9 @@ export function AdminOperationsShell() {
               actionLoading={actionLoading}
               onForceEnd={() => void forceEndSelectedTrip()}
               onForceRecover={() => void forceRecoverSelectedTrip()}
+              onToggleAutoEnd={(disabled) =>
+                void toggleSelectedTripAutoEnd(disabled)
+              }
             />
             <AdminEventFeed events={events} />
           </div>

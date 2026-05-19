@@ -25,6 +25,7 @@ export interface AdminTripSnapshot {
     startedByGpsDeviceId?: string | null;
     startedAt: string | null;
     endedAt: string | null;
+    autoEndDisabled?: boolean;
   };
   liveState: {
     tripId: string;
@@ -89,6 +90,7 @@ export function mapOverviewTripToSnapshot(
       startedByGpsDeviceId: trip.startedByGpsDeviceId ?? null,
       startedAt: trip.startedAt,
       endedAt: trip.endedAt,
+      autoEndDisabled: trip.autoEndDisabled ?? false,
     },
     liveState: trip.liveState
       ? {

@@ -77,6 +77,7 @@ export interface AdminOverviewTrip {
   selectedSource: AdminSelectedSourceSummary | null;
   availableSources: AdminAvailableSourceSummary[];
   isStale: boolean;
+  autoEndDisabled?: boolean;
 }
 
 export interface AdminOverviewData {

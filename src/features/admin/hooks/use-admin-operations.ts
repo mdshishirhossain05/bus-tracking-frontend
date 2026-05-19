@@ -9,6 +9,7 @@ import {
   getAdminOperationsEvents,
   getAdminOperationsOverview,
   getAdminTripOperationsDetail,
+  setAdminTripAutoEnd,
 } from "@/features/admin/api/admin.operations.api";
 import type {
   AdminOperationsEvent,
@@ -117,7 +118,7 @@ function normalizeEtaPayload(payload: unknown) {
   };
 }
 
-type OperationAction = "force-end" | "force-recover" | null;
+type OperationAction = "force-end" | "force-recover" | "auto-end" | null;
 
 export function useAdminOperations() {
   const [loading, setLoading] = useState(true);
@@ -262,6 +263,35 @@ export function useAdminOperations() {
   const forceRecoverSelectedTrip = useCallback(async () => {
     await runAction("force-recover");
   }, [runAction]);
+
+  const toggleSelectedTripAutoEnd = useCallback(
+    async (disabled: boolean) => {
+      if (!selectedTripId) return;
+
+      setActionLoading("auto-end");
+      setActionMessage(null);
+      setActionError(null);
+
+      try {
+        await setAdminTripAutoEnd(selectedTripId, disabled);
+        setActionMessage(
+          disabled
+            ? "Auto-end disabled for this trip."
+            : "Auto-end re-enabled for this trip.",
+        );
+        await Promise.all([load("refresh"), refreshSelectedTripDetail()]);
+      } catch (err: any) {
+        console.error(err);
+        setActionError(
+          err?.response?.data?.message ||
+            "The admin operation could not be completed.",
+        );
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    [load, refreshSelectedTripDetail, selectedTripId],
+  );
 
   useEffect(() => {
     void load("initial");
@@ -558,6 +588,7 @@ export function useAdminOperations() {
     actionError,
     forceEndSelectedTrip,
     forceRecoverSelectedTrip,
+    toggleSelectedTripAutoEnd,
     clearActionState: () => {
       setActionMessage(null);
       setActionError(null);

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { LocateFixed, RefreshCcw, WifiOff } from "lucide-react";
+import { AlertTriangle, LocateFixed, RefreshCcw, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -99,7 +99,9 @@ function PassengerLiveContent() {
 
   if (loading) return <SectionSkeleton />;
 
-  if (error) {
+  // Only fall back to the full error screen when there is nothing to show.
+  // A refresh failure with a live trip already on screen is surfaced inline.
+  if (error && !trips.length) {
     return <ErrorState description={error} onRetry={() => void retry()} />;
   }
 
@@ -133,6 +135,34 @@ function PassengerLiveContent() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <ReconnectBanner status={connectionStatus} onRetry={() => void retry()} />
+
+      {error ? (
+        <Card className="border-red-500/30 bg-red-500/10">
+          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
+              <div>
+                <p className="text-sm font-semibold text-red-300">
+                  Live tracking refresh failed
+                </p>
+                <p className="mt-1 text-sm text-red-300">{error}</p>
+              </div>
+            </div>
+
+            <Button
+              variant="secondary"
+              className="w-full sm:w-auto"
+              onClick={() => void retry()}
+              disabled={refreshing}
+            >
+              <RefreshCcw
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              />
+              {refreshing ? "Refreshing..." : "Retry"}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>

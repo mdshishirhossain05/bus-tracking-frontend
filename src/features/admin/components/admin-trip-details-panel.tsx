@@ -239,6 +239,19 @@ export function AdminTripDetailsPanel({
               </div>
             </div>
 
+            {snapshot.trip.status === "RUNNING" && !lastLiveTimestamp ? (
+              <div className="rounded-sm border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+                <p className="font-semibold">
+                  Trip is running but no live position has arrived yet.
+                </p>
+                <p className="mt-1 text-amber-300/90">
+                  {snapshot.selectedSource?.sourceType === "GPS_DEVICE"
+                    ? "Check the assigned GPS device on the GPS Devices page — confirm it's online and transmitting."
+                    : "Check the driver's app — they may not have started location sharing, or location permission is blocked."}
+                </p>
+              </div>
+            ) : null}
+
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">

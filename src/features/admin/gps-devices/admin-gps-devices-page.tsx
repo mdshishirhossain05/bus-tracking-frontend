@@ -794,6 +794,7 @@ function GpsDeviceDiagnoseModal({
     string | null
   >(null);
   const [remoteDevice, setRemoteDevice] = useState<unknown>(null);
+  const [latestPosition, setLatestPosition] = useState<unknown>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -807,6 +808,7 @@ function GpsDeviceDiagnoseModal({
         setResolvedUniqueId(result.resolvedUniqueId ?? null);
         setResolvedServerBaseUrl(result.resolvedServerBaseUrl ?? null);
         setRemoteDevice(result.remoteDevice ?? null);
+        setLatestPosition(result.latestPosition ?? null);
         setErrorMessage(result.message ?? null);
       })
       .catch((err) => {
@@ -831,6 +833,29 @@ function GpsDeviceDiagnoseModal({
     typeof remoteRecord?.status === "string" ? remoteRecord.status : null;
   const remoteLastUpdate =
     typeof remoteRecord?.lastUpdate === "string" ? remoteRecord.lastUpdate : null;
+
+  const positionRecord =
+    latestPosition && typeof latestPosition === "object"
+      ? (latestPosition as Record<string, unknown>)
+      : null;
+  const positionFixTime =
+    typeof positionRecord?.fixTime === "string" ? positionRecord.fixTime : null;
+
+  // Heartbeat fresh (< 5 min) but GPS fix old (> 10 min) = the hardware is
+  // talking to Traccar but its GPS chip isn't producing new fixes.
+  const fixAgeSec =
+    positionFixTime != null
+      ? Math.max(0, (Date.now() - new Date(positionFixTime).getTime()) / 1000)
+      : null;
+  const heartbeatAgeSec =
+    remoteLastUpdate != null
+      ? Math.max(0, (Date.now() - new Date(remoteLastUpdate).getTime()) / 1000)
+      : null;
+  const hardwareReachableButGpsStale =
+    heartbeatAgeSec != null &&
+    fixAgeSec != null &&
+    heartbeatAgeSec < 5 * 60 &&
+    fixAgeSec > 10 * 60;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
@@ -964,12 +989,43 @@ function GpsDeviceDiagnoseModal({
                       <p className="text-slate-200">{remoteStatus ?? "—"}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500">Remote last update</p>
+                      <p className="text-slate-500">
+                        Remote last update (heartbeat)
+                      </p>
                       <p className="text-slate-200">
                         {formatDateTime(remoteLastUpdate)}
                       </p>
                     </div>
+                    <div>
+                      <p className="text-slate-500">
+                        Last GPS fix (position fixTime)
+                      </p>
+                      <p className="text-slate-200">
+                        {formatDateTime(positionFixTime)}
+                      </p>
+                    </div>
                   </div>
+
+                  {hardwareReachableButGpsStale ? (
+                    <div className="flex items-start gap-2 rounded-sm border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>
+                        Hardware is connected to Traccar (heartbeat is fresh),
+                        but its <strong>GPS chip hasn&apos;t produced a new
+                        fix</strong> in a long time. The latest position is
+                        from{" "}
+                        <code className="rounded bg-slate-900 px-1 py-0.5">
+                          {formatDateTime(positionFixTime)}
+                        </code>
+                        . Common causes: the bus is parked indoors / under
+                        cover with no sky view, the GPS antenna is unplugged
+                        or damaged, or the device firmware is configured to
+                        report positions only on movement. Move the bus
+                        outside, check the antenna, or check the device
+                        configuration.
+                      </div>
+                    </div>
+                  ) : null}
 
                   {/* Actionable guidance based on what we found. */}
                   {!loading && remoteRecord == null && traccarConfigured ? (

@@ -200,6 +200,7 @@ export async function getAdminGpsDeviceTraccarStatus(id: string) {
   return {
     gpsDevice: res.data?.gpsDevice ? mapGpsDevice(res.data.gpsDevice) : null,
     remoteDevice: res.data?.remoteDevice ?? null,
+    latestPosition: res.data?.latestPosition ?? null,
     resolvedUniqueId: res.data?.resolvedUniqueId ?? null,
     resolvedServerBaseUrl: res.data?.resolvedServerBaseUrl ?? null,
     traccarConfigured: Boolean(res.data?.traccarConfigured),

@@ -1241,66 +1241,81 @@ export function useDriverTripControl() {
     );
   }, [clearWatch, clearWatchRestart, publishLatestPosition]);
 
-  const handleStartTrip = useCallback(async () => {
-    if (!trip || (!trip.canStart && trip.status !== "PLANNED")) {
-      setError("No planned trip is available to start.");
-      return;
-    }
-
-    try {
-      setSubmittingStart(true);
-      setStatus("preparing");
-      setStartReadinessStage("checking");
-      setError(null);
-
-      const currentPermission = await queryBrowserPermissionState();
-      setPermission(currentPermission);
-
-      if (currentPermission !== "granted") {
-        setStartReadinessStage("requesting_permission");
+  const handleStartTrip = useCallback(
+    async (preferredSource?: "DRIVER_MOBILE" | "GPS_DEVICE" | null) => {
+      if (!trip || (!trip.canStart && trip.status !== "PLANNED")) {
+        setError("No planned trip is available to start.");
+        return;
       }
 
-      setStartReadinessStage("acquiring_fix");
-      const startPosition = await acquireStartReadyPosition();
-      latestPositionRef.current = startPosition;
-      lastPositionSeenAtRef.current = Date.now();
+      // GPS-only start: the GPS device is the tracking source, the driver
+      // phone deliberately does not publish, and we don't need a usable GPS
+      // fix on the phone before starting.
+      const usesDriverPhone = preferredSource !== "GPS_DEVICE";
 
-      setStartReadinessStage("starting_trip");
-      setStatus("starting");
+      try {
+        setSubmittingStart(true);
+        setStatus("preparing");
+        setStartReadinessStage("checking");
+        setError(null);
 
-      await startTrip();
-      await refresh();
+        if (usesDriverPhone) {
+          const currentPermission = await queryBrowserPermissionState();
+          setPermission(currentPermission);
 
-      resetPublisherState();
-      latestPositionRef.current = startPosition;
-      lastPositionSeenAtRef.current = Date.now();
-      setRecentArrival(null);
-      setStatus("active");
-      setStartReadinessStage("idle");
-      setError(null);
-      setLastEndedContext(null);
-      void acquireWakeLock();
-    } catch (err: any) {
-      console.error(err);
+          if (currentPermission !== "granted") {
+            setStartReadinessStage("requesting_permission");
+          }
 
-      const latestPermission = await queryBrowserPermissionState();
-      setPermission(latestPermission);
+          setStartReadinessStage("acquiring_fix");
+          const startPosition = await acquireStartReadyPosition();
+          latestPositionRef.current = startPosition;
+          lastPositionSeenAtRef.current = Date.now();
+        }
 
-      setStatus("error");
-      setStartReadinessStage("idle");
-      setError(
-        err?.response?.data?.message || err?.message || "Failed to start trip.",
-      );
-    } finally {
-      setSubmittingStart(false);
-    }
-  }, [
-    trip,
-    refresh,
-    resetPublisherState,
-    acquireStartReadyPosition,
-    acquireWakeLock,
-  ]);
+        setStartReadinessStage("starting_trip");
+        setStatus("starting");
+
+        await startTrip(preferredSource ?? null);
+        await refresh();
+
+        resetPublisherState();
+        if (usesDriverPhone && latestPositionRef.current) {
+          lastPositionSeenAtRef.current = Date.now();
+        }
+        setRecentArrival(null);
+        setStatus("active");
+        setStartReadinessStage("idle");
+        setError(null);
+        setLastEndedContext(null);
+        if (usesDriverPhone) {
+          void acquireWakeLock();
+        }
+      } catch (err: any) {
+        console.error(err);
+
+        const latestPermission = await queryBrowserPermissionState();
+        setPermission(latestPermission);
+
+        setStatus("error");
+        setStartReadinessStage("idle");
+        setError(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to start trip.",
+        );
+      } finally {
+        setSubmittingStart(false);
+      }
+    },
+    [
+      trip,
+      refresh,
+      resetPublisherState,
+      acquireStartReadyPosition,
+      acquireWakeLock,
+    ],
+  );
 
   const handleEndTrip = useCallback(async () => {
     if (!trip?.tripId) {
@@ -1361,9 +1376,15 @@ export function useDriverTripControl() {
     releaseWakeLock,
   ]);
 
+  // GPS-only trips: the driver picked the GPS device as the source, so the
+  // phone deliberately stops publishing. The map / status still update from
+  // socket broadcasts driven by the GPS device.
+  const driverPhonePublishes =
+    trip?.preferredTrackingSourceType !== "GPS_DEVICE";
+
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (!startedRef.current) return;
+      if (!startedRef.current || !driverPhonePublishes) return;
 
       if (document.visibilityState === "visible") {
         void acquireWakeLock();
@@ -1382,6 +1403,7 @@ export function useDriverTripControl() {
     };
   }, [
     acquireWakeLock,
+    driverPhonePublishes,
     publishLatestPosition,
     scheduleNextPublish,
     startWatchingLocation,
@@ -1502,7 +1524,7 @@ export function useDriverTripControl() {
   ]);
 
   useEffect(() => {
-    if (!started || !trip?.tripId) {
+    if (!started || !trip?.tripId || !driverPhonePublishes) {
       clearWatch();
       clearPublishLoop();
       clearWatchRestart();
@@ -1527,6 +1549,7 @@ export function useDriverTripControl() {
   }, [
     started,
     trip?.tripId,
+    driverPhonePublishes,
     clearWatch,
     clearPublishLoop,
     clearWatchRestart,
@@ -1581,6 +1604,9 @@ export function useDriverTripControl() {
     startReadinessStage,
     lastEndedContext,
     wakeLockState,
+    busHasActiveGpsDevice: Boolean(trip?.busHasActiveGpsDevice),
+    preferredTrackingSourceType: trip?.preferredTrackingSourceType ?? null,
+    driverPhonePublishes,
     clearEndedContext: () => setLastEndedContext(null),
     setPublishIntervalMs,
     requestPermission,

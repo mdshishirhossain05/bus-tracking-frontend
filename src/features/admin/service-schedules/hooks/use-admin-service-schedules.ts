@@ -100,7 +100,7 @@ export function useAdminServiceSchedules() {
     async (payload: {
       routeId: string;
       busId: string;
-      driverId: string;
+      driverId: string | null;
       dayType: DayType;
       departureTime: string;
       isActive?: boolean;
@@ -139,7 +139,7 @@ export function useAdminServiceSchedules() {
       payload: Partial<{
         routeId: string;
         busId: string;
-        driverId: string;
+        driverId: string | null;
         dayType: DayType;
         departureTime: string;
         isActive: boolean;

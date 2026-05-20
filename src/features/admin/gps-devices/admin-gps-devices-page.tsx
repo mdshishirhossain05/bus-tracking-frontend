@@ -841,8 +841,18 @@ function GpsDeviceDiagnoseModal({
   const positionFixTime =
     typeof positionRecord?.fixTime === "string" ? positionRecord.fixTime : null;
 
-  // Heartbeat fresh (< 5 min) but GPS fix old (> 10 min) = the hardware is
-  // talking to Traccar but its GPS chip isn't producing new fixes.
+  // Local last packet — set by the backend from Traccar's serverTime, so
+  // this is the authoritative "are we receiving fresh positions" signal.
+  const localLastRecordedMs = gpsDevice.lastRecordedAt
+    ? new Date(gpsDevice.lastRecordedAt).getTime()
+    : null;
+  const localRecordedAgeSec =
+    localLastRecordedMs != null
+      ? Math.max(0, (Date.now() - localLastRecordedMs) / 1000)
+      : null;
+  const localRecordedFresh =
+    localRecordedAgeSec != null && localRecordedAgeSec < 5 * 60;
+
   const fixAgeSec =
     positionFixTime != null
       ? Math.max(0, (Date.now() - new Date(positionFixTime).getTime()) / 1000)
@@ -851,10 +861,20 @@ function GpsDeviceDiagnoseModal({
     remoteLastUpdate != null
       ? Math.max(0, (Date.now() - new Date(remoteLastUpdate).getTime()) / 1000)
       : null;
-  const hardwareReachableButGpsStale =
+
+  // True staleness: heartbeat is fresh but we genuinely haven't seen a
+  // recent position locally. Then the GPS chip really isn't reporting.
+  const realStaleness =
     heartbeatAgeSec != null &&
-    fixAgeSec != null &&
     heartbeatAgeSec < 5 * 60 &&
+    !localRecordedFresh;
+
+  // Cosmetic firmware quirk: fixTime is old but our local record (set from
+  // serverTime) is fresh — tracking works, just don't trust fixTime as a
+  // freshness signal. Informational, not alarming.
+  const cosmeticFixTimeQuirk =
+    localRecordedFresh &&
+    fixAgeSec != null &&
     fixAgeSec > 10 * 60;
 
   return (
@@ -1006,23 +1026,44 @@ function GpsDeviceDiagnoseModal({
                     </div>
                   </div>
 
-                  {hardwareReachableButGpsStale ? (
+                  {realStaleness ? (
                     <div className="flex items-start gap-2 rounded-sm border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                       <div>
                         Hardware is connected to Traccar (heartbeat is fresh),
-                        but its <strong>GPS chip hasn&apos;t produced a new
-                        fix</strong> in a long time. The latest position is
-                        from{" "}
+                        but our backend hasn&apos;t received a new position in
+                        over 5 minutes. Common causes: the bus is parked
+                        indoors / under cover with no sky view, the GPS
+                        antenna is unplugged or damaged, or the device
+                        firmware is configured to report positions only on
+                        movement. Move the bus outside, check the antenna,
+                        or check the device configuration.
+                      </div>
+                    </div>
+                  ) : cosmeticFixTimeQuirk ? (
+                    // Tracking IS working — the backend uses Traccar's
+                    // serverTime for ingest. Display fixTime is a firmware
+                    // quirk: the device reports without a UTC offset, so
+                    // Traccar's fixTime ends up hours behind real time.
+                    <div className="flex items-start gap-2 rounded-sm border border-slate-700/60 bg-slate-900/60 p-3 text-xs text-slate-300">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                      <div>
+                        Tracking is working — our backend received its last
+                        position{" "}
+                        <strong>
+                          {Math.max(1, Math.round((localRecordedAgeSec ?? 0)))}{" "}
+                          s ago
+                        </strong>
+                        . The Traccar &ldquo;Last GPS fix&rdquo; above looks
+                        stale because this device&apos;s firmware reports{" "}
                         <code className="rounded bg-slate-900 px-1 py-0.5">
-                          {formatDateTime(positionFixTime)}
-                        </code>
-                        . Common causes: the bus is parked indoors / under
-                        cover with no sky view, the GPS antenna is unplugged
-                        or damaged, or the device firmware is configured to
-                        report positions only on movement. Move the bus
-                        outside, check the antenna, or check the device
-                        configuration.
+                          fixTime
+                        </code>{" "}
+                        without a UTC offset; we use Traccar&apos;s{" "}
+                        <code className="rounded bg-slate-900 px-1 py-0.5">
+                          serverTime
+                        </code>{" "}
+                        instead, which is correct. Nothing to do.
                       </div>
                     </div>
                   ) : null}

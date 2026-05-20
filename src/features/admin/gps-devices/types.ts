@@ -48,6 +48,13 @@ export interface AdminGpsDeviceItem {
   lastSeenAt?: string | null;
   lastRecordedAt?: string | null;
   lastStatus?: "HEALTHY" | "STALE" | "UNHEALTHY" | "DISCONNECTED" | null;
+  /** Latest GPS coordinates the backend received from this device. Useful
+   *  for confirming the device is actually transmitting. */
+  lastLat?: number | null;
+  lastLng?: number | null;
+  lastSpeedKmh?: number | null;
+  lastHeading?: number | null;
+  lastAccuracyM?: number | null;
   health: "ONLINE" | "STALE" | "OFFLINE" | "NEVER_SEEN";
   lastSeenAgeSeconds: number | null;
   traccarManaged: boolean;

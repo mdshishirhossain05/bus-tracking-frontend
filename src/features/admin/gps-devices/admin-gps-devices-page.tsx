@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Check, ChevronDown, ChevronUp, Copy, MapPin } from "lucide-react";
 import { PageSection } from "@/components/layout/page-section";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { env } from "@/lib/config/env";
 import { getApiErrorMessage } from "@/lib/api/error";
 import {
   handleApiError,
@@ -47,6 +49,126 @@ function formatDateTime(value?: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function formatCoordinate(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) return null;
+  return value.toFixed(6);
+}
+
+/**
+ * Direct-ingest endpoint a hardware GPS device should POST to. Useful for
+ * setup verification so the operator knows exactly which URL to configure
+ * on the device side.
+ */
+function buildIngestUrl(deviceCode: string) {
+  const base = env.NEXT_PUBLIC_API_BASE_URL.replace(/\/+$/, "");
+  return `${base}/gps/devices/${deviceCode}/ingest`;
+}
+
+/**
+ * Compact, expandable setup hint for a direct-ingest device — shows the
+ * exact URL the hardware should POST to, the auth header to send, and a
+ * minimal body example. Without this, operators had no in-app way to know
+ * which endpoint to configure on the GPS device firmware.
+ */
+function DirectIngestSetup({ deviceCode }: { deviceCode: string }) {
+  const [open, setOpen] = useState(false);
+  const url = buildIngestUrl(deviceCode);
+
+  return (
+    <div className="space-y-2 text-xs text-slate-500">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center gap-1 text-slate-300 hover:text-slate-100"
+      >
+        {open ? (
+          <ChevronUp className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronDown className="h-3.5 w-3.5" />
+        )}
+        <span>{open ? "Hide setup" : "Show setup URL"}</span>
+      </button>
+
+      {open ? (
+        <div className="space-y-2 rounded-sm border border-slate-800 bg-slate-950 p-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+              POST
+            </p>
+            <div className="mt-1 flex items-start justify-between gap-2">
+              <code className="break-all rounded bg-slate-900 px-2 py-1 text-[11px] text-slate-100">
+                {url}
+              </code>
+              <CopyButton value={url} label="Copy" />
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+              Headers
+            </p>
+            <ul className="mt-1 space-y-1 font-mono text-[11px] text-slate-300">
+              <li>x-device-api-key: &lt;device API key&gt;</li>
+              <li>Content-Type: application/json</li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+              Body
+            </p>
+            <pre className="mt-1 overflow-x-auto rounded bg-slate-900 p-2 font-mono text-[11px] text-slate-200">
+{`{
+  "lat": 23.780573,
+  "lng": 90.279239,
+  "speedKmh": 34,
+  "heading": 180,
+  "accuracyM": 12,
+  "recordedAt": "2026-05-20T10:00:00Z"
+}`}
+            </pre>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Small inline copy-to-clipboard button. Falls back silently when the
+ * clipboard API is unavailable (insecure origins, older browsers).
+ */
+function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }
+    } catch {
+      // Clipboard write blocked — the operator can still select+copy manually.
+    }
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="rounded-sm"
+      onClick={() => void handleCopy()}
+      type="button"
+    >
+      {copied ? (
+        <Check className="h-3.5 w-3.5 text-emerald-300" />
+      ) : (
+        <Copy className="h-3.5 w-3.5" />
+      )}
+      {copied ? "Copied" : label}
+    </Button>
+  );
 }
 
 function toneForStatus(status?: string | null) {
@@ -210,7 +332,7 @@ function GpsDeviceFormModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
       <Card className="w-full max-w-3xl rounded-sm">
-        <CardContent className="space-y-6 p-6">
+        <CardContent className="max-h-[calc(100vh-2rem)] space-y-6 overflow-y-auto p-6">
           <div>
             <h3 className="text-lg font-semibold tracking-tight text-slate-100">
               {title}
@@ -222,15 +344,20 @@ function GpsDeviceFormModal({
 
           {generatedApiKey ? (
             <div className="rounded-sm border border-amber-500/30 bg-amber-500/10 p-4">
-              <p className="text-sm font-semibold text-amber-300">
-                Save this generated API key now
-              </p>
-              <p className="mt-1 break-all rounded-sm bg-slate-900 px-3 py-2 text-sm text-slate-100">
-                {generatedApiKey}
-              </p>
-              <p className="mt-2 text-xs text-amber-300">
-                It may not be shown again by the backend.
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-amber-300">
+                    Save this generated API key now
+                  </p>
+                  <p className="mt-1 break-all rounded-sm bg-slate-900 px-3 py-2 text-sm text-slate-100">
+                    {generatedApiKey}
+                  </p>
+                  <p className="mt-2 text-xs text-amber-300">
+                    It may not be shown again by the backend.
+                  </p>
+                </div>
+                <CopyButton value={generatedApiKey} label="Copy key" />
+              </div>
             </div>
           ) : null}
 
@@ -1013,6 +1140,28 @@ export function AdminGpsDevicesPage() {
                           Last packet
                         </div>
                         <div>{formatDateTime(device.lastRecordedAt)}</div>
+                        {formatCoordinate(device.lastLat) &&
+                        formatCoordinate(device.lastLng) ? (
+                          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-300">
+                            <MapPin className="h-3 w-3 text-slate-500" />
+                            <span className="font-mono">
+                              {formatCoordinate(device.lastLat)},{" "}
+                              {formatCoordinate(device.lastLng)}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="mt-2 text-xs text-slate-500">
+                            No position recorded yet
+                          </div>
+                        )}
+                        {device.lastSpeedKmh != null ? (
+                          <div className="mt-1 text-xs text-slate-500">
+                            {device.lastSpeedKmh.toFixed(1)} km/h
+                            {device.lastHeading != null
+                              ? ` • ${device.lastHeading}°`
+                              : ""}
+                          </div>
+                        ) : null}
                       </td>
 
                       <td className="px-5 py-4 align-top">
@@ -1039,25 +1188,39 @@ export function AdminGpsDevicesPage() {
                             <Badge tone={device.traccarManaged ? "info" : "neutral"}>
                               {device.traccarManaged ? "Traccar managed" : "Direct ingest"}
                             </Badge>
-                            <Badge tone={toneForTraccarSync(device.traccarSyncStatus)}>
-                              {device.traccarSyncStatus}
-                            </Badge>
+                            {device.traccarManaged ? (
+                              <Badge tone={toneForTraccarSync(device.traccarSyncStatus)}>
+                                {device.traccarSyncStatus}
+                              </Badge>
+                            ) : null}
                           </div>
 
-                          <div className="text-xs text-slate-500">
-                            Device ID: {device.traccarDeviceId ?? "-"}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            Unique ID: {device.traccarUniqueId ?? "-"}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            Last sync: {formatDateTime(device.traccarLastSyncAt)}
-                          </div>
-                          {device.traccarLastError ? (
-                            <div className="text-xs text-red-400">
-                              {device.traccarLastError}
-                            </div>
-                          ) : null}
+                          {device.traccarManaged ? (
+                            <>
+                              <div className="text-xs text-slate-500">
+                                Device ID: {device.traccarDeviceId ?? "—"}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                Unique ID: {device.traccarUniqueId ?? "—"}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                Last sync:{" "}
+                                {formatDateTime(device.traccarLastSyncAt)}
+                              </div>
+                              {device.traccarLastError ? (
+                                <div className="text-xs text-red-400">
+                                  {device.traccarLastError}
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            // Direct-ingest devices need the operator to
+                            // configure the hardware with this exact URL +
+                            // API key. Surfacing it inline (rather than
+                            // hiding it in docs) is the most common operator
+                            // ask.
+                            <DirectIngestSetup deviceCode={device.deviceCode} />
+                          )}
                         </div>
                       </td>
 

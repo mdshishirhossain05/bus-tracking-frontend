@@ -35,6 +35,12 @@ function mapGpsDevice(item: any): AdminGpsDeviceItem {
     lastSeenAt: item.lastSeenAt ?? null,
     lastRecordedAt: item.lastRecordedAt ?? null,
     lastStatus: item.lastStatus ?? null,
+    lastLat: item.lastLat == null ? null : Number(item.lastLat),
+    lastLng: item.lastLng == null ? null : Number(item.lastLng),
+    lastSpeedKmh: item.lastSpeedKmh == null ? null : Number(item.lastSpeedKmh),
+    lastHeading: item.lastHeading == null ? null : Number(item.lastHeading),
+    lastAccuracyM:
+      item.lastAccuracyM == null ? null : Number(item.lastAccuracyM),
     health: item.health ?? "NEVER_SEEN",
     lastSeenAgeSeconds:
       item.lastSeenAgeSeconds == null

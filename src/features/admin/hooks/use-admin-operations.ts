@@ -582,6 +582,8 @@ export function useAdminOperations() {
     averageEta: overview?.kpis.averageEtaMinutes ?? null,
     onlineUsers: overview?.kpis.onlineUsers ?? 0,
     liveWatchers: overview?.kpis.liveWatchers ?? 0,
+    pendingSchedules: overview?.kpis.pendingSchedules ?? 0,
+    scheduledItems: overview?.scheduledItems ?? [],
     retry,
     actionLoading,
     actionMessage,

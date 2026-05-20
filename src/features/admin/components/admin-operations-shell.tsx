@@ -24,6 +24,7 @@ import { AdminKpiGrid } from "@/features/admin/components/admin-kpi-grid";
 import { AdminTripMonitorList } from "@/features/admin/components/admin-trip-monitor-list";
 import { AdminEventFeed } from "@/features/admin/components/admin-event-feed";
 import { AdminTripDetailsPanel } from "@/features/admin/components/admin-trip-details-panel";
+import { AdminScheduledItemsCard } from "@/features/admin/components/admin-scheduled-items-card";
 import { StartTripModal } from "@/features/admin/components/start-trip-modal";
 
 const LiveTripMap = dynamic(() => import("@/components/map/live-trip-map"), {
@@ -52,6 +53,7 @@ export function AdminOperationsShell() {
     averageEta,
     onlineUsers,
     liveWatchers,
+    scheduledItems,
     retry,
     actionLoading,
     actionMessage,
@@ -76,15 +78,20 @@ export function AdminOperationsShell() {
     return <SectionSkeleton />;
   }
 
-  if (error && !snapshots.length) {
+  // Keep the page populated whenever there is *anything* operational to show
+  // — either running trips or schedules waiting to start. The fall-through
+  // empty state only triggers when both are empty.
+  const hasAnythingToShow = snapshots.length > 0 || scheduledItems.length > 0;
+
+  if (error && !hasAnythingToShow) {
     return <ErrorState description={error} onRetry={() => void retry()} />;
   }
 
-  if (!snapshots.length) {
+  if (!hasAnythingToShow) {
     return (
       <EmptyState
         title="No live admin operations data"
-        description="There are no active trips available for admin monitoring right now."
+        description="There are no active trips or scheduled departures right now."
         actionLabel="Reload dashboard"
         onAction={() => void retry()}
       />
@@ -165,6 +172,14 @@ export function AdminOperationsShell() {
         />
       </PageSection>
 
+      {scheduledItems.length ? (
+        <AdminScheduledItemsCard
+          items={scheduledItems}
+          onStarted={() => void retry()}
+        />
+      ) : null}
+
+      {!snapshots.length ? null : (
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <AdminTripMonitorList
           snapshots={snapshots}
@@ -251,6 +266,7 @@ export function AdminOperationsShell() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

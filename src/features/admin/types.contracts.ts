@@ -80,6 +80,37 @@ export interface AdminOverviewTrip {
   autoEndDisabled?: boolean;
 }
 
+/**
+ * Today's active schedules that don't yet have a running trip. Surfaced on
+ * the admin operations page so a GPS-only schedule (or a driver schedule
+ * waiting for the driver to start) is visible and actionable, instead of
+ * being invisible until a Trip row exists.
+ */
+export interface AdminScheduledItem {
+  serviceScheduleId: string;
+  routeId: string;
+  routeName: string;
+  busId: string;
+  busLabel: string;
+  plateNumber: string | null;
+  driverId: string | null;
+  driverName: string | null;
+  driverEmail: string | null;
+  dayType: string;
+  departureTime: string;
+  secondsUntilDeparture: number;
+  gpsDevice: {
+    id: string;
+    deviceCode: string;
+    displayName: string | null;
+    isActive: boolean;
+    lastSeenAt: string | null;
+    lastRecordedAt: string | null;
+    lastStatus: AdminTrackingSourceStatus | null;
+  } | null;
+  tripStarter: "DRIVER" | "GPS_AUTO";
+}
+
 export interface AdminOverviewData {
   kpis: {
     activeTrips: number;
@@ -90,8 +121,10 @@ export interface AdminOverviewData {
     averageEtaMinutes: number | null;
     onlineUsers: number;
     liveWatchers: number;
+    pendingSchedules?: number;
   };
   trips: AdminOverviewTrip[];
+  scheduledItems?: AdminScheduledItem[];
 }
 
 export interface AdminOperationsEvent {

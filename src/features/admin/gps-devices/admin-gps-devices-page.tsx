@@ -1,7 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronUp, Copy, MapPin } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  ExternalLink,
+  MapPin,
+  Stethoscope,
+} from "lucide-react";
+import { getAdminGpsDeviceTraccarStatus } from "./api/admin-gps-devices.api";
 import { PageSection } from "@/components/layout/page-section";
 import { EmptyState } from "@/components/states/empty-state";
 import { ErrorState } from "@/components/states/error-state";
@@ -37,6 +47,7 @@ type ModalState =
   | { type: "delete"; gpsDevice: AdminGpsDeviceItem }
   | { type: "assign"; gpsDevice: AdminGpsDeviceItem }
   | { type: "unassign"; gpsDevice: AdminGpsDeviceItem }
+  | { type: "diagnose"; gpsDevice: AdminGpsDeviceItem }
   | null;
 
 function formatDateTime(value?: string | null) {
@@ -760,6 +771,280 @@ function ConfirmDialog({
   );
 }
 
+/**
+ * Surfaces the Traccar + last-packet diagnostics that already exist on the
+ * backend, so operators don't have to call them by hand to figure out why a
+ * device shows "Never seen". For Direct devices it re-shows the ingest URL
+ * with a one-click copy.
+ */
+function GpsDeviceDiagnoseModal({
+  gpsDevice,
+  onClose,
+}: {
+  gpsDevice: AdminGpsDeviceItem;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(gpsDevice.traccarManaged);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [traccarConfigured, setTraccarConfigured] = useState<boolean | null>(
+    null,
+  );
+  const [resolvedUniqueId, setResolvedUniqueId] = useState<string | null>(null);
+  const [resolvedServerBaseUrl, setResolvedServerBaseUrl] = useState<
+    string | null
+  >(null);
+  const [remoteDevice, setRemoteDevice] = useState<unknown>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!gpsDevice.traccarManaged) return;
+
+    setLoading(true);
+    getAdminGpsDeviceTraccarStatus(gpsDevice.id)
+      .then((result) => {
+        if (cancelled) return;
+        setTraccarConfigured(result.traccarConfigured);
+        setResolvedUniqueId(result.resolvedUniqueId ?? null);
+        setResolvedServerBaseUrl(result.resolvedServerBaseUrl ?? null);
+        setRemoteDevice(result.remoteDevice ?? null);
+        setErrorMessage(result.message ?? null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setErrorMessage(getApiErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gpsDevice.id, gpsDevice.traccarManaged]);
+
+  const ingestUrl = buildIngestUrl(gpsDevice.deviceCode);
+  const remoteRecord =
+    remoteDevice && typeof remoteDevice === "object"
+      ? (remoteDevice as Record<string, unknown>)
+      : null;
+  const remoteStatus =
+    typeof remoteRecord?.status === "string" ? remoteRecord.status : null;
+  const remoteLastUpdate =
+    typeof remoteRecord?.lastUpdate === "string" ? remoteRecord.lastUpdate : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-2xl rounded-sm">
+        <CardContent className="max-h-[calc(100vh-2rem)] space-y-5 overflow-y-auto p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-100">
+                <Stethoscope className="h-5 w-5 text-blue-300" />
+                Diagnose {gpsDevice.deviceCode}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Figure out why this device shows{" "}
+                <span className="text-slate-300">
+                  {gpsDevice.health === "NEVER_SEEN"
+                    ? "Never seen"
+                    : gpsDevice.health}
+                </span>
+                .
+              </p>
+            </div>
+            <Badge tone={gpsDevice.traccarManaged ? "info" : "neutral"}>
+              {gpsDevice.traccarManaged ? "Traccar managed" : "Direct ingest"}
+            </Badge>
+          </div>
+
+          {/* Local backend view of the device. */}
+          <div className="rounded-sm border border-slate-800 bg-slate-950 p-4 text-sm">
+            <p className="font-semibold text-slate-100">
+              What our backend has seen
+            </p>
+            <div className="mt-3 grid gap-2 text-xs text-slate-400 sm:grid-cols-2">
+              <div>
+                <p className="text-slate-500">Last packet</p>
+                <p className="text-slate-200">
+                  {formatDateTime(gpsDevice.lastRecordedAt)}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500">Last seen</p>
+                <p className="text-slate-200">
+                  {formatDateTime(gpsDevice.lastSeenAt)}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500">Last position</p>
+                <p className="font-mono text-slate-200">
+                  {formatCoordinate(gpsDevice.lastLat) &&
+                  formatCoordinate(gpsDevice.lastLng)
+                    ? `${formatCoordinate(gpsDevice.lastLat)}, ${formatCoordinate(gpsDevice.lastLng)}`
+                    : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500">Status</p>
+                <p className="text-slate-200">
+                  {gpsDevice.lastStatus ?? "UNKNOWN"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {gpsDevice.traccarManaged ? (
+            <div className="space-y-3 rounded-sm border border-slate-800 bg-slate-950 p-4 text-sm">
+              <p className="font-semibold text-slate-100">
+                Traccar integration
+              </p>
+
+              {loading ? (
+                <p className="text-xs text-slate-500">
+                  Fetching Traccar status…
+                </p>
+              ) : (
+                <>
+                  {traccarConfigured === false ? (
+                    <div className="flex items-start gap-2 rounded-sm border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>
+                        Traccar credentials are not configured on the backend.
+                        Set <code>TRACCAR_BASE_URL</code> and the API
+                        credentials in the backend <code>.env</code> before
+                        Traccar can forward positions to this system.
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {errorMessage ? (
+                    <div className="flex items-start gap-2 rounded-sm border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>{errorMessage}</div>
+                    </div>
+                  ) : null}
+
+                  <div className="grid gap-2 text-xs text-slate-400 sm:grid-cols-2">
+                    <div>
+                      <p className="text-slate-500">Resolved unique ID</p>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <code className="break-all rounded bg-slate-900 px-2 py-0.5 text-[11px] text-slate-100">
+                          {resolvedUniqueId ?? "—"}
+                        </code>
+                        {resolvedUniqueId ? (
+                          <CopyButton value={resolvedUniqueId} label="" />
+                        ) : null}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Traccar server</p>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        {resolvedServerBaseUrl ? (
+                          <>
+                            <code className="break-all rounded bg-slate-900 px-2 py-0.5 text-[11px] text-slate-100">
+                              {resolvedServerBaseUrl}
+                            </code>
+                            <a
+                              href={resolvedServerBaseUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-slate-300 hover:text-slate-100"
+                              title="Open Traccar"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          </>
+                        ) : (
+                          <span className="text-slate-500">—</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Remote Traccar status</p>
+                      <p className="text-slate-200">{remoteStatus ?? "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Remote last update</p>
+                      <p className="text-slate-200">
+                        {formatDateTime(remoteLastUpdate)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actionable guidance based on what we found. */}
+                  {!loading && remoteRecord == null && traccarConfigured ? (
+                    <div className="flex items-start gap-2 rounded-sm border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>
+                        Traccar doesn&apos;t recognise this device yet. Use{" "}
+                        <span className="font-semibold">Sync Traccar</span> on
+                        the row, or create the device on the Traccar server
+                        with unique ID{" "}
+                        <code className="rounded bg-slate-900 px-1 py-0.5">
+                          {resolvedUniqueId ?? gpsDevice.imei ?? gpsDevice.deviceCode}
+                        </code>
+                        .
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {!loading &&
+                  remoteRecord != null &&
+                  !gpsDevice.lastRecordedAt ? (
+                    <div className="flex items-start gap-2 rounded-sm border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <div>
+                        Traccar knows the device, but no position has been
+                        forwarded to this system yet. Check that the Traccar
+                        forwarder (computed positions →{" "}
+                        <code className="rounded bg-slate-900 px-1 py-0.5">
+                          POST /gps/devices/{gpsDevice.deviceCode}/ingest
+                        </code>
+                        ) is enabled and pointing at this server, and that the
+                        hardware is online.
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3 rounded-sm border border-slate-800 bg-slate-950 p-4 text-sm">
+              <p className="font-semibold text-slate-100">
+                Direct ingest endpoint
+              </p>
+              <p className="text-xs text-slate-500">
+                Configure the GPS hardware (or its forwarder) to POST location
+                packets here:
+              </p>
+              <div className="flex items-start justify-between gap-2">
+                <code className="break-all rounded bg-slate-900 px-2 py-1 text-xs text-slate-100">
+                  {ingestUrl}
+                </code>
+                <CopyButton value={ingestUrl} label="Copy" />
+              </div>
+              <p className="text-xs text-slate-500">
+                Required header:{" "}
+                <code className="rounded bg-slate-900 px-1 py-0.5">
+                  x-device-api-key
+                </code>
+                . If you don&apos;t have the key, edit the device and rotate it
+                to receive a fresh one.
+              </p>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-2">
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export function AdminGpsDevicesPage() {
   const {
     gpsDevices,
@@ -1263,6 +1548,17 @@ export function AdminGpsDevicesPage() {
                           <Button
                             size="sm"
                             variant="secondary"
+                            onClick={() =>
+                              setModal({ type: "diagnose", gpsDevice: device })
+                            }
+                          >
+                            <Stethoscope className="h-3.5 w-3.5" />
+                            Diagnose
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="secondary"
                             disabled={!device.traccarManaged || submitting}
                             onClick={() => void handleReconcileTraccar(device)}
                           >
@@ -1364,6 +1660,13 @@ export function AdminGpsDevicesPage() {
           confirmTone="danger"
           submitting={submitting}
           onConfirm={handleDeleteConfirm}
+          onClose={closeModal}
+        />
+      ) : null}
+
+      {modal?.type === "diagnose" ? (
+        <GpsDeviceDiagnoseModal
+          gpsDevice={modal.gpsDevice}
           onClose={closeModal}
         />
       ) : null}

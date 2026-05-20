@@ -41,14 +41,14 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-start gap-3 rounded-sm border border-slate-800 bg-slate-950 p-4">
-      <div className="rounded-sm bg-slate-900 p-2 text-slate-300 shadow-sm">
+      <div className="shrink-0 rounded-sm bg-slate-900 p-2 text-slate-300 shadow-sm">
         {icon}
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
           {label}
         </p>
-        <p className="mt-2 break-words text-sm font-medium text-slate-100">
+        <p className="mt-2 break-all text-sm font-medium text-slate-100">
           {value}
         </p>
       </div>

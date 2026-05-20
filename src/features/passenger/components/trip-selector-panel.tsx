@@ -129,14 +129,14 @@ export function TripSelectorPanel({
                   }`}
                   onClick={() => onSelect(trip.tripId)}
                 >
-                  <div className="w-full">
+                  <div className="w-full min-w-0">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">
                           {trip.routeName ?? trip.routeId}
                         </p>
                         <p
-                          className={`mt-1 text-xs ${
+                          className={`mt-1 break-all text-xs ${
                             active ? "text-slate-300" : "text-slate-500"
                           }`}
                         >
@@ -144,7 +144,7 @@ export function TripSelectorPanel({
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex shrink-0 items-center gap-1.5">
                         {onToggleFavorite ? (
                           <span
                             role="button"
@@ -188,19 +188,23 @@ export function TripSelectorPanel({
                         active ? "text-slate-200" : "text-slate-500"
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <BusFront className="h-3.5 w-3.5" />
-                        <span>Bus: {trip.busLabel ?? trip.busId ?? "N/A"}</span>
+                      <div className="flex items-start gap-2">
+                        <BusFront className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span className="min-w-0 break-all">
+                          Bus: {trip.busLabel ?? trip.busId ?? "N/A"}
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Route className="h-3.5 w-3.5" />
-                        <span>Route ID: {trip.routeId}</span>
+                      <div className="flex items-start gap-2">
+                        <Route className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span className="min-w-0 break-all">
+                          Route ID: {trip.routeId}
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Clock3 className="h-3.5 w-3.5" />
-                        <span>
+                      <div className="flex items-start gap-2">
+                        <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span className="min-w-0 break-words">
                           Update:{" "}
                           {freshForThisTrip
                             ? formatRelativeTime(freshForThisTrip)

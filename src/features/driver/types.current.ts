@@ -63,6 +63,11 @@ export interface DriverCurrentTrip {
   endedAt: string | null;
   serviceScheduleId: string | null;
   departureTime: string | null;
+  /** The source the driver explicitly picked on start, if any. */
+  preferredTrackingSourceType?: "DRIVER_MOBILE" | "GPS_DEVICE" | null;
+  /** Whether the bus has an active GPS-device assignment. Drives the
+   *  source picker UI on the driver screen. */
+  busHasActiveGpsDevice?: boolean;
   liveState: DriverTripLiveState | null;
   eta: DriverTripEta | null;
 }

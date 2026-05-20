@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   AlertTriangle,
@@ -20,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DriverAssignedTripCard } from "@/features/driver/components/driver-assigned-trip-card";
 import { DriverLocationStatusCard } from "@/features/driver/components/driver-location-status-card";
-import { DriverControlPanel } from "@/features/driver/components/driver-control-panel";
 import { useDriverTripControl } from "@/features/driver/hooks/use-driver-trip-control";
 import { useRoutePresentation } from "@/features/routes/hooks/use-route-presentation";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils/format";
@@ -30,6 +30,7 @@ const LiveTripMap = dynamic(() => import("@/components/map/live-trip-map"), {
 });
 
 type LiveTone = "success" | "warning" | "danger" | "neutral";
+type TrackingSource = "DRIVER_MOBILE" | "GPS_DEVICE";
 
 const dotToneClass: Record<LiveTone, string> = {
   success: "bg-emerald-400",
@@ -96,6 +97,68 @@ function ArrivalToast({
           • {formatRelativeTime(arrivalTime)} • {delayMinutes} min
         </span>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Segmented control for the driver to pick the tracking source before Start.
+ * Only rendered when the bus has a GPS device assigned AND the schedule has
+ * a driver (otherwise there's nothing to choose between).
+ */
+function SourcePicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: TrackingSource;
+  onChange: (next: TrackingSource) => void;
+  disabled?: boolean;
+}) {
+  const options: Array<{
+    value: TrackingSource;
+    label: string;
+    icon: React.ReactNode;
+  }> = [
+    {
+      value: "DRIVER_MOBILE",
+      label: "Driver mobile",
+      icon: <Smartphone className="h-4 w-4" />,
+    },
+    {
+      value: "GPS_DEVICE",
+      label: "GPS device",
+      icon: <Satellite className="h-4 w-4" />,
+    },
+  ];
+
+  return (
+    <div
+      className="grid grid-cols-2 gap-1 rounded-full border border-slate-800/80 bg-slate-950/80 p-1 text-xs font-medium"
+      role="radiogroup"
+      aria-label="Tracking source"
+    >
+      {options.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={disabled}
+            onClick={() => onChange(opt.value)}
+            className={`flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${
+              active
+                ? "bg-blue-600 text-white shadow"
+                : "text-slate-300 hover:text-slate-100"
+            } disabled:opacity-50`}
+          >
+            {opt.icon}
+            <span>{opt.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -183,10 +246,16 @@ function getLiveTone(params: {
   started: boolean;
   publishState: string;
   permission: string;
+  driverPhonePublishes: boolean;
 }): LiveTone {
-  const { started, publishState, permission } = params;
+  const { started, publishState, permission, driverPhonePublishes } = params;
 
   if (!started) return "neutral";
+
+  // GPS-only trips don't have a driver-phone publish state to grade; status
+  // comes from the broadcast freshness instead.
+  if (!driverPhonePublishes) return "success";
+
   if (publishState === "error" || permission === "denied") return "danger";
   if (
     publishState === "watching" ||
@@ -203,10 +272,12 @@ function getLiveLabel(params: {
   started: boolean;
   publishState: string;
   permission: string;
+  driverPhonePublishes: boolean;
 }) {
-  const { started, publishState, permission } = params;
+  const { started, publishState, permission, driverPhonePublishes } = params;
 
   if (!started) return "Ready to start";
+  if (!driverPhonePublishes) return "GPS device is tracking";
   if (permission === "denied") return "Location blocked";
   if (publishState === "error") return "GPS attention needed";
   if (publishState === "watching") return "Watching GPS";
@@ -233,24 +304,42 @@ export function DriverTripShell() {
     started,
     permission,
     publishState,
-    publishIntervalMs,
     liveState,
     trackingSource,
     recentArrival,
     submittingStart,
     submittingEnd,
-    startReadinessStage,
     lastEndedContext,
     clearEndedContext,
-    setPublishIntervalMs,
-    requestPermission,
+    busHasActiveGpsDevice,
+    preferredTrackingSourceType,
+    driverPhonePublishes,
     refreshTrip,
     startTrip,
     endTrip,
-    sendNow,
   } = useDriverTripControl();
 
   const { data: routePresentation } = useRoutePresentation(trip?.routeId);
+
+  const canStart = trip?.status === "PLANNED";
+  const canEnd = trip?.status === "RUNNING";
+
+  // The driver picks a source upfront when the bus has a GPS device AND a
+  // driver is assigned (so both are viable). Default to driver mobile —
+  // that matches the previous behaviour when no GPS device was assigned.
+  const sourcePickerVisible = canStart && Boolean(busHasActiveGpsDevice);
+  const [selectedSource, setSelectedSource] =
+    useState<TrackingSource>("DRIVER_MOBILE");
+
+  // Reset the picker selection whenever the planned trip changes so a new
+  // assignment doesn't carry over a stale choice.
+  useEffect(() => {
+    if (canStart) setSelectedSource("DRIVER_MOBILE");
+  }, [canStart, trip?.serviceScheduleId]);
+
+  function handleStartTrip() {
+    void startTrip(sourcePickerVisible ? selectedSource : null);
+  }
 
   if (loading && !trip) return <SectionSkeleton />;
 
@@ -339,21 +428,74 @@ export function DriverTripShell() {
     started,
     publishState,
     permission,
+    driverPhonePublishes,
   });
 
   const liveLabel = getLiveLabel({
     started,
     publishState,
     permission,
+    driverPhonePublishes,
   });
 
+  const effectiveSourceType =
+    preferredTrackingSourceType ?? trackingSource?.sourceType ?? null;
+
   const trackingLabel = sourceLabel(
-    trackingSource?.sourceType,
+    effectiveSourceType,
     trackingSource?.sourceLabel,
   );
 
-  const canStart = trip.status === "PLANNED";
-  const canEnd = trip.status === "RUNNING";
+  /**
+   * Single primary action — Start or End trip — used by both the desktop
+   * inline card and the mobile sticky bottom bar.
+   */
+  function PrimaryActionButton({ size = "lg" }: { size?: "lg" | "md" }) {
+    if (canStart) {
+      return (
+        <Button
+          variant="primary"
+          size={size}
+          className="w-full rounded-full text-base font-semibold sm:h-12"
+          onClick={handleStartTrip}
+          disabled={submittingStart}
+        >
+          {submittingStart ? (
+            <LoaderCircle className="h-5 w-5 animate-spin" />
+          ) : (
+            <Play className="h-5 w-5" />
+          )}
+          {submittingStart ? "Starting…" : "Start Trip"}
+        </Button>
+      );
+    }
+
+    if (canEnd) {
+      return (
+        <Button
+          variant="danger"
+          size={size}
+          className="w-full rounded-full text-base font-semibold sm:h-12"
+          onClick={() => void endTrip()}
+          disabled={submittingEnd}
+        >
+          {submittingEnd ? (
+            <LoaderCircle className="h-5 w-5 animate-spin" />
+          ) : (
+            <Square className="h-5 w-5" />
+          )}
+          {submittingEnd ? "Ending…" : "End Trip"}
+        </Button>
+      );
+    }
+
+    return (
+      <div className="flex items-center justify-center gap-2 text-sm text-slate-400">
+        <LivePulseDot tone={liveTone} />
+        <span>{liveLabel}</span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -412,23 +554,32 @@ export function DriverTripShell() {
         <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
           {/* Map first on mobile, side panels first on desktop. */}
           <div className="order-2 space-y-4 xl:order-1">
-            <DriverControlPanel
-              canStart={canStart}
-              canEnd={canEnd}
-              started={started}
-              submittingStart={submittingStart}
-              submittingEnd={submittingEnd}
-              publishState={publishState}
-              permission={permission}
-              publishIntervalMs={publishIntervalMs}
-              startReadinessStage={startReadinessStage}
-              trackingSource={trackingSource}
-              onChangeInterval={setPublishIntervalMs}
-              onRequestPermission={() => void requestPermission()}
-              onStartTrip={() => void startTrip()}
-              onEndTrip={() => void endTrip()}
-              onSendNow={() => void sendNow()}
-            />
+            {/* Desktop / tablet primary action card. The fixed-bottom mobile
+                bar handles the same action on phones; this card stays hidden
+                there to avoid duplication. */}
+            <Card className="hidden sm:block">
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <LivePulseDot tone={liveTone} />
+                  <span>{liveLabel}</span>
+                </div>
+
+                {sourcePickerVisible ? (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-slate-400">
+                      Pick the tracking source for this trip
+                    </p>
+                    <SourcePicker
+                      value={selectedSource}
+                      onChange={setSelectedSource}
+                      disabled={submittingStart}
+                    />
+                  </div>
+                ) : null}
+
+                <PrimaryActionButton />
+              </CardContent>
+            </Card>
 
             <DriverLocationStatusCard
               liveState={liveState}
@@ -448,7 +599,7 @@ export function DriverTripShell() {
 
                 <div className="flex flex-wrap items-start justify-end gap-2">
                   <FloatingPill tone="neutral">
-                    {getSourceIcon(trackingSource?.sourceType)}
+                    {getSourceIcon(effectiveSourceType)}
                     <span>{trackingLabel}</span>
                   </FloatingPill>
                   {etaMinutes != null ? (
@@ -501,7 +652,7 @@ export function DriverTripShell() {
           </div>
         </div>
 
-        {started && permission === "denied" ? (
+        {started && driverPhonePublishes && permission === "denied" ? (
           <Card className="border-amber-500/30 bg-amber-500/10">
             <CardContent className="flex items-start gap-3 p-4 text-sm text-amber-300">
               <WifiOff className="mt-0.5 h-4 w-4 shrink-0" />
@@ -509,7 +660,8 @@ export function DriverTripShell() {
                 <p className="font-semibold">Location permission is blocked.</p>
                 <p className="mt-1">
                   Allow browser location access so passengers can see the live
-                  bus position.
+                  bus position — or end the trip and restart with the GPS
+                  device as the source.
                 </p>
               </div>
             </CardContent>
@@ -518,43 +670,15 @@ export function DriverTripShell() {
       </div>
 
       {/* Native-app-style sticky bottom action bar — mobile-only primary CTA. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800/80 bg-slate-950/90 px-4 py-3 backdrop-blur-md shadow-2xl sm:hidden">
-        {canStart ? (
-          <Button
-            variant="primary"
-            size="lg"
-            className="h-12 w-full rounded-full text-base font-semibold"
-            onClick={() => void startTrip()}
+      <div className="fixed inset-x-0 bottom-0 z-30 space-y-2 border-t border-slate-800/80 bg-slate-950/90 px-4 py-3 backdrop-blur-md shadow-2xl sm:hidden">
+        {sourcePickerVisible ? (
+          <SourcePicker
+            value={selectedSource}
+            onChange={setSelectedSource}
             disabled={submittingStart}
-          >
-            {submittingStart ? (
-              <LoaderCircle className="h-5 w-5 animate-spin" />
-            ) : (
-              <Play className="h-5 w-5" />
-            )}
-            {submittingStart ? "Starting…" : "Start Trip"}
-          </Button>
-        ) : canEnd ? (
-          <Button
-            variant="danger"
-            size="lg"
-            className="h-12 w-full rounded-full text-base font-semibold"
-            onClick={() => void endTrip()}
-            disabled={submittingEnd}
-          >
-            {submittingEnd ? (
-              <LoaderCircle className="h-5 w-5 animate-spin" />
-            ) : (
-              <Square className="h-5 w-5" />
-            )}
-            {submittingEnd ? "Ending…" : "End Trip"}
-          </Button>
-        ) : (
-          <div className="flex items-center justify-center gap-2 text-sm text-slate-400">
-            <LivePulseDot tone={liveTone} />
-            <span>{liveLabel}</span>
-          </div>
-        )}
+          />
+        ) : null}
+        <PrimaryActionButton />
       </div>
 
       {recentArrival ? (

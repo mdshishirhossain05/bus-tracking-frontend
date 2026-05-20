@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -6,11 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils/format";
 import type { AdminEventItem } from "@/features/admin/types";
 
 interface AdminEventFeedProps {
   events: AdminEventItem[];
+  /** Number of events visible before the "See all" toggle. Default 5. */
+  collapsedCount?: number;
 }
 
 function toneForType(type: string) {
@@ -32,14 +39,32 @@ function toneForType(type: string) {
   }
 }
 
-export function AdminEventFeed({ events }: AdminEventFeedProps) {
+export function AdminEventFeed({
+  events,
+  collapsedCount = 5,
+}: AdminEventFeedProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const hiddenCount = Math.max(0, events.length - collapsedCount);
+  const visibleEvents =
+    expanded || events.length <= collapsedCount
+      ? events
+      : events.slice(0, collapsedCount);
+
   return (
-    <Card className="min-h-[420px]">
+    <Card>
       <CardHeader>
-        <CardTitle>Operations Event Feed</CardTitle>
-        <CardDescription>
-          Latest persisted system and trip activity events.
-        </CardDescription>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle>Operations Event Feed</CardTitle>
+            <CardDescription>
+              Latest persisted system and trip activity events.
+            </CardDescription>
+          </div>
+          {events.length ? (
+            <Badge tone="neutral">{events.length}</Badge>
+          ) : null}
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
@@ -48,31 +73,56 @@ export function AdminEventFeed({ events }: AdminEventFeedProps) {
             No operations events yet.
           </div>
         ) : (
-          events.map((event) => (
-            <div
-              key={event.id}
-              className="rounded-sm border border-slate-800 bg-slate-950 p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-100">
-                      {event.title}
+          <>
+            {visibleEvents.map((event) => (
+              <div
+                key={event.id}
+                className="rounded-sm border border-slate-800 bg-slate-950 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-100">
+                        {event.title}
+                      </p>
+                      <Badge tone={toneForType(event.type)}>{event.type}</Badge>
+                    </div>
+                    <p className="mt-2 break-words text-sm text-slate-400">
+                      {event.description}
                     </p>
-                    <Badge tone={toneForType(event.type)}>{event.type}</Badge>
                   </div>
-                  <p className="mt-2 text-sm text-slate-400">
-                    {event.description}
-                  </p>
-                </div>
 
-                <div className="text-right text-xs text-slate-500">
-                  <p>{formatRelativeTime(event.createdAt)}</p>
-                  <p className="mt-1">{formatDateTime(event.createdAt)}</p>
+                  <div className="text-right text-xs text-slate-500">
+                    <p>{formatRelativeTime(event.createdAt)}</p>
+                    <p className="mt-1">{formatDateTime(event.createdAt)}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+
+            {hiddenCount > 0 ? (
+              <div className="flex justify-center pt-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => setExpanded((prev) => !prev)}
+                >
+                  {expanded ? (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      Show less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4" />
+                      See all {events.length} events
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
       </CardContent>
     </Card>

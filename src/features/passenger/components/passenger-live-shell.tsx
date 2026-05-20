@@ -363,7 +363,12 @@ function PassengerLiveContent() {
             />
           </div>
 
-          <EtaCard eta={eta} isStale={isStale} tripEnded={tripEnded} />
+          <EtaCard
+            eta={eta}
+            liveState={liveState}
+            isStale={isStale}
+            tripEnded={tripEnded}
+          />
 
           <LiveTripDetails
             trip={selectedTrip}

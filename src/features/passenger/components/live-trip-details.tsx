@@ -248,11 +248,13 @@ export function LiveTripDetails({
           <DetailRow
             label="Your Location"
             value={
-              passengerLocation
-                ? `${formatCoordinate(
-                    passengerLocation.latitude,
-                  )}, ${formatCoordinate(passengerLocation.longitude)}`
-                : "Location unavailable"
+              eta?.passengerNearestStop?.stopName
+                ? `Near ${eta.passengerNearestStop.stopName}`
+                : passengerLocation
+                  ? `${formatCoordinate(
+                      passengerLocation.latitude,
+                    )}, ${formatCoordinate(passengerLocation.longitude)}`
+                  : "Location unavailable"
             }
             icon={<MapPin className="h-4 w-4" />}
           />

@@ -257,14 +257,10 @@ function getLiveTone(params: {
   if (!driverPhonePublishes) return "success";
 
   if (publishState === "error" || permission === "denied") return "danger";
-  if (
-    publishState === "watching" ||
-    publishState === "sending" ||
-    publishState === "recovering"
-  ) {
-    return "warning";
-  }
+  if (publishState === "recovering") return "warning";
 
+  // "watching" / "sending" are transient internal states of the publish
+  // loop — stay green to avoid every-second flicker.
   return "success";
 }
 
@@ -280,11 +276,11 @@ function getLiveLabel(params: {
   if (!driverPhonePublishes) return "GPS device is tracking";
   if (permission === "denied") return "Location blocked";
   if (publishState === "error") return "GPS attention needed";
-  if (publishState === "watching") return "Watching GPS";
-  if (publishState === "sending") return "Sending location";
   if (publishState === "recovering") return "Recovering GPS";
-  if (publishState === "success") return "Live tracking";
-  return "Trip active";
+  // Don't flicker between Watching/Sending/Live every second — those are
+  // internal publish-loop states. Once the trip is live, just show "Live
+  // tracking" with the pulsing dot.
+  return "Live tracking";
 }
 
 function getSourceIcon(sourceType?: string | null) {

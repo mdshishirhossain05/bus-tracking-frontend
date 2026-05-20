@@ -55,6 +55,49 @@ function getStopIndexByName(stops: RouteStop[], name?: string | null) {
   return stops.findIndex((stop) => normalizeName(stop.name) === normalized);
 }
 
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function haversineMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+) {
+  const earthRadius = 6371000;
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLng / 2) ** 2;
+  return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getNearestStopIndexByLiveState(
+  stops: RouteStop[],
+  liveState?: DriverTripLiveState | null,
+): number {
+  const lat = liveState?.latitude ?? liveState?.lat ?? null;
+  const lng = liveState?.longitude ?? liveState?.lng ?? null;
+  if (lat == null || lng == null) return -1;
+
+  let bestIndex = -1;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  stops.forEach((stop, index) => {
+    const distance = haversineMeters(lat, lng, stop.latitude, stop.longitude);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
+}
+
 function getStopIndexById(stops: RouteStop[], stopId?: string | null) {
   if (!stopId) return -1;
   return stops.findIndex((stop) => stop.id === stopId);
@@ -63,11 +106,19 @@ function getStopIndexById(stops: RouteStop[], stopId?: string | null) {
 function buildTimelineItems(params: {
   stops: RouteStop[];
   trip?: DriverCurrentTrip | null;
+  liveState?: DriverTripLiveState | null;
   recentArrival?: TripStopArrivalPayload | null;
   nextStopId?: string | null;
   nextStopName?: string | null;
 }): TimelineStopItem[] {
-  const { stops, trip, recentArrival, nextStopId, nextStopName } = params;
+  const {
+    stops,
+    trip,
+    liveState,
+    recentArrival,
+    nextStopId,
+    nextStopName,
+  } = params;
 
   if (!stops.length) return [];
 
@@ -80,6 +131,9 @@ function buildTimelineItems(params: {
   );
 
   const etaNearestIndex = getStopIndexByName(stops, trip?.eta?.nearestStopName);
+  // Fallback used when the backend ETA hasn't populated yet — without this
+  // the timeline shows everything as "upcoming" until the first ETA update.
+  const liveNearestIndex = getNearestStopIndexByLiveState(stops, liveState);
 
   let nextIndex =
     explicitNextIndex >= 0
@@ -97,9 +151,18 @@ function buildTimelineItems(params: {
       ? arrivedIndex
       : etaNearestIndex >= 0
         ? etaNearestIndex
-        : nextIndex > 0
-          ? nextIndex - 1
-          : 0;
+        : liveNearestIndex >= 0
+          ? liveNearestIndex
+          : nextIndex > 0
+            ? nextIndex - 1
+            : 0;
+
+  // If we located the current stop from the live position and don't yet
+  // have a next-stop hint, the next stop is simply the one after the
+  // current — so the timeline visibly progresses as the bus moves.
+  if (nextIndex < 0 && currentIndex >= 0 && currentIndex + 1 < stops.length) {
+    nextIndex = currentIndex + 1;
+  }
 
   if (currentIndex >= stops.length) {
     currentIndex = stops.length - 1;
@@ -221,11 +284,19 @@ export function DriverAssignedTripCard({
       buildTimelineItems({
         stops: routePresentation?.stops ?? [],
         trip,
+        liveState,
         recentArrival,
         nextStopId,
         nextStopName,
       }),
-    [routePresentation?.stops, trip, recentArrival, nextStopId, nextStopName],
+    [
+      routePresentation?.stops,
+      trip,
+      liveState,
+      recentArrival,
+      nextStopId,
+      nextStopName,
+    ],
   );
 
   const currentLiveState = liveState ?? trip?.liveState ?? null;

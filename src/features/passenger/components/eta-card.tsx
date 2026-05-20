@@ -7,7 +7,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { TripEta } from "@/types/trip";
+import { useAnimatedSpeed } from "@/lib/hooks/use-animated-speed";
+import type { LiveBusLocation, TripEta } from "@/types/trip";
 
 function formatDistanceMeters(value?: number | null) {
   if (value == null) return "N/A";
@@ -17,12 +18,14 @@ function formatDistanceMeters(value?: number | null) {
 
 interface EtaCardProps {
   eta?: TripEta | null;
+  liveState?: LiveBusLocation | null;
   isStale?: boolean;
   tripEnded?: boolean;
 }
 
 export function EtaCard({
   eta,
+  liveState,
   isStale = false,
   tripEnded = false,
 }: EtaCardProps) {
@@ -37,8 +40,25 @@ export function EtaCard({
     eta?.nextStopDistanceMeters ??
     null;
 
-  const currentSpeed =
-    eta?.rollingAverageSpeedKmh ?? eta?.usedSpeedKmh ?? null;
+  // Pick the live observed speed in preference to the ETA's `usedSpeedKmh`,
+  // which is sometimes the default constant when sensors haven't reported a
+  // real speed yet — that's what made the displayed speed look "false".
+  const targetSpeedKmh =
+    liveState?.displaySpeedKmh ??
+    liveState?.speed ??
+    liveState?.filteredSpeedKmh ??
+    liveState?.averageSpeedKmh ??
+    liveState?.rawSpeedKmh ??
+    eta?.rollingAverageSpeedKmh ??
+    null;
+
+  const animatedSpeed = useAnimatedSpeed({
+    targetSpeedKmh,
+    isStationary: liveState?.isStationary === true,
+    updatedAt: liveState?.updatedAt ?? null,
+  });
+
+  const currentSpeed = animatedSpeed;
 
   const badgeTone = tripEnded ? "warning" : isStale ? "warning" : "success";
   const badgeText = tripEnded ? "Ended" : isStale ? "Updating" : "Live ETA";

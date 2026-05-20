@@ -29,7 +29,7 @@ interface ServiceScheduleFormModalProps {
   onSubmit: (values: {
     routeId: string;
     busId: string;
-    driverId: string;
+    driverId: string | null;
     dayType: DayType;
     departureTime: string;
     isActive: boolean;
@@ -75,7 +75,7 @@ function mergeDrivers(
     merged.unshift({
       id: initial.driverId,
       fullName: initial.driverName,
-      email: initial.driverEmail,
+      email: initial.driverEmail ?? "",
       role: "DRIVER",
       isActive: true,
       approvalStatus: "APPROVED",
@@ -227,6 +227,12 @@ export function ServiceScheduleFormModal({
   }, [values.routeId]);
 
   const selectedDriver = drivers.find((item) => item.id === values.driverId);
+  const selectedBus = buses.find((item) => item.id === values.busId);
+
+  // A schedule needs *some* tracking source. If the selected bus has a GPS
+  // device assigned, the driver field is optional — the GPS device will be
+  // the tracking source and the trip will auto-start from telematics.
+  const driverOptional = Boolean(selectedBus?.hasActiveGpsDevice);
 
   const selectableRoutes = useMemo(() => {
     const activeRoutes = routes.filter((route) => route.isActive);
@@ -265,7 +271,10 @@ export function ServiceScheduleFormModal({
 
     if (!values.routeId) nextErrors.routeId = "Route is required.";
     if (!values.busId) nextErrors.busId = "Bus is required.";
-    if (!values.driverId) nextErrors.driverId = "Driver is required.";
+    if (!driverOptional && !values.driverId) {
+      nextErrors.driverId =
+        "Driver is required (or assign a GPS device to the bus first).";
+    }
 
     if (!values.departureTime.trim()) {
       nextErrors.departureTime = "Departure time is required.";
@@ -292,7 +301,8 @@ export function ServiceScheduleFormModal({
     await onSubmit({
       routeId: values.routeId,
       busId: values.busId,
-      driverId: values.driverId,
+      // null = GPS-only schedule (allowed when the bus has a GPS device).
+      driverId: values.driverId ? values.driverId : null,
       dayType: values.dayType,
       departureTime: values.departureTime.trim(),
       isActive: values.isActive,
@@ -378,6 +388,7 @@ export function ServiceScheduleFormModal({
                   <option key={bus.id} value={bus.id}>
                     {bus.busCode}
                     {bus.plateNumber ? ` • ${bus.plateNumber}` : ""}
+                    {bus.hasActiveGpsDevice ? " • GPS" : ""}
                     {!bus.isActive ? " (Inactive)" : ""}
                   </option>
                 ))}
@@ -456,7 +467,12 @@ export function ServiceScheduleFormModal({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300">Driver</label>
+            <label className="text-sm font-medium text-slate-300">
+              Driver{" "}
+              <span className="text-xs font-normal text-slate-500">
+                {driverOptional ? "(optional)" : "(required)"}
+              </span>
+            </label>
             <Select
               value={values.driverId}
               onChange={(e) =>
@@ -467,9 +483,11 @@ export function ServiceScheduleFormModal({
               <option value="">
                 {driverLoading
                   ? "Loading drivers..."
-                  : drivers.length === 0
-                    ? "No active drivers found"
-                    : "Select active driver"}
+                  : driverOptional
+                    ? "No driver — track via GPS device"
+                    : drivers.length === 0
+                      ? "No active drivers found"
+                      : "Select active driver"}
               </option>
               {drivers.map((driver) => (
                 <option key={driver.id} value={driver.id}>
@@ -477,7 +495,12 @@ export function ServiceScheduleFormModal({
                 </option>
               ))}
             </Select>
-            {selectedDriver ? (
+            {driverOptional && !values.driverId ? (
+              <p className="text-xs text-emerald-400">
+                This bus has an active GPS device — the trip will auto-start
+                from telematics, no driver phone needed.
+              </p>
+            ) : selectedDriver ? (
               <p className="text-xs text-slate-500">
                 Selected: {selectedDriver.fullName} ({selectedDriver.email})
               </p>

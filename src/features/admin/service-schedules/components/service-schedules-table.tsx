@@ -52,10 +52,20 @@ export function ServiceSchedulesTable({
               </td>
 
               <td className="px-5 py-4 align-top">
-                <div className="font-medium text-slate-100">{item.driverName}</div>
-                <div className="mt-1 text-xs text-slate-500">
-                  {item.driverEmail}
-                </div>
+                {item.driverName ? (
+                  <>
+                    <div className="font-medium text-slate-100">
+                      {item.driverName}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {item.driverEmail}
+                    </div>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-300">
+                    GPS device only
+                  </span>
+                )}
               </td>
 
               <td className="px-5 py-4 align-top">{item.dayType}</td>

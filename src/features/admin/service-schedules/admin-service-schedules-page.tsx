@@ -163,7 +163,7 @@ export function AdminServiceSchedulesPage() {
   async function handleCreate(values: {
     routeId: string;
     busId: string;
-    driverId: string;
+    driverId: string | null;
     dayType: DayType;
     departureTime: string;
     isActive: boolean;
@@ -197,7 +197,7 @@ export function AdminServiceSchedulesPage() {
   async function handleUpdate(values: {
     routeId: string;
     busId: string;
-    driverId: string;
+    driverId: string | null;
     dayType: DayType;
     departureTime: string;
     isActive: boolean;

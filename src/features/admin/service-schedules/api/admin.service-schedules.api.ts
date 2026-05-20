@@ -16,9 +16,9 @@ export interface ServiceScheduleItem {
   busId: string;
   busCode: string;
   plateNumber: string | null;
-  driverId: string;
-  driverName: string;
-  driverEmail: string;
+  driverId: string | null;
+  driverName: string | null;
+  driverEmail: string | null;
   dayType: DayType;
   departureTime: string;
   isActive: boolean;
@@ -49,6 +49,7 @@ export interface BusOption {
   busCode: string;
   plateNumber: string | null;
   isActive: boolean;
+  hasActiveGpsDevice: boolean;
 }
 
 export interface DriverOption {
@@ -188,7 +189,7 @@ export async function getServiceSchedules(params: {
 export async function createServiceSchedule(payload: {
   routeId: string;
   busId: string;
-  driverId: string;
+  driverId: string | null;
   dayType: DayType;
   departureTime: string;
   isActive?: boolean;
@@ -203,7 +204,7 @@ export async function updateServiceSchedule(
   payload: Partial<{
     routeId: string;
     busId: string;
-    driverId: string;
+    driverId: string | null;
     dayType: DayType;
     departureTime: string;
     isActive: boolean;
@@ -281,6 +282,7 @@ export async function getBusOptions(): Promise<BusOption[]> {
         busCode: item.busCode,
         plateNumber: item.plateNumber ?? null,
         isActive: Boolean(item.isActive),
+        hasActiveGpsDevice: Boolean(item.activeGpsDeviceAssignment),
       }))
     : [];
 }

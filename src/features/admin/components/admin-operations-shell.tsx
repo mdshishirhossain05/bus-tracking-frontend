@@ -64,14 +64,16 @@ export function AdminOperationsShell() {
     clearActionState,
   } = useAdminOperations();
 
-  const { data: routePresentation } = useRoutePresentation(selectedTrip?.routeId);
+  const { data: routePresentation } = useRoutePresentation(
+    selectedTrip?.routeId,
+  );
 
   const [startTripOpen, setStartTripOpen] = useState(false);
 
   const hasFreshLivePoint = Boolean(
     selectedSnapshot?.liveState?.latitude != null &&
-      selectedSnapshot?.liveState?.longitude != null &&
-      !selectedSnapshot?.isStale,
+    selectedSnapshot?.liveState?.longitude != null &&
+    !selectedSnapshot?.isStale,
   );
 
   if (loading) {
@@ -180,92 +182,85 @@ export function AdminOperationsShell() {
       ) : null}
 
       {!snapshots.length ? null : (
-      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <AdminTripMonitorList
-          snapshots={snapshots}
-          selectedTripId={selectedTripId}
-          onSelect={setSelectedTripId}
-        />
+        <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+          <AdminTripMonitorList
+            snapshots={snapshots}
+            selectedTripId={selectedTripId}
+            onSelect={setSelectedTripId}
+          />
 
-        <div className="space-y-6">
-          <PageSection
-            title="Operations map"
-            description="Focused admin view for the currently selected trip."
-            action={
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={selectedSnapshot?.isStale ? "warning" : "success"}>
-                  {selectedSnapshot?.isStale ? "Stale data" : "Fresh data"}
-                </Badge>
-                <Badge tone="info">{socketStatus}</Badge>
-                {selectedSnapshot?.trip.activationMode ? (
-                  <Badge tone="neutral">
-                    {selectedSnapshot.trip.activationMode}
+          <div className="space-y-6">
+            <PageSection
+              title="Operations map"
+              description="Live position and route for the selected trip."
+              action={
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    tone={selectedSnapshot?.isStale ? "warning" : "success"}
+                  >
+                    {selectedSnapshot?.isStale ? "Stale data" : "Fresh data"}
                   </Badge>
-                ) : null}
-                {selectedSnapshot?.selectedSource?.sourceLabel ? (
-                  <Badge tone="info">
-                    Source: {selectedSnapshot.selectedSource.sourceLabel}
-                  </Badge>
-                ) : null}
-                {selectedSnapshot?.selectedSource?.selectionReason ? (
-                  <Badge tone="neutral">
-                    {selectedSnapshot.selectedSource.selectionReason}
-                  </Badge>
-                ) : null}
-                {selectedSnapshot?.eta?.nextStopName ? (
-                  <Badge tone="info">
-                    Next stop: {selectedSnapshot.eta.nextStopName}
-                  </Badge>
-                ) : null}
-              </div>
-            }
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {selectedTrip?.routeName ?? selectedTrip?.routeId ?? "Selected Route"}
-                </CardTitle>
-                <CardDescription>
-                  Admin route visibility, smoothed live vehicle position, and stop context.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <MapLegend isLive={hasFreshLivePoint} />
-
-                <LiveTripMap
-                  latitude={selectedSnapshot?.liveState?.latitude}
-                  longitude={selectedSnapshot?.liveState?.longitude}
-                  routeName={selectedTrip?.routeName ?? selectedTrip?.routeId}
-                  busLabel={selectedTrip?.busLabel ?? selectedTrip?.busId}
-                  updatedAt={selectedSnapshot?.liveState?.updatedAt}
-                  speed={
-                    selectedSnapshot?.liveState?.speed ??
-                    selectedSnapshot?.liveState?.speedKmh
-                  }
-                  routePresentation={routePresentation}
-                  autoFollow={true}
-                />
-              </CardContent>
-            </Card>
-          </PageSection>
-
-          <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-            <AdminTripDetailsPanel
-              snapshot={selectedSnapshot}
-              detail={selectedTripDetail}
-              loading={detailLoading}
-              actionLoading={actionLoading}
-              onForceEnd={() => void forceEndSelectedTrip()}
-              onForceRecover={() => void forceRecoverSelectedTrip()}
-              onToggleAutoEnd={(disabled) =>
-                void toggleSelectedTripAutoEnd(disabled)
+                  {selectedSnapshot?.selectedSource?.sourceLabel ? (
+                    <Badge tone="info">
+                      Source: {selectedSnapshot.selectedSource.sourceLabel}
+                    </Badge>
+                  ) : null}
+                  {selectedSnapshot?.eta?.nextStopName ? (
+                    <Badge tone="info">
+                      Next stop: {selectedSnapshot.eta.nextStopName}
+                    </Badge>
+                  ) : null}
+                </div>
               }
-            />
-            <AdminEventFeed events={events} />
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    {selectedTrip?.routeName ??
+                      selectedTrip?.routeId ??
+                      "Selected route"}
+                  </CardTitle>
+                  <CardDescription>
+                    Live vehicle position and stops for this trip.
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <MapLegend isLive={hasFreshLivePoint} />
+
+                  <LiveTripMap
+                    latitude={selectedSnapshot?.liveState?.latitude}
+                    longitude={selectedSnapshot?.liveState?.longitude}
+                    routeName={selectedTrip?.routeName ?? selectedTrip?.routeId}
+                    busLabel={selectedTrip?.busLabel ?? selectedTrip?.busId}
+                    updatedAt={selectedSnapshot?.liveState?.updatedAt}
+                    speed={
+                      selectedSnapshot?.liveState?.speed ??
+                      selectedSnapshot?.liveState?.speedKmh
+                    }
+                    routePresentation={routePresentation}
+                    autoFollow={true}
+                  />
+                </CardContent>
+              </Card>
+            </PageSection>
+
+            <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+              <AdminTripDetailsPanel
+                snapshot={selectedSnapshot}
+                detail={selectedTripDetail}
+                loading={detailLoading}
+                actionLoading={actionLoading}
+                onForceEnd={() => void forceEndSelectedTrip()}
+                onForceRecover={() => void forceRecoverSelectedTrip()}
+                onToggleAutoEnd={(disabled) =>
+                  void toggleSelectedTripAutoEnd(disabled)
+                }
+              />
+              <AdminEventFeed events={events} />
+            </div>
           </div>
         </div>
-      </div>
       )}
     </div>
   );

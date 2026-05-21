@@ -1,4 +1,3 @@
-import { ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils/cn";
@@ -14,6 +13,14 @@ interface StatCardProps {
   className?: string;
 }
 
+const iconChipClass: Record<Tone, string> = {
+  neutral: "bg-slate-500/15 text-slate-300",
+  success: "bg-emerald-500/15 text-emerald-300",
+  warning: "bg-amber-500/15 text-amber-300",
+  danger: "bg-red-500/15 text-red-300",
+  info: "bg-blue-500/15 text-blue-300",
+};
+
 export function StatCard({
   label,
   value,
@@ -24,10 +31,15 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <Card className={cn("overflow-hidden transition-colors hover:border-slate-700", className)}>
+    <Card
+      className={cn(
+        "overflow-hidden transition-colors hover:border-slate-700",
+        className,
+      )}
+    >
       <CardContent className="relative px-5 py-5">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
               {label}
             </p>
@@ -41,17 +53,12 @@ export function StatCard({
 
           <div className="flex flex-col items-end gap-2">
             {icon ? (
-              <div className="rounded-sm border border-slate-800 bg-slate-800/60 p-3 text-slate-300">
+              <div className={cn("rounded-xl p-3", iconChipClass[tone])}>
                 {icon}
               </div>
             ) : null}
 
-            {trendLabel ? (
-              <Badge tone={tone} className="gap-1">
-                <ArrowUpRight className="h-3.5 w-3.5" />
-                {trendLabel}
-              </Badge>
-            ) : null}
+            {trendLabel ? <Badge tone={tone}>{trendLabel}</Badge> : null}
           </div>
         </div>
       </CardContent>

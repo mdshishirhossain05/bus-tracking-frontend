@@ -5,7 +5,6 @@ import {
   BusFront,
   Clock3,
   Play,
-  Route,
   Satellite,
   Smartphone,
   UserRound,
@@ -49,8 +48,24 @@ function deviceTone(item: AdminScheduledItem) {
   const status = item.gpsDevice?.lastStatus;
   if (status === "HEALTHY") return "success" as const;
   if (status === "STALE") return "warning" as const;
-  if (status === "UNHEALTHY" || status === "DISCONNECTED") return "danger" as const;
+  if (status === "UNHEALTHY" || status === "DISCONNECTED")
+    return "danger" as const;
   return "neutral" as const;
+}
+
+function deviceStatusText(status: string | null | undefined) {
+  switch (status) {
+    case "HEALTHY":
+      return "Healthy";
+    case "STALE":
+      return "Stale";
+    case "UNHEALTHY":
+      return "Unhealthy";
+    case "DISCONNECTED":
+      return "Disconnected";
+    default:
+      return null;
+  }
 }
 
 export function AdminScheduledItemsCard({
@@ -135,8 +150,8 @@ export function AdminScheduledItemsCard({
                     {item.gpsDevice ? (
                       <Badge tone={deviceTone(item)}>
                         Device {item.gpsDevice.deviceCode}
-                        {item.gpsDevice.lastStatus
-                          ? ` • ${item.gpsDevice.lastStatus}`
+                        {deviceStatusText(item.gpsDevice.lastStatus)
+                          ? ` • ${deviceStatusText(item.gpsDevice.lastStatus)}`
                           : ""}
                       </Badge>
                     ) : null}
@@ -159,10 +174,6 @@ export function AdminScheduledItemsCard({
                         {item.busLabel}
                         {item.plateNumber ? ` • ${item.plateNumber}` : ""}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Route className="h-3.5 w-3.5" />
-                      <span className="break-all">{item.routeId}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <UserRound className="h-3.5 w-3.5" />

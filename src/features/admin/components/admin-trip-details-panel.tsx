@@ -16,7 +16,10 @@ import {
   formatRelativeTime,
   formatSpeed,
 } from "@/lib/utils/format";
-import type { AdminTripDetail, AdminTripSnapshot } from "@/features/admin/types";
+import type {
+  AdminTripDetail,
+  AdminTripSnapshot,
+} from "@/features/admin/types";
 
 interface AdminTripDetailsPanelProps {
   snapshot?: AdminTripSnapshot | null;
@@ -58,6 +61,32 @@ function sourceLabel(
   return "Unknown Source";
 }
 
+function sourceStatusText(status: string | null | undefined) {
+  switch (status) {
+    case "HEALTHY":
+      return "Healthy";
+    case "STALE":
+      return "Stale";
+    case "UNHEALTHY":
+      return "Unhealthy";
+    case "DISCONNECTED":
+      return "Disconnected";
+    default:
+      return "Unknown";
+  }
+}
+
+function eventTypeLabel(type: string) {
+  return type
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase());
+}
+
+function shortTripRef(tripId: string) {
+  return `#${tripId.slice(-6).toUpperCase()}`;
+}
+
 function DiagnosticsSourceCard({
   title,
   source,
@@ -90,7 +119,7 @@ function DiagnosticsSourceCard({
           {sourceLabel(source.sourceType, source.sourceLabel)}
         </Badge>
         <Badge tone={toneForSourceStatus(source.sourceStatus)}>
-          {source.sourceStatus}
+          {sourceStatusText(source.sourceStatus)}
         </Badge>
         {source.isSelected ? <Badge tone="success">Selected</Badge> : null}
       </div>
@@ -104,10 +133,12 @@ function DiagnosticsSourceCard({
         <p>Health score: {source.healthScore}</p>
         <p>Priority: {source.priorityRank}</p>
         <p>
-          Recorded: {source.recordedAt ? formatDateTime(source.recordedAt) : "N/A"}
+          Recorded:{" "}
+          {source.recordedAt ? formatDateTime(source.recordedAt) : "N/A"}
         </p>
         <p>
-          Last seen: {source.lastSeenAt ? formatDateTime(source.lastSeenAt) : "N/A"}
+          Last seen:{" "}
+          {source.lastSeenAt ? formatDateTime(source.lastSeenAt) : "N/A"}
         </p>
       </div>
     </div>
@@ -183,7 +214,9 @@ export function AdminTripDetailsPanel({
 
   const normalizedSpeed = useMemo(() => {
     if (!liveState || typeof liveState !== "object") {
-      return snapshot?.liveState?.speed ?? snapshot?.liveState?.speedKmh ?? null;
+      return (
+        snapshot?.liveState?.speed ?? snapshot?.liveState?.speedKmh ?? null
+      );
     }
 
     if ("displaySpeedKmh" in liveState && liveState.displaySpeedKmh != null) {
@@ -203,9 +236,9 @@ export function AdminTripDetailsPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Selected Trip Details</CardTitle>
+        <CardTitle>Selected trip</CardTitle>
         <CardDescription>
-          Route, ETA, freshness, selected source, lifecycle state, and admin override actions.
+          Route, ETA, tracking source, and admin override actions.
         </CardDescription>
       </CardHeader>
 
@@ -219,10 +252,10 @@ export function AdminTripDetailsPanel({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-lg font-semibold text-slate-100">
-                  {snapshot.trip.routeName ?? snapshot.trip.routeId}
+                  {snapshot.trip.routeName ?? "University route"}
                 </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Trip ID: {snapshot.trip.tripId}
+                <p className="mt-1 font-mono text-sm text-slate-500">
+                  {shortTripRef(snapshot.trip.tripId)}
                 </p>
               </div>
 
@@ -232,7 +265,9 @@ export function AdminTripDetailsPanel({
                 </Badge>
                 <Badge tone="info">{snapshot.trip.status}</Badge>
                 {snapshot.trip.activationMode ? (
-                  <Badge tone={toneForActionState(snapshot.trip.activationMode)}>
+                  <Badge
+                    tone={toneForActionState(snapshot.trip.activationMode)}
+                  >
                     {snapshot.trip.activationMode}
                   </Badge>
                 ) : null}
@@ -282,12 +317,15 @@ export function AdminTripDetailsPanel({
                   ETA
                 </p>
                 <p className="mt-2 text-sm font-semibold text-slate-100">
-                  {detail?.trip.etaMinutes ?? snapshot.eta?.etaMinutes ?? null
+                  {(detail?.trip.etaMinutes ?? snapshot.eta?.etaMinutes ?? null)
                     ? `${detail?.trip.etaMinutes ?? snapshot.eta?.etaMinutes} min`
                     : "N/A"}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Next stop: {detail?.trip.nextStopName ?? snapshot.eta?.nextStopName ?? "N/A"}
+                  Next stop:{" "}
+                  {detail?.trip.nextStopName ??
+                    snapshot.eta?.nextStopName ??
+                    "N/A"}
                 </p>
               </div>
 
@@ -296,7 +334,9 @@ export function AdminTripDetailsPanel({
                   Last Location Update
                 </p>
                 <p className="mt-2 text-sm font-semibold text-slate-100">
-                  {lastLiveTimestamp ? formatRelativeTime(lastLiveTimestamp) : "N/A"}
+                  {lastLiveTimestamp
+                    ? formatRelativeTime(lastLiveTimestamp)
+                    : "N/A"}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   {lastLiveTimestamp ? formatDateTime(lastLiveTimestamp) : ""}
@@ -329,17 +369,20 @@ export function AdminTripDetailsPanel({
                   Selected source
                 </p>
                 <Badge tone="info">
-                  {sourceLabel(selectedSource?.sourceType, selectedSource?.sourceLabel)}
+                  {sourceLabel(
+                    selectedSource?.sourceType,
+                    selectedSource?.sourceLabel,
+                  )}
                 </Badge>
                 <Badge tone={toneForSourceStatus(selectedSource?.sourceStatus)}>
-                  {selectedSource?.sourceStatus ?? "UNKNOWN"}
+                  {sourceStatusText(selectedSource?.sourceStatus)}
                 </Badge>
                 {selectedSource?.selectionReason ? (
                   <Badge tone="neutral">{selectedSource.selectionReason}</Badge>
                 ) : null}
               </div>
               <p className="text-sm text-slate-400">
-                Canonical source currently powering the live trip view.
+                The source currently shown on the live map.
               </p>
             </div>
 
@@ -350,7 +393,8 @@ export function AdminTripDetailsPanel({
                     Admin operational controls
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
-                    Use these actions only when a trip is stuck, stale, or operationally inconsistent.
+                    Use these actions only when a trip is stuck, stale, or
+                    operationally inconsistent.
                   </p>
                 </div>
 
@@ -484,7 +528,9 @@ export function AdminTripDetailsPanel({
                               <p className="text-sm font-semibold text-slate-100">
                                 {event.title}
                               </p>
-                              <Badge tone="neutral">{event.type}</Badge>
+                              <Badge tone="neutral">
+                                {eventTypeLabel(event.type)}
+                              </Badge>
                             </div>
                             <p className="mt-2 text-sm text-slate-400">
                               {event.description}

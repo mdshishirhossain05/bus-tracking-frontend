@@ -211,33 +211,32 @@ export function LiveTripDetails({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trip Details</CardTitle>
+        <CardTitle>Trip details</CardTitle>
         <CardDescription>
-          Identity, route, vehicle, driver, passenger-nearest-stop context, and
-          stop progression.
+          Your bus, driver, nearest stop, and live stop-by-stop progress.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <DetailRow
-            label="Trip ID"
-            value={trip?.tripId ?? "N/A"}
+            label="Status"
+            value={trip?.status ?? "Active"}
             icon={<IdCard className="h-4 w-4" />}
           />
           <DetailRow
             label="Route"
-            value={trip?.routeName ?? trip?.routeId ?? "N/A"}
+            value={trip?.routeName ?? "University route"}
             icon={<Route className="h-4 w-4" />}
           />
           <DetailRow
             label="Vehicle"
-            value={trip?.busLabel ?? trip?.busId ?? "N/A"}
+            value={trip?.busLabel ?? "Assigned bus"}
             icon={<BusFront className="h-4 w-4" />}
           />
           <DetailRow
             label="Driver"
-            value={trip?.driverName ?? trip?.driverId ?? "N/A"}
+            value={trip?.driverName ?? "On duty"}
             icon={<UserRound className="h-4 w-4" />}
           />
           <DetailRow
@@ -263,10 +262,10 @@ export function LiveTripDetails({
         <div className="rounded-sm border border-slate-800 bg-slate-900 p-4 sm:p-5">
           <div className="mb-4">
             <p className="text-sm font-semibold text-slate-100">
-              Stop Progression Timeline
+              Stop progression
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Uses backend ETA and live stop-arrival socket events.
+              Updates live as the bus passes each stop.
             </p>
           </div>
 
@@ -296,8 +295,7 @@ export function LiveTripDetails({
             </div>
           ) : (
             <div className="rounded-sm border border-dashed border-slate-800 bg-slate-950 p-4 text-sm text-slate-500">
-              Stop progression will appear once route presentation data is
-              available.
+              Stop-by-stop progress will appear once the route loads.
             </div>
           )}
         </div>

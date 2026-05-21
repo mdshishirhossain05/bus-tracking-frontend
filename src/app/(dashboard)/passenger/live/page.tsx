@@ -1,3 +1,4 @@
+import { Radar } from "lucide-react";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { AppShell } from "@/components/layout/app-shell";
 import { ContentWrap } from "@/components/layout/content-wrap";
@@ -10,10 +11,11 @@ export default function PassengerLivePage() {
       <AppShell>
         <ContentWrap className="space-y-6">
           <PageHeader
-            badge="Passenger Realtime Tracking"
+            icon={<Radar className="h-6 w-6" />}
+            badge="Live tracking"
             badgeTone="info"
-            title="Passenger Live Tracking"
-            description="Monitor active university buses in realtime with live trip selection, ETA visibility, location freshness, and operational-grade map tracking."
+            title="Track your bus"
+            description="Follow active university buses on the map in real time, with live ETAs to your nearest stop and stop-by-stop progress."
           />
 
           <PassengerLiveShell />

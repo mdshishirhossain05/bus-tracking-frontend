@@ -52,7 +52,11 @@ function isValidEmail(value: string) {
 
 function getPasswordRules(password: string, confirmPassword: string) {
   return [
-    { id: "length", label: "At least 8 characters", valid: password.length >= 8 },
+    {
+      id: "length",
+      label: "At least 8 characters",
+      valid: password.length >= 8,
+    },
     {
       id: "uppercase",
       label: "One uppercase letter",
@@ -160,9 +164,9 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [completed, setCompleted] = useState(false);
-  const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(
-    null,
-  );
+  const [registrationEnabled, setRegistrationEnabled] = useState<
+    boolean | null
+  >(null);
 
   const normalizedEmail = useMemo(() => normalizeEmail(email), [email]);
   const emailIsVerified =
@@ -606,11 +610,11 @@ export default function RegisterPage() {
                 </div>
               ) : null}
 
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
                 <Button
                   type="button"
                   variant="secondary"
-                  className="h-11 sm:w-auto"
+                  className="h-11 w-full sm:w-auto"
                   onClick={() => {
                     setError("");
                     setStep(1);
@@ -621,7 +625,7 @@ export default function RegisterPage() {
                 </Button>
                 <Button
                   type="button"
-                  className="h-11 flex-1"
+                  className="h-11 w-full sm:flex-1"
                   disabled={!detailsComplete}
                   onClick={() => {
                     setError("");
@@ -651,7 +655,9 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-500"
                   >
                     {showPassword ? (
@@ -732,11 +738,11 @@ export default function RegisterPage() {
                 </div>
               ) : null}
 
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
                 <Button
                   type="button"
                   variant="secondary"
-                  className="h-11 sm:w-auto"
+                  className="h-11 w-full sm:w-auto"
                   onClick={() => {
                     setError("");
                     setStep(2);
@@ -747,7 +753,7 @@ export default function RegisterPage() {
                 </Button>
                 <Button
                   type="button"
-                  className="h-11 flex-1"
+                  className="h-11 w-full sm:flex-1"
                   disabled={submitting || !passwordIsValid}
                   onClick={() => void handleSubmit()}
                 >

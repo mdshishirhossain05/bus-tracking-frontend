@@ -654,6 +654,12 @@ export function useDriverTripControl() {
     DEFAULT_MOVING_INTERVAL_MS,
   );
   const [liveState, setLiveState] = useState<LiveBusLocation | null>(null);
+  // Live ETA / next-stop pushed over the socket. The REST trip object only
+  // carries the ETA snapshot from page load; this keeps it realtime.
+  const [liveEta, setLiveEta] = useState<{
+    etaMinutes: number | null;
+    nextStopName: string | null;
+  } | null>(null);
   const [trackingSource, setTrackingSource] =
     useState<DriverTrackingSourceSummary | null>(null);
   const [recentArrival, setRecentArrival] =
@@ -1358,6 +1364,7 @@ export function useDriverTripControl() {
       setLiveState(null);
       setTrackingSource(null);
       setRecentArrival(null);
+      setLiveEta(null);
     } catch (err: any) {
       console.error(err);
       setStatus("error");
@@ -1450,6 +1457,15 @@ export function useDriverTripControl() {
 
     const handleEtaUpdated = (payload: any) => {
       if (payload?.tripId !== tripId) return;
+
+      const nested = payload?.eta ?? payload;
+      const etaMinutes = asNumber(payload?.etaMinutes ?? nested?.etaMinutes);
+      const nextStopName =
+        asString(payload?.nextStopName) ??
+        asString(nested?.nextStopName) ??
+        asString(nested?.nextStop?.stopName);
+
+      setLiveEta({ etaMinutes, nextStopName });
     };
 
     const handleStopArrival = (payload: any) => {
@@ -1482,6 +1498,7 @@ export function useDriverTripControl() {
       setLiveState(null);
       setTrackingSource(null);
       setRecentArrival(null);
+      setLiveEta(null);
 
       void refreshRef.current();
     };
@@ -1597,6 +1614,7 @@ export function useDriverTripControl() {
     publishState,
     publishIntervalMs,
     liveState,
+    liveEta,
     trackingSource,
     recentArrival,
     submittingStart,

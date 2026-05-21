@@ -196,7 +196,7 @@ function getNextStopName(trip: any): string | null {
 }
 
 function getNextStopId(
-  trip: any,
+  nextStopName: string | null,
   routePresentation: {
     stops?: Array<{
       id?: string | null;
@@ -204,8 +204,6 @@ function getNextStopId(
     }> | null;
   } | null,
 ): string | null {
-  const nextStopName = getNextStopName(trip);
-
   if (!nextStopName || !routePresentation?.stops?.length) {
     return null;
   }
@@ -301,6 +299,7 @@ export function DriverTripShell() {
     permission,
     publishState,
     liveState,
+    liveEta,
     trackingSource,
     recentArrival,
     submittingStart,
@@ -415,9 +414,11 @@ export function DriverTripShell() {
     );
   }
 
-  const etaMinutes = getEtaMinutes(trip);
-  const nextStopName = getNextStopName(trip);
-  const nextStopId = getNextStopId(trip, routePresentation);
+  // Prefer the live socket ETA over the REST snapshot baked into `trip`,
+  // which is only refreshed on load / trip lifecycle events.
+  const etaMinutes = liveEta?.etaMinutes ?? getEtaMinutes(trip);
+  const nextStopName = liveEta?.nextStopName ?? getNextStopName(trip);
+  const nextStopId = getNextStopId(nextStopName, routePresentation);
   const displaySpeed = getDriverDisplaySpeed(liveState);
 
   const liveTone = getLiveTone({

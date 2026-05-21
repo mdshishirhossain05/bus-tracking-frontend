@@ -539,22 +539,17 @@ export function usePassengerLiveTrip(initialTripId?: string | null) {
     };
   }, [clearArrivalVisibilityTimer, clearStaleTimer, loadInitial]);
 
-  // Native-app feel: keep data fresh with a silent background refresh and an
-  // instant resync when the tab regains focus — no skeleton, no spinner, and
-  // a failed refresh never disturbs the visible state.
+  // Realtime-only: live position/ETA/arrival come exclusively from socket
+  // broadcasts (no interval polling). We still resync the authoritative REST
+  // snapshot when the tab regains focus — that's an event, not a timer — to
+  // recover anything missed while the page was backgrounded.
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      void loadInitial("silent");
-    }, 30_000);
-
     const handleVisibility = () => {
       if (!document.hidden) void loadInitial("silent");
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [loadInitial]);

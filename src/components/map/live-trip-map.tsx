@@ -33,6 +33,9 @@ const MIN_ANIMATION_MS = 650;
 const BASE_ANIMATION_MS = 1200;
 const LARGE_CORRECTION_ANIMATION_MS = 2200;
 const MAX_ANIMATION_MS = 3200;
+// Upper bound for the "glide across the whole update interval" behaviour, so
+// a long gap between fixes doesn't turn into a barely-perceptible crawl.
+const MAX_CONTINUOUS_ANIMATION_MS = 12000;
 
 const mapContainerStyle: React.CSSProperties = {
   width: "100%",
@@ -550,6 +553,11 @@ function AnimatedVehicleMarker({
     lng: longitude,
   });
 
+  // Timestamp of the previous position update, used to make the glide last
+  // roughly as long as the real interval between updates — so the marker
+  // moves continuously instead of darting then freezing until the next fix.
+  const lastUpdateAtRef = useRef<number | null>(null);
+
   const frameRef = useRef<number | null>(null);
 
   // Latest packet fields kept in refs so a speed/accuracy/callback change does
@@ -613,12 +621,26 @@ function AnimatedVehicleMarker({
       setVisualHeading(movementBearing);
     }
 
-    const durationMs = getAnimationDurationMs({
+    const computedDurationMs = getAnimationDurationMs({
       distanceMeters: haversineMeters(start, target),
       speedKmh: speedRef.current,
       accuracyM: accuracyRef.current,
       largeCorrection: smoothing.largeCorrection,
     });
+
+    // Stretch the glide to cover the observed gap between updates so the
+    // marker keeps moving until the next fix arrives (continuous, native
+    // feel) instead of finishing early and sitting still. Clamped so a long
+    // gap (parked / lost signal) doesn't produce an absurdly slow crawl.
+    const nowTs = performance.now();
+    const observedIntervalMs =
+      lastUpdateAtRef.current != null ? nowTs - lastUpdateAtRef.current : null;
+    lastUpdateAtRef.current = nowTs;
+
+    const durationMs =
+      observedIntervalMs != null && !smoothing.largeCorrection
+        ? clamp(observedIntervalMs, MIN_ANIMATION_MS, MAX_CONTINUOUS_ANIMATION_MS)
+        : computedDurationMs;
 
     const startedAt = performance.now();
 

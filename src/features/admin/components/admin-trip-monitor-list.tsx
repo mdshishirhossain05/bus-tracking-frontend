@@ -46,6 +46,25 @@ function sourceLabel(
   return "Unknown Source";
 }
 
+function sourceStatusText(status: string | null | undefined) {
+  switch (status) {
+    case "HEALTHY":
+      return "Healthy";
+    case "STALE":
+      return "Stale";
+    case "UNHEALTHY":
+      return "Unhealthy";
+    case "DISCONNECTED":
+      return "Disconnected";
+    default:
+      return "Unknown";
+  }
+}
+
+function shortTripRef(tripId: string) {
+  return `#${tripId.slice(-6).toUpperCase()}`;
+}
+
 export function AdminTripMonitorList({
   snapshots,
   selectedTripId,
@@ -93,7 +112,7 @@ export function AdminTripMonitorList({
   return (
     <Card className="min-h-[760px]">
       <CardHeader>
-        <CardTitle>Live Trip Monitor</CardTitle>
+        <CardTitle>Trip monitor</CardTitle>
         <CardDescription>
           Search and inspect active trips across the fleet.
         </CardDescription>
@@ -154,14 +173,14 @@ export function AdminTripMonitorList({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold">
-                          {item.trip.routeName ?? item.trip.routeId}
+                          {item.trip.routeName ?? "University route"}
                         </p>
                         <p
-                          className={`mt-1 text-xs ${
+                          className={`mt-1 font-mono text-xs ${
                             active ? "text-slate-300" : "text-slate-500"
                           }`}
                         >
-                          Trip ID: {item.trip.tripId}
+                          {shortTripRef(item.trip.tripId)}
                         </p>
                       </div>
 
@@ -190,13 +209,8 @@ export function AdminTripMonitorList({
                           item.selectedSource?.sourceStatus,
                         )}
                       >
-                        {item.selectedSource?.sourceStatus ?? "UNKNOWN"}
+                        {sourceStatusText(item.selectedSource?.sourceStatus)}
                       </Badge>
-                      {item.selectedSource?.selectionReason ? (
-                        <Badge tone="neutral">
-                          {item.selectedSource.selectionReason}
-                        </Badge>
-                      ) : null}
                     </div>
 
                     <div
@@ -206,7 +220,9 @@ export function AdminTripMonitorList({
                     >
                       <p>
                         Bus: {item.trip.busLabel ?? item.trip.busId ?? "N/A"}
-                        {item.trip.plateNumber ? ` • ${item.trip.plateNumber}` : ""}
+                        {item.trip.plateNumber
+                          ? ` • ${item.trip.plateNumber}`
+                          : ""}
                       </p>
                       <p>Driver: {item.trip.driverName ?? "N/A"}</p>
                       <p>

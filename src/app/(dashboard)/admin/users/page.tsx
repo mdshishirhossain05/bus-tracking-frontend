@@ -1,3 +1,4 @@
+import { Users } from "lucide-react";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { AppShell } from "@/components/layout/app-shell";
 import { ContentWrap } from "@/components/layout/content-wrap";
@@ -10,10 +11,11 @@ export default function Page() {
       <AppShell>
         <ContentWrap className="space-y-6">
           <PageHeader
+            icon={<Users className="h-6 w-6" />}
             badge="Admin"
             badgeTone="info"
-            title="User Management"
-            description="Manage internal operational accounts for admins and drivers, and monitor registered passengers across the system."
+            title="User management"
+            description="Manage admin, driver, and passenger accounts, and review passengers awaiting approval."
           />
 
           <AdminUsersPage />

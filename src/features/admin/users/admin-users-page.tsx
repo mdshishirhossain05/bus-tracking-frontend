@@ -72,7 +72,9 @@ export function AdminUsersPage() {
     query.academicDepartment,
   );
   const [batchInput, setBatchInput] = useState(query.academicBatch);
-  const [rejectingUser, setRejectingUser] = useState<AdminUserItem | null>(null);
+  const [rejectingUser, setRejectingUser] = useState<AdminUserItem | null>(
+    null,
+  );
   const [rejectReason, setRejectReason] = useState("");
   const [deletingUser, setDeletingUser] = useState<AdminUserItem | null>(null);
 
@@ -94,6 +96,9 @@ export function AdminUsersPage() {
     isActive?: boolean;
     studentId?: string;
     phoneNumber?: string;
+    academicDepartment?: string;
+    academicBatch?: string;
+    transportPickupPoint?: string;
   }) {
     try {
       setSubmitting(true);
@@ -107,9 +112,15 @@ export function AdminUsersPage() {
         isActive: values.isActive,
         studentId: values.studentId,
         phoneNumber: values.phoneNumber,
+        academicDepartment: values.academicDepartment,
+        academicBatch: values.academicBatch,
+        transportPickupPoint: values.transportPickupPoint,
       });
 
-      toast.success("User created", "The account has been created successfully.");
+      toast.success(
+        "User created",
+        "The account has been created successfully.",
+      );
       setModal(null);
       await handleReload();
     } catch (e) {
@@ -126,8 +137,13 @@ export function AdminUsersPage() {
     email: string;
     studentId?: string;
     phoneNumber?: string;
+    academicDepartment?: string;
+    academicBatch?: string;
+    transportPickupPoint?: string;
   }) {
     if (!modal || modal.type !== "edit") return;
+
+    const isPassenger = modal.user.role === "PASSENGER";
 
     try {
       setSubmitting(true);
@@ -138,6 +154,13 @@ export function AdminUsersPage() {
         email: values.email,
         studentId: values.studentId ?? null,
         phoneNumber: values.phoneNumber ?? null,
+        ...(isPassenger
+          ? {
+              academicDepartment: values.academicDepartment ?? null,
+              academicBatch: values.academicBatch ?? null,
+              transportPickupPoint: values.transportPickupPoint ?? null,
+            }
+          : {}),
       });
 
       toast.success("User updated", "User profile has been updated.");
@@ -200,7 +223,10 @@ export function AdminUsersPage() {
   async function handleApprovePassenger(user: AdminUserItem) {
     try {
       await approvePassenger(user.id);
-      toast.success("Passenger approved", `${user.fullName} can now use the system.`);
+      toast.success(
+        "Passenger approved",
+        `${user.fullName} can now use the system.`,
+      );
     } catch (e) {
       toast.danger("Approval failed", getApiErrorMessage(e));
     }
@@ -212,7 +238,10 @@ export function AdminUsersPage() {
     try {
       setSubmitting(true);
       await rejectPassenger(rejectingUser.id, rejectReason.trim());
-      toast.success("Passenger rejected", `${rejectingUser.fullName} has been rejected.`);
+      toast.success(
+        "Passenger rejected",
+        `${rejectingUser.fullName} has been rejected.`,
+      );
       setRejectingUser(null);
       setRejectReason("");
     } catch (e) {
@@ -228,7 +257,10 @@ export function AdminUsersPage() {
     try {
       setSubmitting(true);
       await deleteUser(deletingUser.id);
-      toast.success("User deleted", `${deletingUser.fullName} has been deleted.`);
+      toast.success(
+        "User deleted",
+        `${deletingUser.fullName} has been deleted.`,
+      );
       setDeletingUser(null);
     } catch (e) {
       toast.danger("Delete failed", getApiErrorMessage(e));
@@ -296,8 +328,7 @@ export function AdminUsersPage() {
   return (
     <>
       <PageSection
-        title="Users"
-        description="Manage admin, driver, and passenger accounts, including self-registered passengers awaiting approval."
+        title="All users"
         action={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <Button
@@ -323,12 +354,16 @@ export function AdminUsersPage() {
                 Passenger onboarding policy
               </p>
               <p className="text-sm text-slate-400">
-                Admins can create users directly. Passengers can also self-register
-                and will appear here as pending until approved.
+                Admins can create users directly. Passengers can also
+                self-register and will appear here as pending until approved.
               </p>
               <div className="flex flex-wrap gap-2 pt-2">
-                <Badge tone="info">Internal create: ADMIN / DRIVER / PASSENGER</Badge>
-                <Badge tone="warning">Self-register: PASSENGER → PENDING</Badge>
+                <Badge tone="info">
+                  Admin-created accounts are active right away
+                </Badge>
+                <Badge tone="warning">
+                  Self-registered passengers need approval
+                </Badge>
               </div>
             </div>
 
@@ -362,28 +397,36 @@ export function AdminUsersPage() {
           <Card>
             <CardContent className="p-5">
               <p className="text-sm text-slate-500">Total users</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-100">{meta.total}</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-100">
+                {meta.total}
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-5">
               <p className="text-sm text-slate-500">Current page</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-100">{meta.page}</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-100">
+                {meta.page}
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-5">
               <p className="text-sm text-slate-500">Page size</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-100">{meta.limit}</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-100">
+                {meta.limit}
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-5">
               <p className="text-sm text-slate-500">Total pages</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-100">{meta.totalPages}</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-100">
+                {meta.totalPages}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -428,7 +471,9 @@ export function AdminUsersPage() {
 
           <Select
             value={query.isActive}
-            onChange={(e) => setIsActive(e.target.value as "ALL" | "true" | "false")}
+            onChange={(e) =>
+              setIsActive(e.target.value as "ALL" | "true" | "false")
+            }
           >
             <option value="ALL">All statuses</option>
             <option value="true">Active</option>
@@ -437,7 +482,9 @@ export function AdminUsersPage() {
 
           <Select
             value={query.approvalStatus}
-            onChange={(e) => setApprovalStatus(e.target.value as UserApprovalStatus | "ALL")}
+            onChange={(e) =>
+              setApprovalStatus(e.target.value as UserApprovalStatus | "ALL")
+            }
           >
             <option value="ALL">All approvals</option>
             <option value="PENDING_APPROVAL">PENDING_APPROVAL</option>
@@ -448,7 +495,9 @@ export function AdminUsersPage() {
           <Select
             value={query.registrationSource}
             onChange={(e) =>
-              setRegistrationSource(e.target.value as UserRegistrationSource | "ALL")
+              setRegistrationSource(
+                e.target.value as UserRegistrationSource | "ALL",
+              )
             }
           >
             <option value="ALL">All sources</option>
@@ -496,7 +545,8 @@ export function AdminUsersPage() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Showing page {meta.page} of {meta.totalPages} ({meta.total} total users)
+            Showing page {meta.page} of {meta.totalPages} ({meta.total} total
+            users)
           </p>
 
           <div className="flex w-full gap-2 sm:w-auto">
@@ -563,7 +613,10 @@ export function AdminUsersPage() {
       ) : null}
 
       {modal?.type === "sessions" ? (
-        <UserSessionDashboardModal userId={modal.user.id} onClose={closeModal} />
+        <UserSessionDashboardModal
+          userId={modal.user.id}
+          onClose={closeModal}
+        />
       ) : null}
 
       {rejectingUser ? (
@@ -575,7 +628,8 @@ export function AdminUsersPage() {
                   Reject passenger registration
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {rejectingUser.fullName} will remain inactive and unable to log in.
+                  {rejectingUser.fullName} will remain inactive and unable to
+                  log in.
                 </p>
               </div>
 
@@ -614,7 +668,9 @@ export function AdminUsersPage() {
           <Card className="w-full max-w-lg rounded-sm">
             <CardContent className="space-y-4 p-6">
               <div>
-                <h3 className="text-lg font-semibold text-slate-100">Delete user</h3>
+                <h3 className="text-lg font-semibold text-slate-100">
+                  Delete user
+                </h3>
                 <p className="mt-1 text-sm text-slate-500">
                   This permanently deletes{" "}
                   <span className="font-medium">{deletingUser.fullName}</span>.

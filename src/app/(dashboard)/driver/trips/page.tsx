@@ -1,3 +1,4 @@
+import { BusFront } from "lucide-react";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { AppShell } from "@/components/layout/app-shell";
 import { ContentWrap } from "@/components/layout/content-wrap";
@@ -10,10 +11,11 @@ export default function DriverTripsPage() {
       <AppShell>
         <ContentWrap className="space-y-6">
           <PageHeader
-            badge="Driver Operations"
+            icon={<BusFront className="h-6 w-6" />}
+            badge="Driver console"
             badgeTone="info"
-            title="Driver Trip Control"
-            description="Control trip lifecycle, publish live GPS data, monitor send health, and operate within a production-style driver console."
+            title="Your trip"
+            description="Start and end your assigned trip, share live location, and follow your route stop by stop."
           />
 
           <DriverTripShell />

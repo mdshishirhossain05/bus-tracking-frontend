@@ -1,12 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Select } from "@/components/ui/select";
+import {
+  ACADEMIC_BATCH_PLACEHOLDER,
+  ACADEMIC_DEPARTMENTS,
+} from "@/lib/constants/academics";
 import type { AdminUserItem } from "../api/admin.users.api";
 
 type CreateableRole = "ADMIN" | "DRIVER" | "PASSENGER";
@@ -67,16 +70,16 @@ export function UserFormModal({
         ? initial.role
         : "DRIVER",
     isActive: initial?.isActive ?? true,
-    studentId: "",
-    phoneNumber: "",
-    academicDepartment: "",
-    academicBatch: "",
-    transportPickupPoint: "",
+    studentId: initial?.studentId ?? "",
+    phoneNumber: initial?.phoneNumber ?? "",
+    academicDepartment: initial?.academicDepartment ?? "",
+    academicBatch: initial?.academicBatch ?? "",
+    transportPickupPoint: initial?.transportPickupPoint ?? "",
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>(
-    {},
-  );
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof FormState, string>>
+  >({});
 
   const title = useMemo(() => {
     if (mode === "create") {
@@ -169,6 +172,15 @@ export function UserFormModal({
       email: values.email.trim().toLowerCase(),
       studentId: values.studentId.trim() || undefined,
       phoneNumber: values.phoneNumber.trim() || undefined,
+      academicDepartment: isPassengerRole(values.role)
+        ? values.academicDepartment.trim() || undefined
+        : undefined,
+      academicBatch: isPassengerRole(values.role)
+        ? values.academicBatch.trim() || undefined
+        : undefined,
+      transportPickupPoint: isPassengerRole(values.role)
+        ? values.transportPickupPoint.trim() || undefined
+        : undefined,
     });
   }
 
@@ -181,17 +193,6 @@ export function UserFormModal({
               {title}
             </h3>
             <p className="text-sm text-slate-500">{roleDescription}</p>
-
-            {mode === "create" ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Badge tone="info">Admin create: ADMIN</Badge>
-                <Badge tone="info">Admin create: DRIVER</Badge>
-                <Badge tone="info">Admin create: PASSENGER</Badge>
-                <Badge tone="neutral">
-                  Public self-register: PASSENGER pending approval
-                </Badge>
-              </div>
-            ) : null}
           </div>
 
           {errorMessage ? (
@@ -218,7 +219,9 @@ export function UserFormModal({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Email</label>
+              <label className="text-sm font-medium text-slate-300">
+                Email
+              </label>
               <Input
                 type="email"
                 placeholder="user@example.com"
@@ -280,8 +283,8 @@ export function UserFormModal({
               {isPassengerRole(values.role) ? (
                 <div className="rounded-sm border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-300">
                   Admin-created passenger accounts can be activated immediately.
-                  Public self-registered passenger accounts should remain pending
-                  approval until reviewed by admin.
+                  Public self-registered passenger accounts should remain
+                  pending approval until reviewed by admin.
                 </div>
               ) : null}
 
@@ -336,8 +339,7 @@ export function UserFormModal({
                       <label className="text-sm font-medium text-slate-300">
                         Academic department
                       </label>
-                      <Input
-                        placeholder="e.g. Computer Science"
+                      <Select
                         value={values.academicDepartment}
                         onChange={(e) =>
                           setValues((prev) => ({
@@ -345,7 +347,14 @@ export function UserFormModal({
                             academicDepartment: e.target.value,
                           }))
                         }
-                      />
+                      >
+                        <option value="">Select department</option>
+                        {ACADEMIC_DEPARTMENTS.map((dept) => (
+                          <option key={dept} value={dept}>
+                            {dept}
+                          </option>
+                        ))}
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
@@ -353,7 +362,7 @@ export function UserFormModal({
                         Academic batch
                       </label>
                       <Input
-                        placeholder="e.g. 2022"
+                        placeholder={ACADEMIC_BATCH_PLACEHOLDER}
                         value={values.academicBatch}
                         onChange={(e) =>
                           setValues((prev) => ({
@@ -440,6 +449,64 @@ export function UserFormModal({
                   <p className="text-xs text-red-400">{errors.phoneNumber}</p>
                 ) : null}
               </div>
+
+              {isPassengerRole(values.role) ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300">
+                      Academic department
+                    </label>
+                    <Select
+                      value={values.academicDepartment}
+                      onChange={(e) =>
+                        setValues((prev) => ({
+                          ...prev,
+                          academicDepartment: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Select department</option>
+                      {ACADEMIC_DEPARTMENTS.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300">
+                      Academic batch
+                    </label>
+                    <Input
+                      placeholder={ACADEMIC_BATCH_PLACEHOLDER}
+                      value={values.academicBatch}
+                      onChange={(e) =>
+                        setValues((prev) => ({
+                          ...prev,
+                          academicBatch: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm font-medium text-slate-300">
+                      Transport pickup point
+                    </label>
+                    <Input
+                      placeholder="e.g. Main Gate"
+                      value={values.transportPickupPoint}
+                      onChange={(e) =>
+                        setValues((prev) => ({
+                          ...prev,
+                          transportPickupPoint: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </>
+              ) : null}
             </div>
           )}
 

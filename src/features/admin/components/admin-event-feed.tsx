@@ -39,6 +39,26 @@ function toneForType(type: string) {
   }
 }
 
+function typeLabel(type: string) {
+  const known: Record<string, string> = {
+    TRIP_STARTED: "Trip started",
+    TRIP_ENDED: "Trip ended",
+    ETA_UPDATED: "ETA updated",
+    STALE_ALERT: "Stale alert",
+    DRIVER_ASSIGNED: "Driver assigned",
+    DRIVER_UNASSIGNED: "Driver unassigned",
+    SYSTEM_ALERT: "System alert",
+  };
+
+  return (
+    known[type] ??
+    type
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/^\w/, (c) => c.toUpperCase())
+  );
+}
+
 export function AdminEventFeed({
   events,
   collapsedCount = 5,
@@ -56,14 +76,10 @@ export function AdminEventFeed({
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle>Operations Event Feed</CardTitle>
-            <CardDescription>
-              Latest persisted system and trip activity events.
-            </CardDescription>
+            <CardTitle>Activity feed</CardTitle>
+            <CardDescription>Recent trip and system activity.</CardDescription>
           </div>
-          {events.length ? (
-            <Badge tone="neutral">{events.length}</Badge>
-          ) : null}
+          {events.length ? <Badge tone="neutral">{events.length}</Badge> : null}
         </div>
       </CardHeader>
 
@@ -85,7 +101,9 @@ export function AdminEventFeed({
                       <p className="text-sm font-semibold text-slate-100">
                         {event.title}
                       </p>
-                      <Badge tone={toneForType(event.type)}>{event.type}</Badge>
+                      <Badge tone={toneForType(event.type)}>
+                        {typeLabel(event.type)}
+                      </Badge>
                     </div>
                     <p className="mt-2 break-words text-sm text-slate-400">
                       {event.description}

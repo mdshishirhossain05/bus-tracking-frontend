@@ -36,6 +36,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { OtpInput } from "@/components/ui/otp-input";
+import { Select } from "@/components/ui/select";
+import {
+  ACADEMIC_BATCH_PLACEHOLDER,
+  ACADEMIC_DEPARTMENTS,
+} from "@/lib/constants/academics";
 import { getApiErrorMessage } from "@/lib/api/error";
 
 type Step = 1 | 2 | 3;
@@ -567,15 +572,17 @@ export default function RegisterPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <FieldLabel>Academic department</FieldLabel>
-                  <div className="relative">
-                    <GraduationCap className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                    <Input
-                      value={academicDepartment}
-                      onChange={(e) => setAcademicDepartment(e.target.value)}
-                      className="pl-9"
-                      placeholder="e.g. Computer Science"
-                    />
-                  </div>
+                  <Select
+                    value={academicDepartment}
+                    onChange={(e) => setAcademicDepartment(e.target.value)}
+                  >
+                    <option value="">Select your department</option>
+                    {ACADEMIC_DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
                 <div>
                   <FieldLabel>Academic batch</FieldLabel>
@@ -585,7 +592,7 @@ export default function RegisterPage() {
                       value={academicBatch}
                       onChange={(e) => setAcademicBatch(e.target.value)}
                       className="pl-9"
-                      placeholder="e.g. 2022"
+                      placeholder={ACADEMIC_BATCH_PLACEHOLDER}
                     />
                   </div>
                 </div>

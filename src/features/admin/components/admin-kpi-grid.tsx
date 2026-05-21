@@ -36,7 +36,7 @@ export function AdminKpiGrid({
       <StatCard
         label="Online Users"
         value={onlineUsers}
-        helper="Users connected to the realtime system"
+        helper="People connected right now"
         tone={onlineUsers > 0 ? "success" : "neutral"}
         trendLabel="Live"
         icon={<Users className="h-5 w-5" />}
@@ -44,7 +44,7 @@ export function AdminKpiGrid({
       <StatCard
         label="Live Watchers"
         value={liveWatchers}
-        helper="Users currently tracking a live trip"
+        helper="People tracking a trip right now"
         tone={liveWatchers > 0 ? "info" : "neutral"}
         trendLabel="Tracking"
         icon={<Eye className="h-5 w-5" />}
@@ -52,7 +52,7 @@ export function AdminKpiGrid({
       <StatCard
         label="Active Trips"
         value={activeTripsCount}
-        helper="Currently visible live trips"
+        helper="Trips currently running"
         tone="info"
         trendLabel="Live"
         icon={<Activity className="h-5 w-5" />}
@@ -60,31 +60,31 @@ export function AdminKpiGrid({
       <StatCard
         label="Connected Trips"
         value={connectedTripsCount}
-        helper="Trips with available live packets"
+        helper="Trips sending live location"
         tone="success"
         trendLabel="Streaming"
         icon={<RadioTower className="h-5 w-5" />}
       />
       <StatCard
-        label="GPS Selected"
+        label="GPS Device"
         value={gpsSelectedTrips}
-        helper="Trips currently using fixed GPS"
+        helper="Tracked by a fitted GPS device"
         tone="info"
-        trendLabel="Device priority"
+        trendLabel="Device"
         icon={<Satellite className="h-5 w-5" />}
       />
       <StatCard
-        label="Driver Selected"
+        label="Driver Phone"
         value={driverSelectedTrips}
-        helper="Trips currently using driver mobile"
+        helper="Tracked by the driver's phone"
         tone="neutral"
-        trendLabel="Fallback/primary"
+        trendLabel="Mobile"
         icon={<Smartphone className="h-5 w-5" />}
       />
       <StatCard
         label="Stale Trips"
         value={staleTripsCount}
-        helper="Trips requiring freshness attention"
+        helper="Not updated recently"
         tone={staleTripsCount > 0 ? "warning" : "success"}
         trendLabel={staleTripsCount > 0 ? "Attention" : "Healthy"}
         icon={<TriangleAlert className="h-5 w-5" />}
@@ -92,7 +92,7 @@ export function AdminKpiGrid({
       <StatCard
         label="Average ETA"
         value={averageEta != null ? `${averageEta} min` : "N/A"}
-        helper="Snapshot across visible trips"
+        helper="Across all active trips"
         tone="neutral"
         icon={<Clock3 className="h-5 w-5" />}
       />

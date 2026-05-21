@@ -1,3 +1,4 @@
+import { LayoutDashboard } from "lucide-react";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { AppShell } from "@/components/layout/app-shell";
 import { ContentWrap } from "@/components/layout/content-wrap";
@@ -10,10 +11,11 @@ export default function AdminOperationsPage() {
       <AppShell>
         <ContentWrap className="space-y-6">
           <PageHeader
-            badge="Admin Operations Center"
+            icon={<LayoutDashboard className="h-6 w-6" />}
+            badge="Operations"
             badgeTone="info"
-            title="Admin Live Operations Dashboard"
-            description="Monitor active trips, freshness, ETA visibility, live vehicle movement, and operational events from a production-style admin control surface."
+            title="Live operations"
+            description="Track every active trip in real time — fleet health, ETAs, live vehicle positions, and operational events at a glance."
           />
 
           <AdminOperationsShell />

@@ -47,7 +47,9 @@ function SessionRow({
       </td>
 
       <td className="px-4 py-4 align-top text-slate-400">
-        <div>{session.lastSeenIp || session.ipLast || session.ipFirst || "—"}</div>
+        <div>
+          {session.lastSeenIp || session.ipLast || session.ipFirst || "—"}
+        </div>
         <div className="mt-1 text-xs text-slate-500 break-all">
           Family: {session.refreshFamilyId}
         </div>
@@ -55,7 +57,9 @@ function SessionRow({
 
       <td className="px-4 py-4 align-top text-slate-400">
         <div>Created: {formatDateTime(session.createdAt)}</div>
-        <div className="mt-1">Last seen: {formatDateTime(session.lastSeenAt)}</div>
+        <div className="mt-1">
+          Last seen: {formatDateTime(session.lastSeenAt)}
+        </div>
       </td>
 
       <td className="px-4 py-4 align-top">
@@ -103,12 +107,15 @@ export function UserSessionDashboardModal({
 }) {
   const toast = useToast();
 
-  const [data, setData] = useState<AdminUserSessionDashboardResponse | null>(null);
+  const [data, setData] = useState<AdminUserSessionDashboardResponse | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [bulkRevoking, setBulkRevoking] = useState(false);
-  const [confirmSession, setConfirmSession] = useState<AdminUserSessionItem | null>(null);
+  const [confirmSession, setConfirmSession] =
+    useState<AdminUserSessionItem | null>(null);
   const [confirmBulk, setConfirmBulk] = useState(false);
 
   async function load() {
@@ -129,8 +136,40 @@ export function UserSessionDashboardModal({
   }, [userId]);
 
   const revokableSessions = useMemo(() => {
-    return (data?.sessions ?? []).filter((session) => session.active && !session.isCurrent);
+    return (data?.sessions ?? []).filter(
+      (session) => session.active && !session.isCurrent,
+    );
   }, [data]);
+
+  // The backend session-dashboard endpoint returns only { user, sessions }.
+  // Derive the summary and latest-seen session on the client so the dashboard
+  // renders without depending on optional server-computed fields.
+  const sessions = useMemo(() => data?.sessions ?? [], [data]);
+
+  const summary = useMemo(() => {
+    const activeSessions = sessions.filter((s) => s.active).length;
+    const sessionFamilies = new Set(
+      sessions.map((s) => s.refreshFamilyId).filter(Boolean),
+    ).size;
+
+    return {
+      totalSessions: sessions.length,
+      activeSessions,
+      revokedSessions: sessions.length - activeSessions,
+      sessionFamilies,
+    };
+  }, [sessions]);
+
+  const latestSeenSession = useMemo(() => {
+    return sessions.reduce<AdminUserSessionItem | null>((latest, session) => {
+      if (!session.lastSeenAt) return latest;
+      if (!latest?.lastSeenAt) return session;
+      return new Date(session.lastSeenAt).getTime() >
+        new Date(latest.lastSeenAt).getTime()
+        ? session
+        : latest;
+    }, null);
+  }, [sessions]);
 
   async function handleRevoke(session: AdminUserSessionItem) {
     try {
@@ -216,7 +255,9 @@ export function UserSessionDashboardModal({
                       <p className="mt-2 text-lg font-semibold text-slate-100">
                         {data.user.fullName}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">{data.user.email}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {data.user.email}
+                      </p>
                     </CardContent>
                   </Card>
 
@@ -224,7 +265,7 @@ export function UserSessionDashboardModal({
                     <CardContent className="p-5">
                       <p className="text-sm text-slate-500">Active sessions</p>
                       <p className="mt-2 text-2xl font-semibold text-slate-100">
-                        {data.summary.activeSessions}
+                        {summary.activeSessions}
                       </p>
                     </CardContent>
                   </Card>
@@ -233,7 +274,7 @@ export function UserSessionDashboardModal({
                     <CardContent className="p-5">
                       <p className="text-sm text-slate-500">Revoked sessions</p>
                       <p className="mt-2 text-2xl font-semibold text-slate-100">
-                        {data.summary.revokedSessions}
+                        {summary.revokedSessions}
                       </p>
                     </CardContent>
                   </Card>
@@ -242,7 +283,7 @@ export function UserSessionDashboardModal({
                     <CardContent className="p-5">
                       <p className="text-sm text-slate-500">Session families</p>
                       <p className="mt-2 text-2xl font-semibold text-slate-100">
-                        {data.summary.sessionFamilies}
+                        {summary.sessionFamilies}
                       </p>
                     </CardContent>
                   </Card>
@@ -254,25 +295,30 @@ export function UserSessionDashboardModal({
                       Latest Seen Session
                     </h4>
 
-                    {data.latestSeenSession ? (
+                    {latestSeenSession ? (
                       <div className="rounded-sm border border-slate-800 px-4 py-4">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge tone={data.latestSeenSession.active ? "success" : "warning"}>
-                            {data.latestSeenSession.active ? "Active" : "Revoked"}
+                          <Badge
+                            tone={
+                              latestSeenSession.active ? "success" : "warning"
+                            }
+                          >
+                            {latestSeenSession.active ? "Active" : "Revoked"}
                           </Badge>
                           <span className="text-sm font-medium text-slate-100">
-                            {data.latestSeenSession.deviceLabel || "Unnamed device"}
+                            {latestSeenSession.deviceLabel || "Unnamed device"}
                           </span>
                         </div>
 
                         <p className="mt-2 text-sm text-slate-400">
-                          Last seen: {formatDateTime(data.latestSeenSession.lastSeenAt)}
+                          Last seen:{" "}
+                          {formatDateTime(latestSeenSession.lastSeenAt)}
                         </p>
                         <p className="mt-1 text-sm text-slate-400">
-                          Last IP: {data.latestSeenSession.lastSeenIp || "—"}
+                          Last IP: {latestSeenSession.lastSeenIp || "—"}
                         </p>
                         <p className="mt-1 text-xs text-slate-500 break-all">
-                          Family: {data.latestSeenSession.refreshFamilyId}
+                          Family: {latestSeenSession.refreshFamilyId}
                         </p>
                       </div>
                     ) : (
@@ -289,8 +335,9 @@ export function UserSessionDashboardModal({
                       <div className="flex items-start gap-3 rounded-sm border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-300">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                         <div>
-                          Admin revoke actions are available for active non-current sessions.
-                          Current sessions are not revocable from this view.
+                          Admin revoke actions are available for active
+                          non-current sessions. Current sessions are not
+                          revocable from this view.
                         </div>
                       </div>
                     </div>
@@ -308,7 +355,7 @@ export function UserSessionDashboardModal({
                         </thead>
 
                         <tbody>
-                          {data.sessions.map((session) => (
+                          {sessions.map((session) => (
                             <SessionRow
                               key={session.id}
                               session={session}
@@ -335,7 +382,10 @@ export function UserSessionDashboardModal({
           details={[
             { label: "Device", value: confirmSession.deviceLabel },
             { label: "Last IP", value: confirmSession.lastSeenIp },
-            { label: "Last seen", value: formatDateTime(confirmSession.lastSeenAt) },
+            {
+              label: "Last seen",
+              value: formatDateTime(confirmSession.lastSeenAt),
+            },
           ]}
           confirmLabel="Revoke session"
           submitting={revokingId === confirmSession.id}

@@ -68,9 +68,9 @@ export function EtaCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle>Trip information</CardTitle>
+            <CardTitle>Arrival summary</CardTitle>
             <CardDescription>
-              Simple ETA and distance summary for the selected bus.
+              Live estimate for the bus reaching your nearest stop.
             </CardDescription>
           </div>
 
@@ -79,62 +79,89 @@ export function EtaCard({
       </CardHeader>
 
       <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <Clock3 className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-[0.14em]">
-              ETA
-            </span>
-          </div>
-          <p className="mt-3 text-2xl font-semibold text-slate-100">
-            {tripEnded
+        <StatTile
+          tone="blue"
+          icon={<Clock3 className="h-4 w-4" />}
+          label="ETA"
+          value={
+            tripEnded
               ? "Ended"
               : etaToPassengerStop != null
                 ? `${etaToPassengerStop} min`
-                : "N/A"}
-          </p>
-        </div>
-
-        <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <Flag className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-[0.14em]">
-              Next Stop
-            </span>
-          </div>
-          <p className="mt-3 truncate text-sm font-semibold text-slate-100">
-            {tripEnded ? "Trip ended" : nearestStop}
-          </p>
-        </div>
-
-        <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <MapPin className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-[0.14em]">
-              Distance
-            </span>
-          </div>
-          <p className="mt-3 text-sm font-semibold text-slate-100">
-            {tripEnded ? "N/A" : formatDistanceMeters(busToStopDistance)}
-          </p>
-        </div>
-
-        <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <Gauge className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-[0.14em]">
-              Speed
-            </span>
-          </div>
-          <p className="mt-3 text-sm font-semibold text-slate-100">
-            {tripEnded
+                : "N/A"
+          }
+          emphasize
+        />
+        <StatTile
+          tone="amber"
+          icon={<Flag className="h-4 w-4" />}
+          label="Next stop"
+          value={tripEnded ? "Trip ended" : nearestStop}
+        />
+        <StatTile
+          tone="violet"
+          icon={<MapPin className="h-4 w-4" />}
+          label="Distance"
+          value={tripEnded ? "N/A" : formatDistanceMeters(busToStopDistance)}
+        />
+        <StatTile
+          tone="emerald"
+          icon={<Gauge className="h-4 w-4" />}
+          label="Speed"
+          value={
+            tripEnded
               ? "N/A"
               : currentSpeed != null
                 ? `${currentSpeed.toFixed(1)} km/h`
-                : "N/A"}
-          </p>
-        </div>
+                : "N/A"
+          }
+        />
       </CardContent>
     </Card>
+  );
+}
+
+type StatTone = "blue" | "amber" | "violet" | "emerald";
+
+const statChipClass: Record<StatTone, string> = {
+  blue: "bg-blue-500/15 text-blue-300",
+  amber: "bg-amber-500/15 text-amber-300",
+  violet: "bg-violet-500/15 text-violet-300",
+  emerald: "bg-emerald-500/15 text-emerald-300",
+};
+
+function StatTile({
+  tone,
+  icon,
+  label,
+  value,
+  emphasize = false,
+}: {
+  tone: StatTone;
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  emphasize?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 transition-colors hover:border-slate-700">
+      <div className="flex items-center gap-2">
+        <span
+          className={`flex h-7 w-7 items-center justify-center rounded-lg ${statChipClass[tone]}`}
+        >
+          {icon}
+        </span>
+        <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+          {label}
+        </span>
+      </div>
+      <p
+        className={`mt-3 truncate font-semibold text-slate-100 ${
+          emphasize ? "text-2xl" : "text-sm"
+        }`}
+      >
+        {value}
+      </p>
+    </div>
   );
 }

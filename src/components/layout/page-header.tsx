@@ -7,6 +7,7 @@ interface PageHeaderProps {
   description?: string;
   badge?: string;
   badgeTone?: Tone;
+  icon?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
 }
@@ -16,29 +17,47 @@ export function PageHeader({
   description,
   badge,
   badgeTone = "neutral",
+  icon,
   action,
   className,
 }: PageHeaderProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 rounded-sm border border-slate-800 bg-slate-900/80 p-4 panel-shadow sm:p-5 lg:flex-row lg:items-start lg:justify-between lg:p-6",
+        "relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-br from-slate-900 to-slate-900/40 p-4 panel-shadow sm:p-5 lg:flex lg:items-start lg:justify-between lg:gap-6 lg:p-6",
         className,
       )}
     >
-      <div className="min-w-0">
-        {badge ? <Badge tone={badgeTone}>{badge}</Badge> : null}
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-100 sm:text-3xl">
-          {title}
-        </h1>
-        {description ? (
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            {description}
-          </p>
+      <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-blue-600/10 blur-3xl" />
+
+      <div className="relative flex min-w-0 items-start gap-4">
+        {icon ? (
+          <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-600/30 sm:flex">
+            {icon}
+          </div>
         ) : null}
+
+        <div className="min-w-0">
+          {badge ? <Badge tone={badgeTone}>{badge}</Badge> : null}
+          <h1
+            className={cn(
+              "text-2xl font-semibold tracking-tight text-slate-100 sm:text-3xl",
+              badge ? "mt-3" : "",
+            )}
+          >
+            {title}
+          </h1>
+          {description ? (
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+              {description}
+            </p>
+          ) : null}
+        </div>
       </div>
 
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? (
+        <div className="relative mt-4 shrink-0 lg:mt-0">{action}</div>
+      ) : null}
     </div>
   );
 }

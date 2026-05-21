@@ -1,8 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BusFront, Clock3, Route, Search, SearchX, Star } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Clock3, Search, SearchX, Star } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,9 +75,9 @@ export function TripSelectorPanel({
   return (
     <Card className="min-h-[720px]">
       <CardHeader className="pb-3">
-        <CardTitle>Active Trips</CardTitle>
+        <CardTitle>Active buses</CardTitle>
         <CardDescription>
-          Search, filter, and select live trips for passenger tracking.
+          Pick a running bus to follow it live on the map.
         </CardDescription>
       </CardHeader>
 
@@ -82,7 +88,7 @@ export function TripSelectorPanel({
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search trip, route, bus..."
+              placeholder="Search route or bus..."
               className="pl-9"
             />
           </div>
@@ -133,14 +139,14 @@ export function TripSelectorPanel({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">
-                          {trip.routeName ?? trip.routeId}
+                          {trip.routeName ?? "University route"}
                         </p>
                         <p
-                          className={`mt-1 break-all text-xs ${
+                          className={`mt-1 truncate text-xs ${
                             active ? "text-slate-300" : "text-slate-500"
                           }`}
                         >
-                          Trip ID: {trip.tripId}
+                          {trip.busLabel ?? trip.busId ?? "Bus in service"}
                         </p>
                       </div>
 
@@ -184,33 +190,16 @@ export function TripSelectorPanel({
                     </div>
 
                     <div
-                      className={`mt-4 grid gap-2 text-xs ${
+                      className={`mt-4 flex items-center gap-2 text-xs ${
                         active ? "text-slate-200" : "text-slate-500"
                       }`}
                     >
-                      <div className="flex items-start gap-2">
-                        <BusFront className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span className="min-w-0 break-all">
-                          Bus: {trip.busLabel ?? trip.busId ?? "N/A"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-start gap-2">
-                        <Route className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span className="min-w-0 break-all">
-                          Route ID: {trip.routeId}
-                        </span>
-                      </div>
-
-                      <div className="flex items-start gap-2">
-                        <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span className="min-w-0 break-words">
-                          Update:{" "}
-                          {freshForThisTrip
-                            ? formatRelativeTime(freshForThisTrip)
-                            : "No live update yet"}
-                        </span>
-                      </div>
+                      <Clock3 className="h-3.5 w-3.5 shrink-0" />
+                      <span className="min-w-0 break-words">
+                        {freshForThisTrip
+                          ? `Updated ${formatRelativeTime(freshForThisTrip)}`
+                          : "Waiting for live update…"}
+                      </span>
                     </div>
                   </div>
                 </Button>

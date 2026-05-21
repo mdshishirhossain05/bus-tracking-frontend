@@ -637,17 +637,24 @@ function AnimatedVehicleMarker({
       lastUpdateAtRef.current != null ? nowTs - lastUpdateAtRef.current : null;
     lastUpdateAtRef.current = nowTs;
 
-    const durationMs =
-      observedIntervalMs != null && !smoothing.largeCorrection
-        ? clamp(observedIntervalMs, MIN_ANIMATION_MS, MAX_CONTINUOUS_ANIMATION_MS)
-        : computedDurationMs;
+    // When we're chaining live GPS fixes, glide at constant velocity
+    // (linear) across the whole interval so the vehicle never appears to
+    // slow down and pause before each new fix. Easing is only for one-off
+    // corrections, where a smooth decelerate-to-target looks better.
+    const followLive =
+      observedIntervalMs != null && !smoothing.largeCorrection;
+
+    const durationMs = followLive
+      ? clamp(observedIntervalMs, MIN_ANIMATION_MS, MAX_CONTINUOUS_ANIMATION_MS)
+      : computedDurationMs;
 
     const startedAt = performance.now();
 
     const tick = (now: number) => {
       const raw = Math.min((now - startedAt) / durationMs, 1);
-      const eased =
-        raw < 0.5
+      const eased = followLive
+        ? raw
+        : raw < 0.5
           ? 4 * raw * raw * raw
           : 1 - Math.pow(-2 * raw + 2, 3) / 2;
 

@@ -137,8 +137,13 @@ export function AdminUsersPage() {
     email: string;
     studentId?: string;
     phoneNumber?: string;
+    academicDepartment?: string;
+    academicBatch?: string;
+    transportPickupPoint?: string;
   }) {
     if (!modal || modal.type !== "edit") return;
+
+    const isPassenger = modal.user.role === "PASSENGER";
 
     try {
       setSubmitting(true);
@@ -149,6 +154,13 @@ export function AdminUsersPage() {
         email: values.email,
         studentId: values.studentId ?? null,
         phoneNumber: values.phoneNumber ?? null,
+        ...(isPassenger
+          ? {
+              academicDepartment: values.academicDepartment ?? null,
+              academicBatch: values.academicBatch ?? null,
+              transportPickupPoint: values.transportPickupPoint ?? null,
+            }
+          : {}),
       });
 
       toast.success("User updated", "User profile has been updated.");

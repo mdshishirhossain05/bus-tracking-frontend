@@ -12,6 +12,9 @@ export interface AdminUserItem {
   isActive: boolean;
   studentId?: string | null;
   phoneNumber?: string | null;
+  academicDepartment?: string | null;
+  academicBatch?: string | null;
+  transportPickupPoint?: string | null;
   approvalStatus: UserApprovalStatus;
   registrationSource: UserRegistrationSource;
   createdAt: string;
@@ -136,6 +139,9 @@ export async function updateAdminUser(
     email: string;
     studentId: string | null;
     phoneNumber: string | null;
+    academicDepartment: string | null;
+    academicBatch: string | null;
+    transportPickupPoint: string | null;
   }>,
 ) {
   const res = await api.patch(`/admin/users/${id}`, payload);

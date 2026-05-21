@@ -70,11 +70,11 @@ export function UserFormModal({
         ? initial.role
         : "DRIVER",
     isActive: initial?.isActive ?? true,
-    studentId: "",
-    phoneNumber: "",
-    academicDepartment: "",
-    academicBatch: "",
-    transportPickupPoint: "",
+    studentId: initial?.studentId ?? "",
+    phoneNumber: initial?.phoneNumber ?? "",
+    academicDepartment: initial?.academicDepartment ?? "",
+    academicBatch: initial?.academicBatch ?? "",
+    transportPickupPoint: initial?.transportPickupPoint ?? "",
   });
 
   const [errors, setErrors] = useState<
@@ -172,6 +172,15 @@ export function UserFormModal({
       email: values.email.trim().toLowerCase(),
       studentId: values.studentId.trim() || undefined,
       phoneNumber: values.phoneNumber.trim() || undefined,
+      academicDepartment: isPassengerRole(values.role)
+        ? values.academicDepartment.trim() || undefined
+        : undefined,
+      academicBatch: isPassengerRole(values.role)
+        ? values.academicBatch.trim() || undefined
+        : undefined,
+      transportPickupPoint: isPassengerRole(values.role)
+        ? values.transportPickupPoint.trim() || undefined
+        : undefined,
     });
   }
 
@@ -440,6 +449,64 @@ export function UserFormModal({
                   <p className="text-xs text-red-400">{errors.phoneNumber}</p>
                 ) : null}
               </div>
+
+              {isPassengerRole(values.role) ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300">
+                      Academic department
+                    </label>
+                    <Select
+                      value={values.academicDepartment}
+                      onChange={(e) =>
+                        setValues((prev) => ({
+                          ...prev,
+                          academicDepartment: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Select department</option>
+                      {ACADEMIC_DEPARTMENTS.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-300">
+                      Academic batch
+                    </label>
+                    <Input
+                      placeholder={ACADEMIC_BATCH_PLACEHOLDER}
+                      value={values.academicBatch}
+                      onChange={(e) =>
+                        setValues((prev) => ({
+                          ...prev,
+                          academicBatch: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm font-medium text-slate-300">
+                      Transport pickup point
+                    </label>
+                    <Input
+                      placeholder="e.g. Main Gate"
+                      value={values.transportPickupPoint}
+                      onChange={(e) =>
+                        setValues((prev) => ({
+                          ...prev,
+                          transportPickupPoint: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </>
+              ) : null}
             </div>
           )}
 

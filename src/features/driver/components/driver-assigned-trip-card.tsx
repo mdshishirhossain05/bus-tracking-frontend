@@ -20,6 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import type {
   DriverCurrentTrip,
   DriverTripLiveState,
@@ -111,14 +112,8 @@ function buildTimelineItems(params: {
   nextStopId?: string | null;
   nextStopName?: string | null;
 }): TimelineStopItem[] {
-  const {
-    stops,
-    trip,
-    liveState,
-    recentArrival,
-    nextStopId,
-    nextStopName,
-  } = params;
+  const { stops, trip, liveState, recentArrival, nextStopId, nextStopName } =
+    params;
 
   if (!stops.length) return [];
 
@@ -257,6 +252,21 @@ function sourceLabel(liveState?: any) {
   return "Unknown Source";
 }
 
+function sourceStatusText(status: string | null | undefined) {
+  switch (status) {
+    case "HEALTHY":
+      return "Healthy";
+    case "STALE":
+      return "Stale";
+    case "UNHEALTHY":
+      return "Unhealthy";
+    case "DISCONNECTED":
+      return "Disconnected";
+    default:
+      return "Unknown";
+  }
+}
+
 function getAccuracyText(liveState?: any) {
   const accuracy = liveState?.accuracyM;
 
@@ -307,10 +317,9 @@ export function DriverAssignedTripCard({
       <CardHeader>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle>Assigned Trip</CardTitle>
+            <CardTitle>Assigned trip</CardTitle>
             <CardDescription>
-              Current driver assignment, route context, backend live state, and
-              stop progression.
+              Your route, vehicle, tracking health, and stop-by-stop progress.
             </CardDescription>
           </div>
 
@@ -325,80 +334,57 @@ export function DriverAssignedTripCard({
           <p className="text-lg font-semibold text-slate-100">
             {trip?.routeName ?? "No assigned trip"}
           </p>
-          <p className="mt-1 break-all text-sm text-slate-500">
-            Trip ID: {trip?.tripId ?? "N/A"}
-          </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge tone={started ? "success" : "neutral"}>
-              {started ? "Running" : trip?.status ?? "N/A"}
+              {started ? "Running" : (trip?.status ?? "N/A")}
             </Badge>
             <Badge tone="neutral">Bus: {trip?.busLabel ?? "N/A"}</Badge>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-            <div className="flex items-center gap-2 text-slate-500">
-              <BusFront className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase tracking-[0.14em]">
-                Vehicle
-              </span>
-            </div>
-            <p className="mt-3 text-sm font-semibold text-slate-100">
-              {trip?.busLabel ?? "N/A"}
-            </p>
-          </div>
+          <StatTile
+            tone="blue"
+            icon={<BusFront className="h-4 w-4" />}
+            label="Vehicle"
+            value={trip?.busLabel ?? "Assigned bus"}
+          />
 
-          <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-            <div className="flex items-center gap-2 text-slate-500">
-              <Route className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase tracking-[0.14em]">
-                Route
-              </span>
-            </div>
-            <p className="mt-3 text-sm font-semibold text-slate-100">
-              {trip?.routeName ?? trip?.routeId ?? "N/A"}
-            </p>
-          </div>
+          <StatTile
+            tone="violet"
+            icon={<Route className="h-4 w-4" />}
+            label="Route"
+            value={trip?.routeName ?? "University route"}
+          />
 
-          <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-            <div className="flex items-center gap-2 text-slate-500">
-              <UserRound className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase tracking-[0.14em]">
-                Driver
-              </span>
-            </div>
-            <p className="mt-3 text-sm font-semibold text-slate-100">
-              {trip?.driverName ?? "N/A"}
-            </p>
-          </div>
+          <StatTile
+            tone="slate"
+            icon={<UserRound className="h-4 w-4" />}
+            label="Driver"
+            value={trip?.driverName ?? "You"}
+          />
 
-          <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-            <div className="flex items-center gap-2 text-slate-500">
-              <Activity className="h-4 w-4" />
-              <span className="text-xs font-medium uppercase tracking-[0.14em]">
-                ETA
-              </span>
-            </div>
-            <p className="mt-3 text-sm font-semibold text-slate-100">
-              {etaMinutes != null ? `${etaMinutes} min` : "N/A"}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Next stop: {nextStopName ?? trip?.eta?.nextStopName ?? "N/A"}
-            </p>
-          </div>
+          <StatTile
+            tone="amber"
+            icon={<Activity className="h-4 w-4" />}
+            label="ETA"
+            value={etaMinutes != null ? `${etaMinutes} min` : "N/A"}
+            hint={`Next stop: ${nextStopName ?? trip?.eta?.nextStopName ?? "N/A"}`}
+          />
 
-          <div className="rounded-sm border border-slate-800 bg-slate-950 p-4 sm:col-span-2">
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 sm:col-span-2">
             <div className="flex items-center gap-2 text-slate-500">
               <MapPinned className="h-4 w-4" />
               <span className="text-xs font-medium uppercase tracking-[0.14em]">
-                Live backend state
+                Tracking health
               </span>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <Badge tone={currentLiveState?.isStale ? "warning" : "success"}>
-                {currentLiveState?.isStale ? "Stale location" : "Fresh location"}
+                {currentLiveState?.isStale
+                  ? "Stale location"
+                  : "Fresh location"}
               </Badge>
               <Badge tone="info">
                 {isGpsSelected ? (
@@ -409,11 +395,8 @@ export function DriverAssignedTripCard({
                 {sourceLabel(currentLiveState)}
               </Badge>
               <Badge tone={toneForSourceStatus(currentLiveState?.sourceStatus)}>
-                {currentLiveState?.sourceStatus ?? "UNKNOWN"}
+                {sourceStatusText(currentLiveState?.sourceStatus)}
               </Badge>
-              {currentLiveState?.selectionReason ? (
-                <Badge tone="neutral">{currentLiveState.selectionReason}</Badge>
-              ) : null}
               <Badge tone="neutral">
                 Accuracy: {getAccuracyText(currentLiveState)}
               </Badge>
@@ -424,10 +407,10 @@ export function DriverAssignedTripCard({
         <div className="rounded-sm border border-slate-800 bg-slate-900 p-4 sm:p-5">
           <div className="mb-4">
             <p className="text-sm font-semibold text-slate-100">
-              Stop Progression Timeline
+              Stop progression
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Uses live arrival events and backend next-stop ETA context.
+              Updates live as you reach each stop.
             </p>
           </div>
 
@@ -457,8 +440,7 @@ export function DriverAssignedTripCard({
             </div>
           ) : (
             <div className="rounded-sm border border-dashed border-slate-800 bg-slate-950 p-4 text-sm text-slate-500">
-              Stop progression will appear once route presentation data is
-              available.
+              Stop-by-stop progress will appear once the route loads.
             </div>
           )}
         </div>

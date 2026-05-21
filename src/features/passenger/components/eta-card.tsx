@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatTile } from "@/components/ui/stat-tile";
 import { useAnimatedSpeed } from "@/lib/hooks/use-animated-speed";
 import type { LiveBusLocation, TripEta } from "@/types/trip";
 
@@ -118,50 +119,5 @@ export function EtaCard({
         />
       </CardContent>
     </Card>
-  );
-}
-
-type StatTone = "blue" | "amber" | "violet" | "emerald";
-
-const statChipClass: Record<StatTone, string> = {
-  blue: "bg-blue-500/15 text-blue-300",
-  amber: "bg-amber-500/15 text-amber-300",
-  violet: "bg-violet-500/15 text-violet-300",
-  emerald: "bg-emerald-500/15 text-emerald-300",
-};
-
-function StatTile({
-  tone,
-  icon,
-  label,
-  value,
-  emphasize = false,
-}: {
-  tone: StatTone;
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  emphasize?: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 transition-colors hover:border-slate-700">
-      <div className="flex items-center gap-2">
-        <span
-          className={`flex h-7 w-7 items-center justify-center rounded-lg ${statChipClass[tone]}`}
-        >
-          {icon}
-        </span>
-        <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-          {label}
-        </span>
-      </div>
-      <p
-        className={`mt-3 truncate font-semibold text-slate-100 ${
-          emphasize ? "text-2xl" : "text-sm"
-        }`}
-      >
-        {value}
-      </p>
-    </div>
   );
 }

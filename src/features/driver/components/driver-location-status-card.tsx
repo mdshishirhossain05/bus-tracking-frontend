@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { formatRelativeTime, formatSpeed } from "@/lib/utils/format";
 import type {
   DriverTrackingSourceSummary,
@@ -65,7 +66,10 @@ function getDisplaySpeed(liveState?: LiveBusLocation | null) {
   );
 }
 
-function getCardTone(publishState: PublishState, permission: LocationPermissionState) {
+function getCardTone(
+  publishState: PublishState,
+  permission: LocationPermissionState,
+) {
   if (permission === "denied" || publishState === "error") {
     return "danger" as const;
   }
@@ -116,7 +120,7 @@ export function DriverLocationStatusCard({
           <div>
             <CardTitle>Live status</CardTitle>
             <CardDescription>
-              Current tracking health and driver-facing movement summary.
+              How your location is being shared right now.
             </CardDescription>
           </div>
 
@@ -125,76 +129,56 @@ export function DriverLocationStatusCard({
       </CardHeader>
 
       <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-        <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            {isGpsSelected ? (
+        <StatTile
+          tone="blue"
+          icon={
+            isGpsSelected ? (
               <Satellite className="h-4 w-4" />
             ) : (
               <Smartphone className="h-4 w-4" />
-            )}
-            <span className="text-xs font-medium uppercase tracking-[0.14em]">
-              Source
-            </span>
-          </div>
-          <p className="mt-3 text-sm font-semibold text-slate-100">
-            {sourceLabel(trackingSource)}
-          </p>
-        </div>
+            )
+          }
+          label="Source"
+          value={sourceLabel(trackingSource)}
+        />
 
-        <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <LocateFixed className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-[0.14em]">
-              GPS Access
-            </span>
-          </div>
-          <p className="mt-3 text-sm font-semibold capitalize text-slate-100">
-            {permission}
-          </p>
-        </div>
+        <StatTile
+          tone={permission === "denied" ? "amber" : "emerald"}
+          icon={<LocateFixed className="h-4 w-4" />}
+          label="GPS access"
+          value={<span className="capitalize">{permission}</span>}
+        />
 
-        <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <Gauge className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-[0.14em]">
-              Speed
-            </span>
-          </div>
-          <p className="mt-3 text-sm font-semibold text-slate-100">
-            {formatSpeed(displaySpeed)}
-          </p>
-        </div>
+        <StatTile
+          tone="emerald"
+          icon={<Gauge className="h-4 w-4" />}
+          label="Speed"
+          value={formatSpeed(displaySpeed)}
+        />
 
-        <div className="rounded-sm border border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <Compass className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-[0.14em]">
-              Direction
-            </span>
-          </div>
-          <p className="mt-3 text-sm font-semibold text-slate-100">
-            {headingToDirection(liveState?.heading)}
-          </p>
-        </div>
+        <StatTile
+          tone="violet"
+          icon={<Compass className="h-4 w-4" />}
+          label="Direction"
+          value={headingToDirection(liveState?.heading)}
+        />
 
-        <div className="rounded-sm border border-slate-800 bg-slate-950 p-4 sm:col-span-2 xl:col-span-1 2xl:col-span-2">
-          <div className="flex items-center gap-2 text-slate-500">
-            <RefreshCcw className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-[0.14em]">
-              Last Update
-            </span>
-          </div>
-          <p className="mt-3 text-sm font-semibold text-slate-100">
-            {liveState?.updatedAt
+        <StatTile
+          className="sm:col-span-2 xl:col-span-1 2xl:col-span-2"
+          tone="slate"
+          icon={<RefreshCcw className="h-4 w-4" />}
+          label="Last update"
+          value={
+            liveState?.updatedAt
               ? formatRelativeTime(liveState.updatedAt)
-              : "No live update yet"}
-          </p>
-          {liveState?.accuracyM != null ? (
-            <p className="mt-1 text-xs text-slate-500">
-              Accuracy: {Math.round(liveState.accuracyM)} m
-            </p>
-          ) : null}
-        </div>
+              : "No live update yet"
+          }
+          hint={
+            liveState?.accuracyM != null
+              ? `Accuracy: ${Math.round(liveState.accuracyM)} m`
+              : undefined
+          }
+        />
       </CardContent>
     </Card>
   );

@@ -31,6 +31,15 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
+/**
+ * Reads the access token straight from secure storage, bypassing the in-memory
+ * mirror. Needed by background tasks (e.g. the driver location task) whose JS
+ * context is spun up fresh by the OS and never runs `hydrateTokens`.
+ */
+export async function getStoredAccessToken(): Promise<string | null> {
+  return SecureStore.getItemAsync(ACCESS_KEY);
+}
+
 export function getRefreshToken(): string | null {
   return refreshToken;
 }

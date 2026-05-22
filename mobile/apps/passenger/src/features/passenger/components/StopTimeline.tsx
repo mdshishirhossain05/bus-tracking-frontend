@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
-import { Text } from "../../../ui/Text";
-import { colors, spacing } from "../../../theme/tokens";
-import type { RouteStop } from "../../../types";
+import { Text } from "@ubts/shared";
+import { colors, spacing } from "@ubts/shared";
+import type { RouteStop } from "@ubts/shared";
 
 interface StopTimelineProps {
   stops: RouteStop[];

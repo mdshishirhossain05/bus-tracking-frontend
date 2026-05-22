@@ -7,14 +7,14 @@ import MapView, {
   type MapStyleElement,
   type Region,
 } from "react-native-maps";
-import { MAP_STYLE_DARK } from "../../../constants/mapStyleDark";
-import { colors } from "../../../theme/tokens";
-import { env } from "../../../config/env";
+import { MAP_STYLE_DARK } from "@ubts/shared";
+import { colors } from "@ubts/shared";
+import { env } from "@ubts/shared";
 import type {
   LiveBusLocation,
   PassengerLocation,
   RoutePresentation,
-} from "../../../types";
+} from "@ubts/shared";
 import { BusMarker } from "./BusMarker";
 
 const DELTA = 0.022;

@@ -1,9 +1,9 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { GlassSurface } from "../../../ui/GlassSurface";
-import { Text } from "../../../ui/Text";
-import { colors } from "../../../theme/tokens";
-import type { ConnectionStatus } from "../../../types";
+import { GlassSurface } from "@ubts/shared";
+import { Text } from "@ubts/shared";
+import { colors } from "@ubts/shared";
+import type { ConnectionStatus } from "@ubts/shared";
 
 const STATUS: Record<ConnectionStatus, { label: string; color: string }> = {
   connecting: { label: "Connecting", color: colors.warning },

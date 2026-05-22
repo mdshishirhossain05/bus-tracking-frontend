@@ -6,8 +6,8 @@ import {
   getRoutePresentation,
   getTripEta,
 } from "../api/passenger.api";
-import { connectSocket } from "../../../lib/socket/socketClient";
-import { SOCKET_EVENTS } from "../../../lib/socket/socketEvents";
+import { connectSocket } from "@ubts/shared";
+import { SOCKET_EVENTS } from "@ubts/shared";
 import type {
   ActiveTrip,
   ConnectionStatus,
@@ -16,7 +16,7 @@ import type {
   RoutePresentation,
   TripEta,
   TripStopArrivalPayload,
-} from "../../../types";
+} from "@ubts/shared";
 
 const STALE_AFTER_MS = 60_000;
 const ARRIVAL_VISIBILITY_MS = 20_000;

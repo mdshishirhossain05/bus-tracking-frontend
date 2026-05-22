@@ -8,7 +8,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { colors } from "../../../theme/tokens";
+import { colors } from "@ubts/shared";
 
 interface BusMarkerProps {
   latitude: number;

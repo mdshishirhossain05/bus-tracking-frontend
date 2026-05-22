@@ -9,9 +9,8 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { AuthProvider } from "./src/lib/auth/AuthContext";
+import { AuthProvider, colors } from "@ubts/shared";
 import { RootNavigator } from "./src/navigation/RootNavigator";
-import { colors } from "./src/theme/tokens";
 
 export default function App() {
   const [fontsLoaded] = useFonts({

@@ -9,9 +9,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text } from "../ui/Text";
-import { colors, fonts, radius, spacing } from "../theme/tokens";
-import { useAuth } from "../lib/auth/AuthContext";
+import { Text } from "@ubts/shared";
+import { colors, fonts, radius, spacing } from "@ubts/shared";
+import { useAuth } from "@ubts/shared";
 
 export function LoginScreen() {
   const { signIn } = useAuth();

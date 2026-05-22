@@ -1,12 +1,12 @@
-import { api, unwrap } from "../../../lib/api/client";
-import { API_ENDPOINTS } from "../../../lib/api/endpoints";
+import { api, unwrap } from "@ubts/shared";
+import { API_ENDPOINTS } from "@ubts/shared";
 import type {
   ActiveTrip,
   LiveBusLocation,
   RoutePresentation,
   RouteStop,
   TripEta,
-} from "../../../types";
+} from "@ubts/shared";
 
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && !Number.isNaN(value)) return value;

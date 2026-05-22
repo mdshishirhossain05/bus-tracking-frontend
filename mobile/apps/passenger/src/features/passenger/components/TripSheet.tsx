@@ -5,8 +5,8 @@ import BottomSheet, {
   type BottomSheetBackgroundProps,
 } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
-import { Text } from "../../../ui/Text";
-import { colors, radius, spacing } from "../../../theme/tokens";
+import { Text } from "@ubts/shared";
+import { colors, radius, spacing } from "@ubts/shared";
 import { StopTimeline } from "./StopTimeline";
 import type {
   ActiveTrip,
@@ -14,7 +14,7 @@ import type {
   RoutePresentation,
   TripEta,
   TripStopArrivalPayload,
-} from "../../../types";
+} from "@ubts/shared";
 
 interface TripSheetProps {
   trips: ActiveTrip[];

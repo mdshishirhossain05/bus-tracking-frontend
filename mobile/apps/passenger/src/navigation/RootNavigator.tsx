@@ -1,9 +1,9 @@
 import React from "react";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
-import { useAuth } from "../lib/auth/AuthContext";
+import { useAuth } from "@ubts/shared";
 import { LoginScreen } from "../screens/LoginScreen";
 import { LiveScreen } from "../screens/LiveScreen";
-import { colors } from "../theme/tokens";
+import { colors } from "@ubts/shared";
 
 export function RootNavigator() {
   const { status } = useAuth();

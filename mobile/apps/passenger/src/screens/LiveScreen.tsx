@@ -10,10 +10,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import type MapView from "react-native-maps";
 import * as Haptics from "expo-haptics";
-import { Text } from "../ui/Text";
-import { GlassSurface } from "../ui/GlassSurface";
-import { colors, spacing } from "../theme/tokens";
-import { useAuth } from "../lib/auth/AuthContext";
+import { Text } from "@ubts/shared";
+import { GlassSurface } from "@ubts/shared";
+import { colors, spacing } from "@ubts/shared";
+import { useAuth } from "@ubts/shared";
 import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLiveTrip";
 import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";

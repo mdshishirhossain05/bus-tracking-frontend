@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
-import { getCurrentTrip, startTrip, endTrip, type DriverTrip } from "../api/driver.api";
+import {
+  getCurrentTrip,
+  startTrip,
+  endTrip,
+  type DriverTrip,
+  type TrackingSource,
+} from "../api/driver.api";
 import {
   ensureLocationPermissions,
   isStreaming,
@@ -26,6 +32,8 @@ export function useDriverTrip() {
   const [error, setError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [lastFix, setLastFix] = useState<DriverFix | null>(null);
+  const [preferredSource, setPreferredSource] =
+    useState<TrackingSource>("DRIVER_MOBILE");
 
   useEffect(() => {
     let active = true;
@@ -89,6 +97,21 @@ export function useDriverTrip() {
     };
   }, [streaming]);
 
+  // While streaming, refresh the trip snapshot so ETA / next stop / status
+  // stay current (the foreground watch keeps the map position live separately).
+  useEffect(() => {
+    if (!streaming) return;
+    const id = setInterval(async () => {
+      try {
+        const current = await getCurrentTrip();
+        if (current) setTrip(current);
+      } catch {
+        // transient; next tick retries
+      }
+    }, 15000);
+    return () => clearInterval(id);
+  }, [streaming]);
+
   const start = useCallback(async () => {
     setBusy(true);
     setError(null);
@@ -99,12 +122,16 @@ export function useDriverTrip() {
         setPermissionDenied(true);
         return;
       }
-      const started = (await startTrip()) ?? (await getCurrentTrip());
+      const started =
+        (await startTrip(preferredSource)) ?? (await getCurrentTrip());
       if (!started) {
         throw new Error(
           "Could not start a trip — check your bus and route assignment.",
         );
       }
+      // The phone always streams while a trip is active so there is always a
+      // live source; preferredSource only tells the backend which to favor
+      // when a bus GPS device is also reporting.
       await startStreaming(started.tripId);
       setTrip(started);
       setStreaming(true);
@@ -116,7 +143,7 @@ export function useDriverTrip() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [preferredSource]);
 
   const end = useCallback(async () => {
     if (!trip) return;
@@ -143,6 +170,8 @@ export function useDriverTrip() {
     error,
     permissionDenied,
     lastFix,
+    preferredSource,
+    setPreferredSource,
     start,
     end,
   };

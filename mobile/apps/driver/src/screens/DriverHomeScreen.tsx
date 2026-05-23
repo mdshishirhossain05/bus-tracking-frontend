@@ -18,12 +18,77 @@ import {
 } from "@ubts/shared";
 import { useDriverTrip } from "../hooks/useDriverTrip";
 import { LiveIndicator } from "../components/LiveIndicator";
+import { DriverMap } from "../components/DriverMap";
+import type { TrackingSource } from "../api/driver.api";
+
+function SegmentButton({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.segmentButton, active && styles.segmentActive]}
+    >
+      <Text
+        variant="label"
+        color={active ? colors.primaryForeground : colors.mutedForeground}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function SourceToggle({
+  value,
+  onChange,
+}: {
+  value: TrackingSource;
+  onChange: (v: TrackingSource) => void;
+}) {
+  return (
+    <View>
+      <Text variant="caption" color={colors.faintForeground} style={styles.segmentLabel}>
+        LOCATION SOURCE
+      </Text>
+      <View style={styles.segment}>
+        <SegmentButton
+          label="My phone"
+          active={value === "DRIVER_MOBILE"}
+          onPress={() => onChange("DRIVER_MOBILE")}
+        />
+        <SegmentButton
+          label="Bus device"
+          active={value === "GPS_DEVICE"}
+          onPress={() => onChange("GPS_DEVICE")}
+        />
+      </View>
+    </View>
+  );
+}
 
 export function DriverHomeScreen() {
   useKeepAwake();
   const { user, signOut } = useAuth();
-  const { loading, trip, streaming, busy, error, permissionDenied, lastFix, start, end } =
-    useDriverTrip();
+  const {
+    loading,
+    trip,
+    streaming,
+    busy,
+    error,
+    permissionDenied,
+    lastFix,
+    preferredSource,
+    setPreferredSource,
+    start,
+    end,
+  } = useDriverTrip();
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -51,6 +116,9 @@ export function DriverHomeScreen() {
       ? `±${Math.round(lastFix.accuracyM)}m`
       : "—";
 
+  const lat = lastFix?.latitude ?? trip?.latitude ?? null;
+  const lng = lastFix?.longitude ?? trip?.longitude ?? null;
+
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
@@ -69,30 +137,53 @@ export function DriverHomeScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.body}>
-        <GlassSurface style={styles.card}>
-          <Text variant="label" color={colors.mutedForeground}>
-            {trip ? trip.routeName ?? "Assigned route" : "No active trip"}
-          </Text>
-          <Text variant="title" color={colors.foreground}>
-            {trip?.busLabel ?? (trip ? "Bus" : "Ready when you are")}
-          </Text>
-          {trip && (
-            <Text variant="caption" color={colors.mutedForeground}>
-              Status: {trip.status}
-            </Text>
-          )}
-        </GlassSurface>
+      <DriverMap routeId={trip?.routeId ?? null} latitude={lat} longitude={lng} />
 
-        <GlassSurface style={styles.card}>
+      <View style={styles.panel}>
+        <View style={styles.tripRow}>
+          <View style={styles.flex}>
+            <Text variant="label" color={colors.mutedForeground}>
+              {trip ? (trip.routeName ?? "Assigned route") : "No active trip"}
+            </Text>
+            <Text variant="subtitle" color={colors.foreground}>
+              {trip?.busLabel ?? (trip ? "Bus" : "Ready when you are")}
+            </Text>
+          </View>
           <LiveIndicator live={streaming} />
-        </GlassSurface>
+        </View>
+
+        {streaming && (trip?.nextStopName || trip?.etaMinutes != null) ? (
+          <GlassSurface style={styles.nextStop}>
+            <View style={styles.flex}>
+              <Text variant="caption" color={colors.faintForeground}>
+                NEXT STOP
+              </Text>
+              <Text variant="subtitle" color={colors.foreground}>
+                {trip?.nextStopName ?? "On route"}
+              </Text>
+            </View>
+            {trip?.etaMinutes != null ? (
+              <View style={styles.etaBox}>
+                <Text variant="title" color={colors.primary} tabular>
+                  {trip.etaMinutes}
+                </Text>
+                <Text variant="caption" color={colors.mutedForeground}>
+                  min
+                </Text>
+              </View>
+            ) : null}
+          </GlassSurface>
+        ) : null}
 
         <View style={styles.metrics}>
           <Metric label="Speed" value={speed} unit="km/h" />
           <Metric label="GPS" value={accuracy} />
           <Metric label="Updated" value={updatedAgo} />
         </View>
+
+        {!streaming ? (
+          <SourceToggle value={preferredSource} onChange={setPreferredSource} />
+        ) : null}
 
         {permissionDenied && (
           <Pressable onPress={() => void Linking.openSettings()}>
@@ -113,9 +204,7 @@ export function DriverHomeScreen() {
             {error}
           </Text>
         )}
-      </View>
 
-      <View style={styles.actionWrap}>
         <Pressable
           onPress={streaming ? end : start}
           disabled={busy}
@@ -180,27 +269,59 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
   },
-  body: { flex: 1, paddingHorizontal: spacing.xl, gap: spacing.lg },
-  card: { padding: spacing.xl, gap: spacing.xs },
+  panel: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+    gap: spacing.md,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    marginTop: -radius.xl,
+  },
+  tripRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  flex: { flex: 1 },
+  nextStop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+  },
+  etaBox: { alignItems: "center", minWidth: 52 },
   metrics: { flexDirection: "row", gap: spacing.sm },
   metric: {
     flex: 1,
     backgroundColor: colors.muted,
     borderRadius: radius.md,
-    padding: spacing.lg,
+    padding: spacing.md,
     gap: spacing.xs,
   },
   metricValue: { flexDirection: "row", alignItems: "flex-end", gap: 4 },
   metricUnit: { marginBottom: 3 },
+  segmentLabel: { letterSpacing: 1, marginBottom: spacing.xs },
+  segment: {
+    flexDirection: "row",
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
+    padding: 4,
+    gap: 4,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: "center",
+    borderRadius: radius.sm,
+  },
+  segmentActive: { backgroundColor: colors.primary },
   warning: {
     backgroundColor: "rgba(245, 158, 11, 0.12)",
     borderRadius: radius.md,
     padding: spacing.lg,
     gap: spacing.xs,
   },
-  actionWrap: { padding: spacing.xl },
   action: {
     borderRadius: radius.lg,
     paddingVertical: spacing.xl,

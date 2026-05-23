@@ -9,7 +9,7 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { AuthProvider, colors } from "@ubts/shared";
+import { AuthProvider, NotificationsProvider, colors } from "@ubts/shared";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 
 export default function App() {
@@ -26,8 +26,10 @@ export default function App() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar style="light" />
-          <RootNavigator />
+          <NotificationsProvider>
+            <StatusBar style="light" />
+            <RootNavigator />
+          </NotificationsProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

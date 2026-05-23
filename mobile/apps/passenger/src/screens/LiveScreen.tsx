@@ -10,17 +10,49 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import type MapView from "react-native-maps";
 import * as Haptics from "expo-haptics";
-import { Text } from "@ubts/shared";
-import { GlassSurface } from "@ubts/shared";
+import { Text, GlassSurface, Badge } from "@ubts/shared";
 import { colors, spacing } from "@ubts/shared";
-import { useAuth } from "@ubts/shared";
+import { useNotifications } from "@ubts/shared";
 import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLiveTrip";
 import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
+import { useNav } from "../navigation/NavigationContext";
+
+function TopActions() {
+  const { navigate } = useNav();
+  const { unreadCount } = useNotifications();
+  return (
+    <View style={styles.actions}>
+      <Pressable onPress={() => navigate("routes")} hitSlop={6}>
+        <GlassSurface rounded="pill" style={styles.actionPill}>
+          <Text variant="caption" color={colors.foreground}>
+            Lines
+          </Text>
+        </GlassSurface>
+      </Pressable>
+      <View>
+        <Pressable onPress={() => navigate("notifications")} hitSlop={6}>
+          <GlassSurface rounded="pill" style={styles.actionPill}>
+            <Text variant="caption" color={colors.foreground}>
+              Alerts
+            </Text>
+          </GlassSurface>
+        </Pressable>
+        <Badge count={unreadCount} />
+      </View>
+      <Pressable onPress={() => navigate("profile")} hitSlop={6}>
+        <GlassSurface rounded="pill" style={styles.actionPill}>
+          <Text variant="caption" color={colors.foreground}>
+            Me
+          </Text>
+        </GlassSurface>
+      </Pressable>
+    </View>
+  );
+}
 
 export function LiveScreen() {
-  const { signOut } = useAuth();
   const {
     loading,
     refreshing,
@@ -77,24 +109,33 @@ export function LiveScreen() {
 
   if (!trips.length) {
     return (
-      <View style={styles.centered}>
-        <ScrollView
-          contentContainerStyle={styles.emptyScroll}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={retry}
-              tintColor={colors.primary}
-            />
-          }
-        >
-          <Text variant="subtitle" color={colors.foreground}>
-            No buses running
-          </Text>
-          <Text variant="body" color={colors.mutedForeground} style={styles.center}>
-            {error ?? "There are no active trips right now. Pull to refresh."}
-          </Text>
-        </ScrollView>
+      <View style={styles.root}>
+        <View style={styles.centered}>
+          <ScrollView
+            contentContainerStyle={styles.emptyScroll}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={retry}
+                tintColor={colors.primary}
+              />
+            }
+          >
+            <Text variant="subtitle" color={colors.foreground}>
+              No buses running
+            </Text>
+            <Text variant="body" color={colors.mutedForeground} style={styles.center}>
+              {error ?? "There are no active trips right now. Pull to refresh."}
+            </Text>
+          </ScrollView>
+        </View>
+
+        <SafeAreaView style={styles.overlay} pointerEvents="box-none" edges={["top"]}>
+          <View style={styles.topBar} pointerEvents="box-none">
+            <View />
+            <TopActions />
+          </View>
+        </SafeAreaView>
       </View>
     );
   }
@@ -114,13 +155,7 @@ export function LiveScreen() {
       <SafeAreaView style={styles.overlay} pointerEvents="box-none" edges={["top"]}>
         <View style={styles.topBar} pointerEvents="box-none">
           <ConnectionPill status={connectionStatus} />
-          <Pressable onPress={signOut} hitSlop={8}>
-            <GlassSurface rounded="pill" style={styles.signOut}>
-              <Text variant="caption" color={colors.mutedForeground}>
-                Sign out
-              </Text>
-            </GlassSurface>
-          </Pressable>
+          <TopActions />
         </View>
       </SafeAreaView>
 
@@ -183,7 +218,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
   },
-  signOut: { paddingHorizontal: 12, paddingVertical: 7 },
+  actions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  actionPill: { paddingHorizontal: 12, paddingVertical: 7 },
   fabWrap: {
     position: "absolute",
     right: spacing.lg,

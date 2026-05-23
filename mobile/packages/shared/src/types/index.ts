@@ -93,3 +93,85 @@ export interface TripStopArrivalPayload {
   delayMinutes: number;
   status: "NO_SCHEDULE" | "LATE" | "EARLY" | "ON_TIME" | string;
 }
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  isActive?: boolean;
+  studentId?: string | null;
+  phoneNumber?: string | null;
+  academicDepartment?: string | null;
+  academicBatch?: string | null;
+  transportPickupPoint?: string | null;
+  approvalStatus?: string | null;
+  registrationSource?: string | null;
+  createdAt?: string | null;
+}
+
+export interface UpdateProfileInput {
+  fullName: string;
+  email: string;
+  phoneNumber?: string | null;
+  academicDepartment?: string | null;
+  academicBatch?: string | null;
+  transportPickupPoint?: string | null;
+}
+
+export interface SessionInfo {
+  id: string;
+  deviceLabel?: string | null;
+  userAgentRaw?: string | null;
+  createdAt?: string | null;
+  lastSeenAt?: string | null;
+  ipFirst?: string | null;
+  ipLast?: string | null;
+  lastSeenIp?: string | null;
+  current?: boolean;
+  revokedAt?: string | null;
+  revokedReason?: string | null;
+}
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  link?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationList {
+  items: NotificationItem[];
+  unreadCount: number;
+}
+
+export interface FavoriteRoute {
+  id: string;
+  routeId: string;
+  routeName: string;
+  description?: string | null;
+  isActive?: boolean;
+  favoritedAt?: string | null;
+}
+
+export interface RouteLiveBus {
+  tripId: string;
+  routeId: string;
+  busId?: string | null;
+  busLabel?: string | null;
+  driverId?: string | null;
+  driverName?: string | null;
+  status: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  speedKmh?: number | null;
+  heading?: number | null;
+  etaMinutes?: number | null;
+  nextStopName?: string | null;
+  confidence?: "HIGH" | "MEDIUM" | "LOW" | string | null;
+  updatedAt?: string | null;
+  isStale?: boolean;
+}

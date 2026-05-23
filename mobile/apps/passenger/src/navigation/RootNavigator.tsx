@@ -1,9 +1,9 @@
 import React from "react";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
-import { useAuth } from "@ubts/shared";
+import { useAuth, colors } from "@ubts/shared";
 import { LoginScreen } from "../screens/LoginScreen";
-import { LiveScreen } from "../screens/LiveScreen";
-import { colors } from "@ubts/shared";
+import { NavigationProvider } from "./NavigationContext";
+import { MainNavigator } from "./MainNavigator";
 
 export function RootNavigator() {
   const { status } = useAuth();
@@ -16,7 +16,13 @@ export function RootNavigator() {
     );
   }
 
-  return status === "authenticated" ? <LiveScreen /> : <LoginScreen />;
+  if (status !== "authenticated") return <LoginScreen />;
+
+  return (
+    <NavigationProvider>
+      <MainNavigator />
+    </NavigationProvider>
+  );
 }
 
 const styles = StyleSheet.create({

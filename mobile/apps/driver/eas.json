@@ -12,8 +12,8 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://REPLACE-WITH-YOUR-BACKEND/api/v1",
-        "EXPO_PUBLIC_SOCKET_URL": "https://REPLACE-WITH-YOUR-BACKEND"
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.nrtechvps.com/api/v1",
+        "EXPO_PUBLIC_SOCKET_URL": "https://api.nrtechvps.com"
       }
     },
     "production": {

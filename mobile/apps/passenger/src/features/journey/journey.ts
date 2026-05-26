@@ -59,7 +59,22 @@ export function nearestStopId(
   return i >= 0 ? ordered[i].id : null;
 }
 
-function detailLine(stopsAway: number, near?: string | null): string {
+function buildDetail(
+  stops: RouteStop[],
+  busIndex: number,
+  myIndex: number,
+  stopsAway: number,
+  near?: string | null,
+): string {
+  // busIndex === 0 means the bus's next stop is the first stop — i.e. it has
+  // started its trip but is still on its way to the route's starting point.
+  if (busIndex === 0) {
+    const origin = stops[0]?.name;
+    const where = origin ? ` (${origin})` : "";
+    if (myIndex === 0) return `On its way to the first stop${where} — your stop`;
+    return `Heading to the first stop${where} · ${stopsAway} stop${stopsAway > 1 ? "s" : ""} to you`;
+  }
+
   const base =
     stopsAway <= 0
       ? "Your stop is next"
@@ -168,7 +183,7 @@ export function computeJourney(params: {
     busIndex,
     myIndex,
     headline: approaching ? "Arriving now" : `~${eta} min to your stop`,
-    detail: detailLine(stopsAway, bus.nearestStopName),
+    detail: buildDetail(stops, busIndex, myIndex, stopsAway, bus.nearestStopName),
     confidence: conf,
   };
 }

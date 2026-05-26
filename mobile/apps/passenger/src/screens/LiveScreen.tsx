@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import type MapView from "react-native-maps";
 import * as Haptics from "expo-haptics";
-import { Text, GlassSurface, Badge } from "@ubts/shared";
+import { Text, GlassSurface, Icon, IconButton } from "@ubts/shared";
 import { colors, spacing } from "@ubts/shared";
 import { useNotifications } from "@ubts/shared";
 import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLiveTrip";
@@ -24,30 +24,13 @@ function TopActions() {
   const { unreadCount } = useNotifications();
   return (
     <View style={styles.actions}>
-      <Pressable onPress={() => navigate("routes")} hitSlop={6}>
-        <GlassSurface rounded="pill" style={styles.actionPill}>
-          <Text variant="caption" color={colors.foreground}>
-            Lines
-          </Text>
-        </GlassSurface>
-      </Pressable>
-      <View>
-        <Pressable onPress={() => navigate("notifications")} hitSlop={6}>
-          <GlassSurface rounded="pill" style={styles.actionPill}>
-            <Text variant="caption" color={colors.foreground}>
-              Alerts
-            </Text>
-          </GlassSurface>
-        </Pressable>
-        <Badge count={unreadCount} />
-      </View>
-      <Pressable onPress={() => navigate("profile")} hitSlop={6}>
-        <GlassSurface rounded="pill" style={styles.actionPill}>
-          <Text variant="caption" color={colors.foreground}>
-            Me
-          </Text>
-        </GlassSurface>
-      </Pressable>
+      <IconButton name="map-outline" onPress={() => navigate("routes")} />
+      <IconButton
+        name="notifications-outline"
+        onPress={() => navigate("notifications")}
+        badge={unreadCount}
+      />
+      <IconButton name="person-outline" onPress={() => navigate("profile")} />
     </View>
   );
 }
@@ -162,19 +145,11 @@ export function LiveScreen() {
       <View style={styles.fabWrap} pointerEvents="box-none">
         <Pressable onPress={recenter}>
           <GlassSurface rounded="pill" style={styles.fab}>
-            <View
-              style={[
-                styles.crosshairRing,
-                { borderColor: following ? colors.primary : colors.mutedForeground },
-              ]}
-            >
-              <View
-                style={[
-                  styles.crosshairDot,
-                  { backgroundColor: following ? colors.primary : colors.mutedForeground },
-                ]}
-              />
-            </View>
+            <Icon
+              name="locate"
+              size={22}
+              color={following ? colors.primary : colors.mutedForeground}
+            />
           </GlassSurface>
         </Pressable>
       </View>
@@ -219,7 +194,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   actions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  actionPill: { paddingHorizontal: 12, paddingVertical: 7 },
   fabWrap: {
     position: "absolute",
     right: spacing.lg,
@@ -231,13 +205,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  crosshairRing: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  crosshairDot: { width: 6, height: 6, borderRadius: 3 },
 });

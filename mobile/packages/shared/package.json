@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "peerDependencies": {
+    "@expo/vector-icons": "*",
     "axios": "*",
     "expo-blur": "*",
     "expo-secure-store": "*",

@@ -5,10 +5,12 @@ import {
   Text,
   ScreenHeader,
   EmptyState,
+  Icon,
   colors,
   spacing,
   radius,
   useNotifications,
+  type IconName,
 } from "@ubts/shared";
 import type { NotificationItem } from "@ubts/shared";
 import { useNav } from "../navigation/NavigationContext";
@@ -24,6 +26,19 @@ function timeAgo(iso: string): string {
   return `${Math.round(h / 24)}d ago`;
 }
 
+function iconForType(type: string): IconName {
+  switch (type) {
+    case "STOP_ARRIVAL":
+      return "bus";
+    case "TRIP_STARTED":
+      return "play";
+    case "TRIP_ENDED":
+      return "flag";
+    default:
+      return "notifications";
+  }
+}
+
 function NotificationRow({
   item,
   onPress,
@@ -31,17 +46,18 @@ function NotificationRow({
   item: NotificationItem;
   onPress: () => void;
 }) {
+  const unread = !item.isRead;
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        !item.isRead && styles.unread,
-        pressed && styles.pressed,
-      ]}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <View style={styles.dotCol}>
-        {!item.isRead ? <View style={styles.dot} /> : null}
+      <View style={[styles.leadIcon, unread && styles.leadIconUnread]}>
+        <Icon
+          name={iconForType(item.type)}
+          size={18}
+          color={unread ? colors.primary : colors.mutedForeground}
+        />
       </View>
       <View style={styles.body}>
         <Text variant="label" color={colors.foreground}>
@@ -54,6 +70,7 @@ function NotificationRow({
           {timeAgo(item.createdAt)}
         </Text>
       </View>
+      {unread ? <View style={styles.unreadDot} /> : null}
     </Pressable>
   );
 }
@@ -71,12 +88,18 @@ export function NotificationsScreen() {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScreenHeader
         title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
         onBack={goBack}
         right={
           unreadCount > 0 ? (
-            <Pressable onPress={() => void markAllRead()} hitSlop={8}>
+            <Pressable
+              onPress={() => void markAllRead()}
+              hitSlop={8}
+              style={styles.markAll}
+            >
+              <Icon name="checkmark-done" size={16} color={colors.primary} />
               <Text variant="caption" color={colors.primary}>
-                Mark all read
+                Read all
               </Text>
             </Pressable>
           ) : null
@@ -95,6 +118,7 @@ export function NotificationsScreen() {
         }
         ListEmptyComponent={
           <EmptyState
+            icon="notifications-outline"
             title="No notifications yet"
             subtitle="Arrival alerts for your favorite routes will appear here."
           />
@@ -111,20 +135,34 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.lg, gap: spacing.sm },
   emptyWrap: { flexGrow: 1 },
+  markAll: { flexDirection: "row", alignItems: "center", gap: 4 },
   row: {
     flexDirection: "row",
-    gap: spacing.sm,
-    padding: spacing.lg,
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.md,
     backgroundColor: colors.backgroundElevated,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     marginBottom: spacing.sm,
   },
-  unread: { borderColor: colors.ring, backgroundColor: colors.muted },
+  leadIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: colors.muted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  leadIconUnread: { backgroundColor: colors.primarySoft },
   pressed: { opacity: 0.7 },
-  dotCol: { width: 12, paddingTop: 6, alignItems: "center" },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
   body: { flex: 1, gap: 2 },
   bodyText: { marginBottom: 2 },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
 });

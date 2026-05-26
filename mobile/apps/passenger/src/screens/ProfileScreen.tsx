@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -11,6 +12,7 @@ import {
   Text,
   Button,
   ScreenHeader,
+  Icon,
   colors,
   spacing,
   radius,
@@ -22,6 +24,7 @@ import {
   listSessions,
   revokeSession,
   logoutOtherSessions,
+  type IconName,
 } from "@ubts/shared";
 import type { SessionInfo, UserProfile } from "@ubts/shared";
 import { useNav } from "../navigation/NavigationContext";
@@ -45,18 +48,47 @@ function Field({
 }
 
 function Card({
+  icon,
   title,
   children,
 }: {
+  icon: IconName;
   title: string;
   children: React.ReactNode;
 }) {
   return (
     <View style={styles.card}>
-      <Text variant="caption" color={colors.mutedForeground} style={styles.cardTitle}>
-        {title}
-      </Text>
+      <View style={styles.cardHeader}>
+        <Icon name={icon} size={15} color={colors.mutedForeground} />
+        <Text variant="caption" color={colors.mutedForeground} style={styles.cardTitle}>
+          {title}
+        </Text>
+      </View>
       {children}
+    </View>
+  );
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: IconName;
+  label: string;
+  value?: string | null;
+}) {
+  return (
+    <View style={styles.infoRow}>
+      <Icon name={icon} size={18} color={colors.faintForeground} />
+      <View style={styles.flex}>
+        <Text variant="caption" color={colors.faintForeground}>
+          {label}
+        </Text>
+        <Text variant="body" color={value ? colors.foreground : colors.faintForeground}>
+          {value || "—"}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -210,16 +242,16 @@ export function ProfileScreen() {
         onBack={goBack}
         right={
           !editing ? (
-            <Text
-              variant="caption"
-              color={colors.primary}
+            <Pressable
               onPress={() => {
                 setProfileMsg(null);
                 setEditing(true);
               }}
+              hitSlop={10}
+              style={styles.editBtn}
             >
-              Edit
-            </Text>
+              <Icon name="create-outline" size={18} color={colors.primary} />
+            </Pressable>
           ) : null
         }
       />
@@ -236,13 +268,15 @@ export function ProfileScreen() {
           <Text variant="subtitle" color={colors.foreground}>
             {profile?.fullName}
           </Text>
-          <Text variant="caption" color={colors.mutedForeground}>
-            {profile?.role}
-            {profile?.studentId ? ` · ${profile.studentId}` : ""}
-          </Text>
+          <View style={styles.roleChip}>
+            <Text variant="caption" color={colors.primary}>
+              {(profile?.role ?? "PASSENGER").toUpperCase()}
+              {profile?.studentId ? ` · ${profile.studentId}` : ""}
+            </Text>
+          </View>
         </View>
 
-        <Card title="ACCOUNT">
+        <Card icon="person-circle-outline" title="ACCOUNT">
           {editing ? (
             <>
               <Field label="Full name" value={fullName} onChangeText={setFullName} />
@@ -275,6 +309,7 @@ export function ProfileScreen() {
                 />
                 <Button
                   label="Save"
+                  icon="checkmark"
                   onPress={onSaveProfile}
                   loading={savingProfile}
                   style={styles.flex}
@@ -283,11 +318,23 @@ export function ProfileScreen() {
             </>
           ) : (
             <>
-              <InfoRow label="Email" value={profile?.email} />
-              <InfoRow label="Phone" value={profile?.phoneNumber} />
-              <InfoRow label="Department" value={profile?.academicDepartment} />
-              <InfoRow label="Batch" value={profile?.academicBatch} />
-              <InfoRow label="Pickup point" value={profile?.transportPickupPoint} />
+              <InfoRow icon="mail-outline" label="Email" value={profile?.email} />
+              <InfoRow icon="call-outline" label="Phone" value={profile?.phoneNumber} />
+              <InfoRow
+                icon="school-outline"
+                label="Department"
+                value={profile?.academicDepartment}
+              />
+              <InfoRow
+                icon="calendar-outline"
+                label="Batch"
+                value={profile?.academicBatch}
+              />
+              <InfoRow
+                icon="location-outline"
+                label="Pickup point"
+                value={profile?.transportPickupPoint}
+              />
             </>
           )}
           {profileMsg ? (
@@ -297,7 +344,7 @@ export function ProfileScreen() {
           ) : null}
         </Card>
 
-        <Card title="CHANGE PASSWORD">
+        <Card icon="lock-closed-outline" title="CHANGE PASSWORD">
           <Field
             label="Current password"
             value={currentPassword}
@@ -330,26 +377,34 @@ export function ProfileScreen() {
           ) : null}
         </Card>
 
-        <Card title="DEVICES">
-          {activeSessions.map((s) => (
-            <View key={s.id} style={styles.session}>
+        <Card icon="phone-portrait-outline" title="DEVICES">
+          {activeSessions.map((s, i) => (
+            <View
+              key={s.id}
+              style={[styles.session, i === activeSessions.length - 1 && styles.sessionLast]}
+            >
+              <Icon name="hardware-chip-outline" size={18} color={colors.faintForeground} />
               <View style={styles.flex}>
-                <Text variant="label" color={colors.foreground}>
-                  {s.deviceLabel ?? s.userAgentRaw ?? "Device"}
-                  {s.current ? "  (this device)" : ""}
-                </Text>
+                <View style={styles.sessionTitle}>
+                  <Text variant="label" color={colors.foreground} numberOfLines={1}>
+                    {s.deviceLabel ?? s.userAgentRaw ?? "Device"}
+                  </Text>
+                  {s.current ? (
+                    <View style={styles.thisChip}>
+                      <Text variant="caption" color={colors.success}>
+                        This device
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
                 <Text variant="caption" color={colors.faintForeground}>
                   {formatWhen(s.lastSeenAt ?? s.createdAt)}
                 </Text>
               </View>
               {!s.current ? (
-                <Text
-                  variant="caption"
-                  color={colors.danger}
-                  onPress={() => void onRevoke(s.id)}
-                >
-                  Revoke
-                </Text>
+                <Pressable onPress={() => void onRevoke(s.id)} hitSlop={8}>
+                  <Icon name="close-circle-outline" size={20} color={colors.danger} />
+                </Pressable>
               ) : null}
             </View>
           ))}
@@ -357,6 +412,7 @@ export function ProfileScreen() {
             <Button
               label="Sign out other devices"
               variant="ghost"
+              icon="log-out-outline"
               onPress={onSignOutOthers}
               loading={sessionBusy}
               style={styles.topGap}
@@ -364,22 +420,15 @@ export function ProfileScreen() {
           ) : null}
         </Card>
 
-        <Button label="Sign out" variant="danger" onPress={signOut} style={styles.topGap} />
+        <Button
+          label="Sign out"
+          variant="danger"
+          icon="log-out-outline"
+          onPress={signOut}
+          style={styles.topGap}
+        />
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <View style={styles.infoRow}>
-      <Text variant="caption" color={colors.mutedForeground}>
-        {label}
-      </Text>
-      <Text variant="body" color={value ? colors.foreground : colors.faintForeground}>
-        {value || "—"}
-      </Text>
-    </View>
   );
 }
 
@@ -387,15 +436,29 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
+  editBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.muted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   identity: { alignItems: "center", gap: spacing.xs, paddingVertical: spacing.md },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.xs,
+  },
+  roleChip: {
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
   },
   card: {
     backgroundColor: colors.backgroundElevated,
@@ -405,7 +468,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  cardTitle: { letterSpacing: 1 },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  cardTitle: { letterSpacing: 1.2 },
   field: { gap: spacing.xs },
   input: {
     backgroundColor: colors.muted,
@@ -418,7 +482,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 16,
   },
-  infoRow: { gap: 2 },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   actionsRow: { flexDirection: "row", gap: spacing.md },
   flex: { flex: 1 },
   msg: { marginTop: spacing.xs },
@@ -426,9 +490,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
+  },
+  sessionLast: { borderBottomWidth: 0 },
+  sessionTitle: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  thisChip: {
+    backgroundColor: "rgba(34, 197, 94, 0.14)",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
   },
   topGap: { marginTop: spacing.sm },
 });

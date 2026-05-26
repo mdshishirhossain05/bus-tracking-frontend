@@ -3,10 +3,12 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
+  View,
   type ViewStyle,
 } from "react-native";
 import { colors, radius, spacing } from "../theme/tokens";
 import { Text } from "./Text";
+import { Icon, type IconName } from "./Icon";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -16,6 +18,7 @@ interface ButtonProps {
   variant?: Variant;
   loading?: boolean;
   disabled?: boolean;
+  icon?: IconName;
   style?: ViewStyle | ViewStyle[];
 }
 
@@ -39,6 +42,7 @@ export function Button({
   variant = "primary",
   loading = false,
   disabled = false,
+  icon,
   style,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -58,9 +62,12 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={FG[variant]} />
       ) : (
-        <Text variant="label" color={FG[variant]}>
-          {label}
-        </Text>
+        <View style={styles.content}>
+          {icon ? <Icon name={icon} size={18} color={FG[variant]} /> : null}
+          <Text variant="label" color={FG[variant]}>
+            {label}
+          </Text>
+        </View>
       )}
     </Pressable>
   );
@@ -75,6 +82,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 48,
   },
+  content: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   ghost: {
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,

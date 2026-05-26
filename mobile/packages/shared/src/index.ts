@@ -21,6 +21,8 @@ export * from "./lib/socket/socketClient";
 export * from "./lib/socket/socketEvents";
 export * from "./ui/Text";
 export * from "./ui/GlassSurface";
+export * from "./ui/Icon";
+export * from "./ui/IconButton";
 export * from "./ui/Button";
 export * from "./ui/Badge";
 export * from "./ui/Row";

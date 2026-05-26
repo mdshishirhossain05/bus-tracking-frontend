@@ -11,10 +11,12 @@ import { useKeepAwake } from "expo-keep-awake";
 import {
   GlassSurface,
   Text,
+  Icon,
   colors,
   radius,
   spacing,
   useAuth,
+  type IconName,
 } from "@ubts/shared";
 import { useDriverTrip } from "../hooks/useDriverTrip";
 import { LiveIndicator } from "../components/LiveIndicator";
@@ -22,23 +24,24 @@ import { DriverMap } from "../components/DriverMap";
 import type { TrackingSource } from "../api/driver.api";
 
 function SegmentButton({
+  icon,
   label,
   active,
   onPress,
 }: {
+  icon: IconName;
   label: string;
   active: boolean;
   onPress: () => void;
 }) {
+  const color = active ? colors.primaryForeground : colors.mutedForeground;
   return (
     <Pressable
       onPress={onPress}
       style={[styles.segmentButton, active && styles.segmentActive]}
     >
-      <Text
-        variant="label"
-        color={active ? colors.primaryForeground : colors.mutedForeground}
-      >
+      <Icon name={icon} size={16} color={color} />
+      <Text variant="label" color={color}>
         {label}
       </Text>
     </Pressable>
@@ -59,15 +62,50 @@ function SourceToggle({
       </Text>
       <View style={styles.segment}>
         <SegmentButton
+          icon="phone-portrait-outline"
           label="My phone"
           active={value === "DRIVER_MOBILE"}
           onPress={() => onChange("DRIVER_MOBILE")}
         />
         <SegmentButton
+          icon="hardware-chip-outline"
           label="Bus device"
           active={value === "GPS_DEVICE"}
           onPress={() => onChange("GPS_DEVICE")}
         />
+      </View>
+    </View>
+  );
+}
+
+function Metric({
+  icon,
+  label,
+  value,
+  unit,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+  unit?: string;
+}) {
+  return (
+    <View style={styles.metric}>
+      <View style={styles.metricTop}>
+        <Icon name={icon} size={14} color={colors.faintForeground} />
+        <Text variant="caption" color={colors.faintForeground}>
+          {label}
+        </Text>
+      </View>
+      <View style={styles.metricValue}>
+        <Text variant="subtitle" color={colors.foreground} tabular>
+          {value}
+        </Text>
+        {unit ? (
+          <Text variant="caption" color={colors.mutedForeground} style={styles.metricUnit}>
+            {unit}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -107,7 +145,7 @@ export function DriverHomeScreen() {
 
   const updatedAgo =
     streaming && lastFix
-      ? `${Math.max(0, Math.round((now - lastFix.at) / 1000))}s ago`
+      ? `${Math.max(0, Math.round((now - lastFix.at) / 1000))}s`
       : "—";
   const speed =
     streaming && lastFix?.speedKmh != null ? `${Math.round(lastFix.speedKmh)}` : "—";
@@ -130,10 +168,8 @@ export function DriverHomeScreen() {
             {user?.fullName ?? "Driver"}
           </Text>
         </View>
-        <Pressable onPress={signOut} hitSlop={8}>
-          <Text variant="label" color={colors.mutedForeground}>
-            Sign out
-          </Text>
+        <Pressable onPress={signOut} hitSlop={8} style={styles.signOut}>
+          <Icon name="log-out-outline" size={20} color={colors.mutedForeground} />
         </Pressable>
       </View>
 
@@ -141,6 +177,9 @@ export function DriverHomeScreen() {
 
       <View style={styles.panel}>
         <View style={styles.tripRow}>
+          <View style={styles.routeIcon}>
+            <Icon name="bus" size={20} color={colors.primary} />
+          </View>
           <View style={styles.flex}>
             <Text variant="label" color={colors.mutedForeground}>
               {trip ? (trip.routeName ?? "Assigned route") : "No active trip"}
@@ -154,6 +193,7 @@ export function DriverHomeScreen() {
 
         {streaming && (trip?.nextStopName || trip?.etaMinutes != null) ? (
           <GlassSurface style={styles.nextStop}>
+            <Icon name="navigate-circle-outline" size={22} color={colors.primary} />
             <View style={styles.flex}>
               <Text variant="caption" color={colors.faintForeground}>
                 NEXT STOP
@@ -176,9 +216,9 @@ export function DriverHomeScreen() {
         ) : null}
 
         <View style={styles.metrics}>
-          <Metric label="Speed" value={speed} unit="km/h" />
-          <Metric label="GPS" value={accuracy} />
-          <Metric label="Updated" value={updatedAgo} />
+          <Metric icon="speedometer-outline" label="Speed" value={speed} unit="km/h" />
+          <Metric icon="navigate-outline" label="GPS" value={accuracy} />
+          <Metric icon="time-outline" label="Updated" value={updatedAgo} />
         </View>
 
         {!streaming ? (
@@ -218,41 +258,20 @@ export function DriverHomeScreen() {
           {busy ? (
             <ActivityIndicator color={colors.primaryForeground} />
           ) : (
-            <Text variant="subtitle" color={colors.primaryForeground}>
-              {streaming ? "End trip" : "Start trip"}
-            </Text>
+            <>
+              <Icon
+                name={streaming ? "stop-circle-outline" : "play-circle-outline"}
+                size={22}
+                color={colors.primaryForeground}
+              />
+              <Text variant="subtitle" color={colors.primaryForeground}>
+                {streaming ? "End trip" : "Start trip"}
+              </Text>
+            </>
           )}
         </Pressable>
       </View>
     </SafeAreaView>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  unit,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-}) {
-  return (
-    <View style={styles.metric}>
-      <Text variant="caption" color={colors.faintForeground}>
-        {label}
-      </Text>
-      <View style={styles.metricValue}>
-        <Text variant="subtitle" color={colors.foreground} tabular>
-          {value}
-        </Text>
-        {unit ? (
-          <Text variant="caption" color={colors.mutedForeground} style={styles.metricUnit}>
-            {unit}
-          </Text>
-        ) : null}
-      </View>
-    </View>
   );
 }
 
@@ -271,6 +290,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
   },
+  signOut: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.muted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   panel: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
@@ -282,6 +309,14 @@ const styles = StyleSheet.create({
     marginTop: -radius.xl,
   },
   tripRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  routeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   flex: { flex: 1 },
   nextStop: {
     flexDirection: "row",
@@ -299,9 +334,10 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.xs,
   },
+  metricTop: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   metricValue: { flexDirection: "row", alignItems: "flex-end", gap: 4 },
   metricUnit: { marginBottom: 3 },
-  segmentLabel: { letterSpacing: 1, marginBottom: spacing.xs },
+  segmentLabel: { letterSpacing: 1.2, marginBottom: spacing.xs },
   segment: {
     flexDirection: "row",
     backgroundColor: colors.muted,
@@ -311,8 +347,11 @@ const styles = StyleSheet.create({
   },
   segmentButton: {
     flex: 1,
+    flexDirection: "row",
+    gap: spacing.xs,
     paddingVertical: spacing.sm,
     alignItems: "center",
+    justifyContent: "center",
     borderRadius: radius.sm,
   },
   segmentActive: { backgroundColor: colors.primary },
@@ -323,6 +362,8 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   action: {
+    flexDirection: "row",
+    gap: spacing.sm,
     borderRadius: radius.lg,
     paddingVertical: spacing.xl,
     alignItems: "center",

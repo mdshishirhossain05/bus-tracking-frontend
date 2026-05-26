@@ -1,35 +1,41 @@
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { colors, spacing } from "../theme/tokens";
+import { colors, radius, spacing } from "../theme/tokens";
 import { Text } from "./Text";
+import { Icon } from "./Icon";
 
 interface ScreenHeaderProps {
   title: string;
+  subtitle?: string;
   onBack?: () => void;
   right?: React.ReactNode;
 }
 
-export function ScreenHeader({ title, onBack, right }: ScreenHeaderProps) {
+export function ScreenHeader({ title, subtitle, onBack, right }: ScreenHeaderProps) {
   return (
     <View style={styles.header}>
       {onBack ? (
-        <Pressable onPress={onBack} hitSlop={12} style={styles.side}>
-          <Text variant="title" color={colors.foreground}>
-            {"‹"}
-          </Text>
+        <Pressable
+          onPress={onBack}
+          hitSlop={10}
+          style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+        >
+          <Icon name="chevron-back" size={22} color={colors.foreground} />
         </Pressable>
       ) : (
-        <View style={styles.side} />
+        <View style={styles.back} />
       )}
-      <Text
-        variant="subtitle"
-        color={colors.foreground}
-        style={styles.title}
-        numberOfLines={1}
-      >
-        {title}
-      </Text>
-      <View style={[styles.side, styles.right]}>{right}</View>
+      <View style={styles.titles}>
+        <Text variant="subtitle" color={colors.foreground} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text variant="caption" color={colors.mutedForeground} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.right}>{right}</View>
     </View>
   );
 }
@@ -42,7 +48,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     gap: spacing.md,
   },
-  side: { minWidth: 36, height: 32, justifyContent: "center" },
-  title: { flex: 1 },
-  right: { alignItems: "flex-end" },
+  back: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.muted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pressed: { opacity: 0.7 },
+  titles: { flex: 1 },
+  right: { minWidth: 40, alignItems: "flex-end", justifyContent: "center" },
 });

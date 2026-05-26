@@ -10,7 +10,8 @@ import MapView, {
 import {
   Text,
   ScreenHeader,
-  GlassSurface,
+  EmptyState,
+  Icon,
   colors,
   spacing,
   radius,
@@ -63,7 +64,6 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
     return () => clearInterval(interval);
   }, [refreshBuses]);
 
-  // Fit the camera to the route once its geometry arrives.
   useEffect(() => {
     if (fitted || !presentation || !mapRef.current) return;
     const coords = presentation.polyline.map(([latitude, longitude]) => ({
@@ -87,7 +87,15 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <ScreenHeader title={routeName} onBack={goBack} />
+      <ScreenHeader
+        title={routeName}
+        subtitle={
+          liveBuses.length > 0
+            ? `${liveBuses.length} bus${liveBuses.length > 1 ? "es" : ""} live`
+            : "No buses running"
+        }
+        onBack={goBack}
+      />
       <View style={styles.mapWrap}>
         <MapView
           ref={mapRef}
@@ -102,11 +110,7 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
           }}
         >
           {polyCoords.length > 1 && (
-            <Polyline
-              coordinates={polyCoords}
-              strokeColor={colors.primary}
-              strokeWidth={4}
-            />
+            <Polyline coordinates={polyCoords} strokeColor={colors.primary} strokeWidth={4} />
           )}
           {presentation?.origin && (
             <Marker
@@ -144,25 +148,41 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
         </MapView>
       </View>
 
-      <ScrollView
-        style={styles.sheet}
-        contentContainerStyle={styles.sheetContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text variant="caption" color={colors.mutedForeground} style={styles.section}>
-          {liveBuses.length > 0
-            ? `${liveBuses.length} BUS${liveBuses.length > 1 ? "ES" : ""} RUNNING`
-            : "NO BUSES RUNNING"}
-        </Text>
-        {liveBuses.length === 0 ? (
-          <Text variant="body" color={colors.mutedForeground}>
-            No buses are live on this route right now.
+      <View style={styles.sheet}>
+        <View style={styles.grabber} />
+        <View style={styles.sheetHeader}>
+          <View
+            style={[
+              styles.liveDot,
+              { backgroundColor: liveBuses.length ? colors.success : colors.faintForeground },
+            ]}
+          />
+          <Text variant="caption" color={colors.mutedForeground} style={styles.section}>
+            {liveBuses.length > 0
+              ? `${liveBuses.length} BUS${liveBuses.length > 1 ? "ES" : ""} RUNNING`
+              : "NO BUSES RUNNING"}
           </Text>
+        </View>
+
+        {liveBuses.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <EmptyState
+              icon="bus-outline"
+              title="No buses on this line"
+              subtitle="Pull live buses appear here as drivers start their trips."
+            />
+          </View>
         ) : (
-          liveBuses.map((b) => (
-            <GlassSurface key={b.tripId} style={styles.busCard}>
-              <View style={styles.busRow}>
-                <View style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.sheetContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {liveBuses.map((b) => (
+              <View key={b.tripId} style={styles.busCard}>
+                <View style={styles.busIcon}>
+                  <Icon name="bus" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.flex}>
                   <Text variant="label" color={colors.foreground}>
                     {b.busLabel ?? "Bus"}
                   </Text>
@@ -171,8 +191,8 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
                     {b.speedKmh != null ? ` · ${Math.round(b.speedKmh)} km/h` : ""}
                   </Text>
                 </View>
-                <View style={styles.etaBox}>
-                  <Text variant="title" color={colors.primary} tabular>
+                <View style={styles.etaPill}>
+                  <Text variant="subtitle" color={colors.primary} tabular>
                     {b.etaMinutes != null ? String(b.etaMinutes) : "—"}
                   </Text>
                   <Text variant="caption" color={colors.mutedForeground}>
@@ -180,10 +200,10 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
                   </Text>
                 </View>
               </View>
-            </GlassSurface>
-          ))
+            ))}
+          </ScrollView>
         )}
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -191,15 +211,57 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   mapWrap: { flex: 1, overflow: "hidden" },
+  flex: { flex: 1 },
   sheet: {
-    maxHeight: "42%",
-    backgroundColor: colors.background,
+    maxHeight: "46%",
+    backgroundColor: colors.backgroundElevated,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
-  sheetContent: { padding: spacing.lg, gap: spacing.sm },
-  section: { letterSpacing: 1, marginBottom: spacing.xs },
-  busCard: { padding: spacing.lg, borderRadius: radius.lg },
-  busRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  etaBox: { alignItems: "center", minWidth: 52 },
+  grabber: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.borderStrong,
+    marginBottom: spacing.sm,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  liveDot: { width: 7, height: 7, borderRadius: 4 },
+  section: { letterSpacing: 1.2 },
+  emptyWrap: { height: 160 },
+  sheetContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, gap: spacing.sm },
+  busCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+  },
+  busIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  etaPill: {
+    alignItems: "center",
+    minWidth: 52,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+  },
 });

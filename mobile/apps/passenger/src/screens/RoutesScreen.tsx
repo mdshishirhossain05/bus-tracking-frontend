@@ -5,6 +5,7 @@ import {
   Text,
   ScreenHeader,
   EmptyState,
+  Icon,
   colors,
   spacing,
   radius,
@@ -25,18 +26,50 @@ interface RouteRow {
   isFavorite: boolean;
 }
 
-function StarButton({
-  active,
+function RouteRowView({
+  row,
   onPress,
+  onToggleFavorite,
 }: {
-  active: boolean;
+  row: RouteRow;
   onPress: () => void;
+  onToggleFavorite: () => void;
 }) {
+  const running = row.runningCount > 0;
   return (
-    <Pressable onPress={onPress} hitSlop={10}>
-      <Text variant="subtitle" color={active ? colors.warning : colors.faintForeground}>
-        {active ? "★" : "☆"}
-      </Text>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+      <View style={styles.leadIcon}>
+        <Icon name="bus" size={20} color={colors.primary} />
+      </View>
+      <View style={styles.rowBody}>
+        <Text variant="label" color={colors.foreground} numberOfLines={1}>
+          {row.routeName}
+        </Text>
+        <View style={styles.statusRow}>
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: running ? colors.success : colors.faintForeground },
+            ]}
+          />
+          <Text
+            variant="caption"
+            color={running ? colors.success : colors.mutedForeground}
+          >
+            {running
+              ? `${row.runningCount} bus${row.runningCount > 1 ? "es" : ""} live now`
+              : "No buses running"}
+          </Text>
+        </View>
+      </View>
+      <Pressable onPress={onToggleFavorite} hitSlop={10} style={styles.star}>
+        <Icon
+          name={row.isFavorite ? "star" : "star-outline"}
+          size={20}
+          color={row.isFavorite ? colors.warning : colors.faintForeground}
+        />
+      </Pressable>
+      <Icon name="chevron-forward" size={18} color={colors.faintForeground} />
     </Pressable>
   );
 }
@@ -67,7 +100,6 @@ export function RoutesScreen() {
 
   const toggleFavorite = useCallback(
     async (routeId: string, isFav: boolean) => {
-      // Optimistic; reconcile with the list the server returns.
       try {
         const next = isFav
           ? await removeFavorite(routeId)
@@ -110,34 +142,17 @@ export function RoutesScreen() {
   const isEmpty = !loading && favoriteRows.length === 0 && runningRows.length === 0;
 
   const renderRow = (row: RouteRow) => (
-    <Pressable
+    <RouteRowView
       key={row.routeId}
+      row={row}
       onPress={() => navigate("routeDetail", { routeId: row.routeId, routeName: row.routeName })}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-    >
-      <View style={styles.rowBody}>
-        <Text variant="label" color={colors.foreground}>
-          {row.routeName}
-        </Text>
-        <Text
-          variant="caption"
-          color={row.runningCount > 0 ? colors.success : colors.mutedForeground}
-        >
-          {row.runningCount > 0
-            ? `${row.runningCount} bus${row.runningCount > 1 ? "es" : ""} running now`
-            : "No buses running"}
-        </Text>
-      </View>
-      <StarButton
-        active={row.isFavorite}
-        onPress={() => void toggleFavorite(row.routeId, row.isFavorite)}
-      />
-    </Pressable>
+      onToggleFavorite={() => void toggleFavorite(row.routeId, row.isFavorite)}
+    />
   );
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <ScreenHeader title="Lines" onBack={goBack} />
+      <ScreenHeader title="Lines" subtitle="Routes & live buses" onBack={goBack} />
       <ScrollView
         contentContainerStyle={isEmpty ? styles.emptyWrap : styles.list}
         refreshControl={
@@ -150,14 +165,15 @@ export function RoutesScreen() {
       >
         {isEmpty ? (
           <EmptyState
+            icon="bus-outline"
             title="No routes yet"
-            subtitle="Routes with a bus running now will appear here. Tap the star to save your lines."
+            subtitle="Lines with a bus running now appear here. Tap the star to save your routes."
           />
         ) : (
           <>
             {favoriteRows.length > 0 && (
               <>
-                <Text variant="caption" color={colors.mutedForeground} style={styles.section}>
+                <Text variant="caption" color={colors.faintForeground} style={styles.section}>
                   FAVORITES
                 </Text>
                 {favoriteRows.map(renderRow)}
@@ -165,7 +181,7 @@ export function RoutesScreen() {
             )}
             {runningRows.length > 0 && (
               <>
-                <Text variant="caption" color={colors.mutedForeground} style={styles.section}>
+                <Text variant="caption" color={colors.faintForeground} style={styles.section}>
                   RUNNING NOW
                 </Text>
                 {runningRows.map(renderRow)}
@@ -182,18 +198,29 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.lg, gap: spacing.sm },
   emptyWrap: { flexGrow: 1 },
-  section: { marginTop: spacing.md, marginBottom: spacing.xs, letterSpacing: 1 },
+  section: { letterSpacing: 1.2, marginTop: spacing.md, marginBottom: spacing.xs },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.md,
     backgroundColor: colors.backgroundElevated,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     marginBottom: spacing.sm,
   },
-  rowBody: { flex: 1, gap: 2 },
+  leadIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowBody: { flex: 1, gap: 3 },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  star: { padding: spacing.xs },
   pressed: { opacity: 0.7 },
 });

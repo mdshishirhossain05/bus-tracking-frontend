@@ -17,6 +17,7 @@ import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLi
 import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
+import { NextBusBanner } from "../components/NextBusBanner";
 import { useNav } from "../navigation/NavigationContext";
 
 function TopActions() {
@@ -140,6 +141,7 @@ export function LiveScreen() {
           <ConnectionPill status={connectionStatus} />
           <TopActions />
         </View>
+        <NextBusBanner />
       </SafeAreaView>
 
       <View style={styles.fabWrap} pointerEvents="box-none">

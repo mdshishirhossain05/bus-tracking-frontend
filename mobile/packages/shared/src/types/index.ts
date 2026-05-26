@@ -168,9 +168,13 @@ export interface RouteLiveBus {
   latitude?: number | null;
   longitude?: number | null;
   speedKmh?: number | null;
+  avgSpeedKmh?: number | null;
   heading?: number | null;
   etaMinutes?: number | null;
   nextStopName?: string | null;
+  nextStopDistanceMeters?: number | null;
+  nearestStopName?: string | null;
+  finalStopReached?: boolean;
   confidence?: "HIGH" | "MEDIUM" | "LOW" | string | null;
   updatedAt?: string | null;
   isStale?: boolean;

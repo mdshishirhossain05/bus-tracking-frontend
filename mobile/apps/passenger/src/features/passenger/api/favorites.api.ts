@@ -66,11 +66,20 @@ function normalizeLiveBus(raw: any): RouteLiveBus {
     latitude: asNumber(live?.latitude ?? live?.lat),
     longitude: asNumber(live?.longitude ?? live?.lng),
     speedKmh: asNumber(live?.displaySpeedKmh ?? live?.speedKmh ?? live?.speed),
+    avgSpeedKmh: asNumber(
+      eta?.rollingAverageSpeedKmh ??
+        live?.averageSpeedKmh ??
+        live?.rollingAverageSpeedKmh,
+    ),
     heading: asNumber(live?.heading),
     etaMinutes: asNumber(eta?.etaMinutes ?? eta?.minutes),
     nextStopName: asString(
       eta?.nextStopName ?? eta?.nextStop?.stopName ?? eta?.nextStop,
     ),
+    nextStopDistanceMeters: asNumber(eta?.nextStopDistanceMeters),
+    nearestStopName: asString(eta?.nearestStopName),
+    finalStopReached:
+      typeof eta?.finalStopReached === "boolean" ? eta.finalStopReached : false,
     confidence: asString(eta?.confidence),
     updatedAt: asString(live?.updatedAt ?? live?.recordedAt),
     isStale:

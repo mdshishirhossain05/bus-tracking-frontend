@@ -8,34 +8,21 @@ import MapView, {
 } from "react-native-maps";
 import { colors, env, MAP_STYLE_DARK } from "@ubts/shared";
 import type { RoutePresentation } from "@ubts/shared";
-import { getRoutePresentation } from "../api/routes.api";
 
 interface Props {
-  routeId: string | null;
+  presentation: RoutePresentation | null;
   latitude: number | null;
   longitude: number | null;
 }
 
-export function DriverMap({ routeId, latitude, longitude }: Props) {
+export function DriverMap({ presentation, latitude, longitude }: Props) {
   const mapRef = useRef<MapView | null>(null);
-  const [presentation, setPresentation] = useState<RoutePresentation | null>(null);
   const [fitted, setFitted] = useState(false);
 
+  // Re-fit when the route changes.
   useEffect(() => {
-    if (!routeId) {
-      setPresentation(null);
-      return;
-    }
-    let active = true;
-    void getRoutePresentation(routeId)
-      .then((p) => {
-        if (active) setPresentation(p);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [routeId]);
+    setFitted(false);
+  }, [presentation?.routeId]);
 
   useEffect(() => {
     if (fitted || !presentation || !mapRef.current) return;

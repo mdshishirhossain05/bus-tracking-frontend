@@ -1,0 +1,193 @@
+export type ConnectionStatus =
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "disconnected"
+  | "stale"
+  | "error";
+
+export interface AuthUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  isActive?: boolean;
+  approvalStatus?: string | null;
+}
+
+export interface ActiveTrip {
+  tripId: string;
+  routeId: string;
+  routeName?: string | null;
+  busId?: string | null;
+  busLabel?: string | null;
+  driverId?: string | null;
+  driverName?: string | null;
+  status: string;
+  startedAt: string | null;
+  isStale?: boolean;
+}
+
+export interface LiveBusLocation {
+  tripId: string;
+  routeId: string;
+  busId?: string | null;
+  driverId?: string | null;
+  latitude: number;
+  longitude: number;
+  speed?: number | null;
+  filteredSpeedKmh?: number | null;
+  averageSpeedKmh?: number | null;
+  displaySpeedKmh?: number | null;
+  heading?: number | null;
+  accuracyM?: number | null;
+  isStationary?: boolean;
+  source?: string | null;
+  updatedAt: string;
+}
+
+export interface PassengerLocation {
+  latitude: number;
+  longitude: number;
+  accuracyM?: number | null;
+  updatedAt: string;
+}
+
+export interface TripEta {
+  tripId: string;
+  etaMinutes?: number | null;
+  nextStopName?: string | null;
+  nextStopDistanceMeters?: number | null;
+  nearestStopName?: string | null;
+  rollingAverageSpeedKmh?: number | null;
+  confidence?: "HIGH" | "MEDIUM" | "LOW" | null;
+  finalStopReached?: boolean;
+  updatedAt?: string | null;
+}
+
+export interface RouteStop {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  order: number;
+}
+
+export interface RoutePresentation {
+  routeId: string;
+  routeName: string;
+  polyline: [number, number][];
+  stops: RouteStop[];
+  origin?: RouteStop | null;
+  destination?: RouteStop | null;
+}
+
+export interface TripStopArrivalPayload {
+  tripId: string;
+  stopId: string;
+  stopName: string;
+  stopOrder: number;
+  arrivalTime: string;
+  recordedAt: string;
+  distanceMeters: number;
+  delayMinutes: number;
+  status: "NO_SCHEDULE" | "LATE" | "EARLY" | "ON_TIME" | string;
+}
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  isActive?: boolean;
+  studentId?: string | null;
+  phoneNumber?: string | null;
+  academicDepartment?: string | null;
+  academicBatch?: string | null;
+  transportPickupPoint?: string | null;
+  approvalStatus?: string | null;
+  registrationSource?: string | null;
+  createdAt?: string | null;
+}
+
+export interface UpdateProfileInput {
+  fullName: string;
+  email: string;
+  phoneNumber?: string | null;
+  academicDepartment?: string | null;
+  academicBatch?: string | null;
+  transportPickupPoint?: string | null;
+}
+
+export interface SessionInfo {
+  id: string;
+  deviceLabel?: string | null;
+  userAgentRaw?: string | null;
+  createdAt?: string | null;
+  lastSeenAt?: string | null;
+  ipFirst?: string | null;
+  ipLast?: string | null;
+  lastSeenIp?: string | null;
+  current?: boolean;
+  revokedAt?: string | null;
+  revokedReason?: string | null;
+}
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  link?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface NotificationList {
+  items: NotificationItem[];
+  unreadCount: number;
+}
+
+export interface FavoriteRoute {
+  id: string;
+  routeId: string;
+  routeName: string;
+  description?: string | null;
+  isActive?: boolean;
+  favoritedAt?: string | null;
+}
+
+export interface RouteLiveBus {
+  tripId: string;
+  routeId: string;
+  busId?: string | null;
+  busLabel?: string | null;
+  driverId?: string | null;
+  driverName?: string | null;
+  status: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  speedKmh?: number | null;
+  avgSpeedKmh?: number | null;
+  heading?: number | null;
+  etaMinutes?: number | null;
+  nextStopName?: string | null;
+  nextStopDistanceMeters?: number | null;
+  nearestStopName?: string | null;
+  finalStopReached?: boolean;
+  confidence?: "HIGH" | "MEDIUM" | "LOW" | string | null;
+  sourceType?: "GPS_DEVICE" | "DRIVER_MOBILE" | string | null;
+  sourceLabel?: string | null;
+  sourceStatus?: "HEALTHY" | "STALE" | "UNHEALTHY" | "DISCONNECTED" | string | null;
+  stopEtas?:
+    | {
+        stopId: string;
+        stopName?: string | null;
+        stopOrder?: number | null;
+        etaMinutes?: number | null;
+        distanceMeters?: number | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  isStale?: boolean;
+}

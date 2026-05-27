@@ -310,10 +310,12 @@ export function usePassengerLiveTrip(initialTripId?: string | null) {
   const [passengerLocation, setPassengerLocation] =
     useState<PassengerLocation | null>(null);
 
-  const staleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const staleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const joinedTripIdRef = useRef<string | null>(null);
   const geoWatchIdRef = useRef<number | null>(null);
-  const arrivalVisibilityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const arrivalVisibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const latestLiveStateRef = useRef<LiveBusLocation | null>(null);
   const wasDisconnectedRef = useRef(false);
 

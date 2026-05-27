@@ -176,6 +176,9 @@ export interface RouteLiveBus {
   nearestStopName?: string | null;
   finalStopReached?: boolean;
   confidence?: "HIGH" | "MEDIUM" | "LOW" | string | null;
+  sourceType?: "GPS_DEVICE" | "DRIVER_MOBILE" | string | null;
+  sourceLabel?: string | null;
+  sourceStatus?: "HEALTHY" | "STALE" | "UNHEALTHY" | "DISCONNECTED" | string | null;
   updatedAt?: string | null;
   isStale?: boolean;
 }

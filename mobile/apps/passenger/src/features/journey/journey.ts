@@ -188,6 +188,36 @@ export function computeJourney(params: {
   };
 }
 
+export function sourceMeta(bus: RouteLiveBus): {
+  label: string;
+  isGps: boolean;
+  stale: boolean;
+} {
+  const isGps = bus.sourceType === "GPS_DEVICE";
+  const label = isGps
+    ? "Bus GPS"
+    : bus.sourceType === "DRIVER_MOBILE"
+      ? "Driver phone"
+      : "Live";
+  const stale =
+    bus.sourceStatus === "STALE" ||
+    bus.sourceStatus === "DISCONNECTED" ||
+    bus.sourceStatus === "UNHEALTHY" ||
+    bus.isStale === true;
+  return { label, isGps, stale };
+}
+
+export function freshnessLabel(updatedAt?: string | null): string {
+  if (!updatedAt) return "";
+  const t = new Date(updatedAt).getTime();
+  if (Number.isNaN(t)) return "";
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 60) return `updated ${s}s ago`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `updated ${m}m ago`;
+  return `updated ${Math.round(m / 60)}h ago`;
+}
+
 export interface BusJourney {
   bus: RouteLiveBus;
   journey: JourneyStatus;

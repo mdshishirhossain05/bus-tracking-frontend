@@ -7,6 +7,7 @@ import MapView, {
   PROVIDER_GOOGLE,
   type MapStyleElement,
 } from "react-native-maps";
+import * as Haptics from "expo-haptics";
 import {
   Text,
   ScreenHeader,
@@ -28,8 +29,12 @@ import {
   type JourneyStatus,
 } from "../features/journey/journey";
 import { usePassengerLocation } from "../features/journey/usePassengerLocation";
+import { SourceChip } from "../components/SourceChip";
+import { StopTimeline } from "../components/StopTimeline";
 
 const POLL_MS = 5000;
+
+type ViewMode = "map" | "stops";
 
 interface Props {
   routeId: string;
@@ -46,7 +51,7 @@ function StopProgress({
   myIndex: number;
 }) {
   const n = stops.length;
-  if (n < 2) return null;
+  if (n < 2 || myIndex < 0) return null;
   const frac = (i: number) => Math.max(0, Math.min(1, i / (n - 1)));
   const myF = frac(myIndex);
   const busF = busIndex != null && busIndex >= 0 ? frac(busIndex) : null;
@@ -68,6 +73,35 @@ function StopProgress({
   );
 }
 
+function ViewToggle({
+  value,
+  onChange,
+}: {
+  value: ViewMode;
+  onChange: (v: ViewMode) => void;
+}) {
+  return (
+    <View style={styles.toggle}>
+      {(["map", "stops"] as const).map((v) => {
+        const active = v === value;
+        const color = active ? colors.primaryForeground : colors.mutedForeground;
+        return (
+          <Pressable
+            key={v}
+            onPress={() => onChange(v)}
+            style={[styles.toggleBtn, active && styles.toggleActive]}
+          >
+            <Icon name={v === "map" ? "map-outline" : "list-outline"} size={15} color={color} />
+            <Text variant="label" color={color}>
+              {v === "map" ? "Map" : "Stops"}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function RouteDetailScreen({ routeId, routeName }: Props) {
   const { goBack } = useNav();
   const mapRef = useRef<MapView | null>(null);
@@ -77,6 +111,7 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
   const [myStopId, setMyStopId] = useState<string | null>(null);
   const [autoSet, setAutoSet] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [view, setView] = useState<ViewMode>("map");
 
   const { coords, ready } = usePassengerLocation();
 
@@ -111,7 +146,6 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
     [presentation],
   );
 
-  // Auto-pick the nearest stop once location resolves; manual choice wins after.
   useEffect(() => {
     if (autoSet || !stops.length || !ready) return;
     const picked = coords
@@ -123,12 +157,12 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
 
   useEffect(() => {
     if (fitted || !presentation || !mapRef.current) return;
-    const coordsLine = presentation.polyline.map(([latitude, longitude]) => ({
+    const line = presentation.polyline.map(([latitude, longitude]) => ({
       latitude,
       longitude,
     }));
-    if (coordsLine.length >= 2) {
-      mapRef.current.fitToCoordinates(coordsLine, {
+    if (line.length >= 2) {
+      mapRef.current.fitToCoordinates(line, {
         edgePadding: { top: 60, right: 60, bottom: 80, left: 60 },
         animated: true,
       });
@@ -137,12 +171,23 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
   }, [presentation, fitted]);
 
   const myStop = stops.find((s) => s.id === myStopId) ?? null;
+  const myIndex = myStopId ? stops.findIndex((s) => s.id === myStopId) : -1;
   const liveBuses = buses.filter((b) => b.latitude != null && b.longitude != null);
   const best = useMemo(
     () => pickBestBus(stops, buses, myStopId),
     [stops, buses, myStopId],
   );
   const journey: JourneyStatus | null = best?.journey ?? null;
+
+  // Gentle cue the first time the soonest bus flips to "arriving now".
+  const prevState = useRef<string | null>(null);
+  useEffect(() => {
+    const st = journey?.state ?? null;
+    if (st && st !== prevState.current && st === "approaching") {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    prevState.current = st;
+  }, [journey?.state]);
 
   const headerSubtitle = !myStop
     ? "Finding your stop…"
@@ -190,76 +235,90 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
           )}
         </View>
 
+        {best ? <SourceChip bus={best.bus} /> : null}
+
         {journey && journey.busIndex != null ? (
-          <StopProgress
-            stops={stops}
-            busIndex={journey.busIndex}
-            myIndex={journey.myIndex}
-          />
+          <StopProgress stops={stops} busIndex={journey.busIndex} myIndex={myIndex} />
         ) : null}
       </View>
 
-      <View style={styles.mapWrap}>
-        <MapView
-          ref={mapRef}
-          style={StyleSheet.absoluteFill}
-          provider={PROVIDER_GOOGLE}
-          customMapStyle={MAP_STYLE_DARK as unknown as MapStyleElement[]}
-          initialRegion={{
-            latitude: env.map.defaultLat,
-            longitude: env.map.defaultLng,
-            latitudeDelta: 0.06,
-            longitudeDelta: 0.06,
-          }}
-        >
-          {presentation && presentation.polyline.length > 1 ? (
-            <Polyline
-              coordinates={presentation.polyline.map(([latitude, longitude]) => ({
-                latitude,
-                longitude,
-              }))}
-              strokeColor={colors.primary}
-              strokeWidth={4}
-            />
-          ) : null}
-          {presentation?.origin ? (
-            <Marker
-              coordinate={{
-                latitude: presentation.origin.latitude,
-                longitude: presentation.origin.longitude,
-              }}
-              title={presentation.origin.name}
-              pinColor={colors.success}
-            />
-          ) : null}
-          {presentation?.destination ? (
-            <Marker
-              coordinate={{
-                latitude: presentation.destination.latitude,
-                longitude: presentation.destination.longitude,
-              }}
-              title={presentation.destination.name}
-              pinColor={colors.danger}
-            />
-          ) : null}
-          {myStop ? (
-            <Marker
-              coordinate={{ latitude: myStop.latitude, longitude: myStop.longitude }}
-              title={`Your stop · ${myStop.name}`}
-              pinColor={colors.warning}
-            />
-          ) : null}
-          {liveBuses.map((b) => (
-            <Marker
-              key={b.tripId}
-              coordinate={{ latitude: b.latitude as number, longitude: b.longitude as number }}
-              title={b.busLabel ?? "Bus"}
-              description={b.nextStopName ? `Heading to ${b.nextStopName}` : "Live"}
-              pinColor={colors.primary}
-            />
-          ))}
-        </MapView>
+      <View style={styles.toggleWrap}>
+        <ViewToggle value={view} onChange={setView} />
       </View>
+
+      {view === "map" ? (
+        <View style={styles.mapWrap}>
+          <MapView
+            ref={mapRef}
+            style={StyleSheet.absoluteFill}
+            provider={PROVIDER_GOOGLE}
+            customMapStyle={MAP_STYLE_DARK as unknown as MapStyleElement[]}
+            initialRegion={{
+              latitude: env.map.defaultLat,
+              longitude: env.map.defaultLng,
+              latitudeDelta: 0.06,
+              longitudeDelta: 0.06,
+            }}
+          >
+            {presentation && presentation.polyline.length > 1 ? (
+              <Polyline
+                coordinates={presentation.polyline.map(([latitude, longitude]) => ({
+                  latitude,
+                  longitude,
+                }))}
+                strokeColor={colors.primary}
+                strokeWidth={4}
+              />
+            ) : null}
+            {presentation?.origin ? (
+              <Marker
+                coordinate={{
+                  latitude: presentation.origin.latitude,
+                  longitude: presentation.origin.longitude,
+                }}
+                title={presentation.origin.name}
+                pinColor={colors.success}
+              />
+            ) : null}
+            {presentation?.destination ? (
+              <Marker
+                coordinate={{
+                  latitude: presentation.destination.latitude,
+                  longitude: presentation.destination.longitude,
+                }}
+                title={presentation.destination.name}
+                pinColor={colors.danger}
+              />
+            ) : null}
+            {myStop ? (
+              <Marker
+                coordinate={{ latitude: myStop.latitude, longitude: myStop.longitude }}
+                title={`Your stop · ${myStop.name}`}
+                pinColor={colors.warning}
+              />
+            ) : null}
+            {liveBuses.map((b) => (
+              <Marker
+                key={b.tripId}
+                coordinate={{
+                  latitude: b.latitude as number,
+                  longitude: b.longitude as number,
+                }}
+                title={b.busLabel ?? "Bus"}
+                description={b.nextStopName ? `Heading to ${b.nextStopName}` : "Live"}
+                pinColor={colors.primary}
+              />
+            ))}
+          </MapView>
+        </View>
+      ) : (
+        <StopTimeline
+          stops={stops}
+          busIndex={journey?.busIndex ?? null}
+          myIndex={myIndex}
+          etaMin={journey?.etaMin ?? null}
+        />
+      )}
 
       {pickerOpen ? (
         <View style={styles.pickerOverlay}>
@@ -348,6 +407,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   hero: {
     margin: spacing.lg,
+    marginBottom: spacing.sm,
     padding: spacing.lg,
     backgroundColor: colors.backgroundElevated,
     borderRadius: radius.xl,
@@ -367,11 +427,7 @@ const styles = StyleSheet.create({
   etaRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm },
   etaUnit: { marginBottom: 8 },
   progress: { height: 28, justifyContent: "center", marginTop: spacing.xs },
-  progressTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.muted,
-  },
+  progressTrack: { height: 4, borderRadius: 2, backgroundColor: colors.muted },
   progressFill: {
     position: "absolute",
     height: 4,
@@ -404,6 +460,24 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.background,
   },
+  toggleWrap: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  toggle: {
+    flexDirection: "row",
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
+    padding: 4,
+    gap: 4,
+  },
+  toggleBtn: {
+    flex: 1,
+    flexDirection: "row",
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.sm,
+  },
+  toggleActive: { backgroundColor: colors.primary },
   mapWrap: { flex: 1, overflow: "hidden" },
   pickerOverlay: {
     position: "absolute",

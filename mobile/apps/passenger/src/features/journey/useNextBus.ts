@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { RoutePresentation } from "@ubts/shared";
+import type { RoutePresentation, RouteLiveBus } from "@ubts/shared";
 import { getRoutePresentation } from "../passenger/api/passenger.api";
 import { getFavorites, getRouteLiveBuses } from "../passenger/api/favorites.api";
 import { orderStops, nearestStopId, pickBestBus, type JourneyStatus } from "./journey";
@@ -10,6 +10,7 @@ export interface NextBus {
   routeName: string;
   stopName: string;
   journey: JourneyStatus;
+  bus: RouteLiveBus;
 }
 
 const POLL_MS = 7000;
@@ -70,6 +71,7 @@ export function useNextBus(): NextBus | null {
               routeName: fav.routeName,
               stopName: stops.find((s) => s.id === myStopId)?.name ?? "",
               journey: best.journey,
+              bus: best.bus,
             };
             if (
               !bestOverall ||

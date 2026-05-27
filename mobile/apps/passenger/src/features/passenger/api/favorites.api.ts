@@ -81,6 +81,9 @@ function normalizeLiveBus(raw: any): RouteLiveBus {
     finalStopReached:
       typeof eta?.finalStopReached === "boolean" ? eta.finalStopReached : false,
     confidence: asString(eta?.confidence),
+    sourceType: asString(live?.sourceType),
+    sourceLabel: asString(live?.source ?? live?.sourceLabel),
+    sourceStatus: asString(live?.sourceStatus),
     updatedAt: asString(live?.updatedAt ?? live?.recordedAt),
     isStale:
       typeof (live?.isStale ?? raw?.isStale) === "boolean"

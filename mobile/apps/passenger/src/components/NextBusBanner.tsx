@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { GlassSurface, Text, Icon, colors, spacing, radius } from "@ubts/shared";
 import { useNav } from "../navigation/NavigationContext";
 import { useNextBus } from "../features/journey/useNextBus";
+import { SourceChip } from "./SourceChip";
 
 export function NextBusBanner() {
   const next = useNextBus();
@@ -35,6 +36,7 @@ export function NextBusBanner() {
           >
             {approaching ? "Arriving now" : next.journey.headline}
           </Text>
+          <SourceChip bus={next.bus} />
         </View>
         <Icon name="chevron-forward" size={18} color={colors.mutedForeground} />
       </GlassSurface>

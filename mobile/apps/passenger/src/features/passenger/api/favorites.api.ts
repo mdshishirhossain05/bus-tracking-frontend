@@ -81,6 +81,17 @@ function normalizeLiveBus(raw: any): RouteLiveBus {
     finalStopReached:
       typeof eta?.finalStopReached === "boolean" ? eta.finalStopReached : false,
     confidence: asString(eta?.confidence),
+    stopEtas: Array.isArray(eta?.stopEtas)
+      ? eta.stopEtas
+          .map((e: any) => ({
+            stopId: asString(e?.stopId) ?? "",
+            stopName: asString(e?.stopName),
+            stopOrder: asNumber(e?.stopOrder),
+            etaMinutes: asNumber(e?.etaMinutes),
+            distanceMeters: asNumber(e?.distanceMeters),
+          }))
+          .filter((e: { stopId: string }) => Boolean(e.stopId))
+      : undefined,
     sourceType: asString(live?.sourceType),
     sourceLabel: asString(live?.source ?? live?.sourceLabel),
     sourceStatus: asString(live?.sourceStatus),

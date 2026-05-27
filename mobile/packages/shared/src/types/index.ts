@@ -179,6 +179,15 @@ export interface RouteLiveBus {
   sourceType?: "GPS_DEVICE" | "DRIVER_MOBILE" | string | null;
   sourceLabel?: string | null;
   sourceStatus?: "HEALTHY" | "STALE" | "UNHEALTHY" | "DISCONNECTED" | string | null;
+  stopEtas?:
+    | {
+        stopId: string;
+        stopName?: string | null;
+        stopOrder?: number | null;
+        etaMinutes?: number | null;
+        distanceMeters?: number | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   isStale?: boolean;
 }

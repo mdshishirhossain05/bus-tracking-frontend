@@ -170,10 +170,17 @@ export function computeJourney(params: {
   }
 
   const stopsAway = myIndex - busIndex;
+  // Prefer the server's exact cumulative ETA for this stop when available;
+  // fall back to the on-device estimate otherwise.
+  const serverEta = bus.stopEtas?.find(
+    (e) => e.stopId === params.myStopId,
+  )?.etaMinutes;
   const eta =
-    busIndex === myIndex && bus.etaMinutes != null
-      ? bus.etaMinutes
-      : estimateMinutes(meters, speed);
+    serverEta != null
+      ? serverEta
+      : busIndex === myIndex && bus.etaMinutes != null
+        ? bus.etaMinutes
+        : estimateMinutes(meters, speed);
   const approaching = eta <= 2 || stopsAway <= 1;
 
   return {

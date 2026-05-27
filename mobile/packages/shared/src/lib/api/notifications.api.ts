@@ -15,3 +15,19 @@ export async function markAllNotificationsRead(): Promise<void> {
 export async function markNotificationRead(id: string): Promise<void> {
   await api.post(API_ENDPOINTS.notifications.read(id));
 }
+
+export async function registerPushToken(
+  token: string,
+  platform?: string,
+  deviceName?: string,
+): Promise<void> {
+  await api.post(API_ENDPOINTS.notifications.pushToken, {
+    token,
+    platform,
+    deviceName,
+  });
+}
+
+export async function removePushToken(token: string): Promise<void> {
+  await api.delete(API_ENDPOINTS.notifications.pushToken, { data: { token } });
+}

@@ -38,5 +38,6 @@ module.exports = ({ config }) => ({
   plugins: [
     ...(config.plugins ?? []),
     ["expo-location", { locationWhenInUsePermission: LOCATION_USAGE }],
+    "expo-notifications",
   ],
 });

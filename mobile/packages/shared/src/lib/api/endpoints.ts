@@ -27,5 +27,6 @@ export const API_ENDPOINTS = {
     list: "/notifications",
     readAll: "/notifications/read-all",
     read: (id: string) => `/notifications/${id}/read`,
+    pushToken: "/notifications/push-token",
   },
 } as const;

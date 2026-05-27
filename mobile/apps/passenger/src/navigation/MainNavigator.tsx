@@ -7,6 +7,7 @@ import { RoutesScreen } from "../screens/RoutesScreen";
 import { RouteDetailScreen } from "../screens/RouteDetailScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { PushBootstrap } from "../components/PushBootstrap";
 
 function renderScreen(entry: ScreenEntry) {
   switch (entry.name) {
@@ -32,6 +33,7 @@ export function MainNavigator() {
   const { stack } = useNav();
   return (
     <View style={styles.root}>
+      <PushBootstrap />
       <LiveScreen />
       {stack.map((entry) => (
         <View key={entry.key} style={styles.overlay}>

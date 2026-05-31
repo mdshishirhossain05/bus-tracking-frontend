@@ -16,8 +16,20 @@ export const SOCKET_EVENTS = {
   TRIP_STOP_ARRIVAL: "trip:stop_arrival",
   TRIP_STARTED: "trip:started",
   TRIP_ENDED: "trip:ended",
+  TRIP_PRE_OPENED: "trip:pre_opened",
+  TRIP_PRE_STATE_CHANGED: "trip:pre_state_changed",
+  TRIP_OCCUPANCY_UPDATED: "trip:occupancy_updated",
   NOTIFICATION: "notification",
 } as const;
+
+export type OccupancyLevelValue = "LIGHT" | "MODERATE" | "FULL";
+
+export type ServiceAlertSeverityValue = "INFO" | "WARNING" | "CRITICAL";
+
+export type TripPreTripPhase =
+  | "AT_DEPOT"
+  | "APPROACHING_ORIGIN"
+  | "AT_ORIGIN";
 
 export type SocketEventName =
   (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];

@@ -101,7 +101,7 @@ function formatWhen(iso?: string | null): string {
 }
 
 export function ProfileScreen() {
-  const { goBack } = useNav();
+  const { goBack, navigate } = useNav();
   const { signOut } = useAuth();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -377,6 +377,76 @@ export function ProfileScreen() {
           ) : null}
         </Card>
 
+        <Pressable
+          onPress={() => navigate("notificationPreferences")}
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        >
+          <View style={styles.cardHeader}>
+            <Icon
+              name="notifications-outline"
+              size={15}
+              color={colors.mutedForeground}
+            />
+            <Text
+              variant="caption"
+              color={colors.mutedForeground}
+              style={styles.cardTitle}
+            >
+              NOTIFICATIONS
+            </Text>
+          </View>
+          <View style={styles.notifRow}>
+            <View style={styles.flex}>
+              <Text variant="label" color={colors.foreground}>
+                Stop alerts & quiet hours
+              </Text>
+              <Text variant="caption" color={colors.mutedForeground}>
+                Get pushed before your bus arrives — on your schedule.
+              </Text>
+            </View>
+            <Icon
+              name="chevron-forward"
+              size={18}
+              color={colors.mutedForeground}
+            />
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={() => navigate("history")}
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        >
+          <View style={styles.cardHeader}>
+            <Icon
+              name="time-outline"
+              size={15}
+              color={colors.mutedForeground}
+            />
+            <Text
+              variant="caption"
+              color={colors.mutedForeground}
+              style={styles.cardTitle}
+            >
+              TRIP HISTORY
+            </Text>
+          </View>
+          <View style={styles.notifRow}>
+            <View style={styles.flex}>
+              <Text variant="label" color={colors.foreground}>
+                Your trips & stats
+              </Text>
+              <Text variant="caption" color={colors.mutedForeground}>
+                Last 30 days of routes you've tracked, plus a streak count.
+              </Text>
+            </View>
+            <Icon
+              name="chevron-forward"
+              size={18}
+              color={colors.mutedForeground}
+            />
+          </View>
+        </Pressable>
+
         <Card icon="phone-portrait-outline" title="DEVICES">
           {activeSessions.map((s, i) => (
             <View
@@ -470,6 +540,12 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   cardTitle: { letterSpacing: 1.2 },
+  cardPressed: { opacity: 0.85 },
+  notifRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
   field: { gap: spacing.xs },
   input: {
     backgroundColor: colors.muted,

@@ -18,7 +18,14 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.nrtechvps.com/api/v1",
+        "EXPO_PUBLIC_SOCKET_URL": "https://api.nrtechvps.com",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "REPLACE-WITH-YOUR-GOOGLE-MAPS-KEY"
+      }
     }
   },
   "submit": {

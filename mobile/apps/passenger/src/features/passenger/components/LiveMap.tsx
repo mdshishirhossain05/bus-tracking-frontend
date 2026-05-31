@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, type RefObject } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { Animated, Easing, StyleSheet, View } from "react-native";
 import MapView, {
   Marker,
   Polyline,
@@ -69,6 +69,38 @@ export function LiveMap({
     [route],
   );
 
+  // Progressive draw-in for the route polyline. When the route id changes
+  // we run a short animation that scales the rendered prefix from 1 point
+  // to the full path so the route "draws itself" in instead of popping in
+  // as a finished line. The Animated.Value listener updates state at most
+  // ~30 times per animation — cheap enough on RN's UI thread.
+  const drawAnim = useRef(new Animated.Value(0)).current;
+  const [drawCount, setDrawCount] = useState(0);
+  useEffect(() => {
+    if (polyline.length === 0) {
+      setDrawCount(0);
+      return;
+    }
+    setDrawCount(1);
+    drawAnim.setValue(0);
+    const listener = drawAnim.addListener(({ value }) => {
+      const next = Math.max(1, Math.round(value * polyline.length));
+      setDrawCount(next);
+    });
+    Animated.timing(drawAnim, {
+      toValue: 1,
+      duration: 1400,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+    return () => drawAnim.removeListener(listener);
+  }, [route?.routeId, polyline.length, drawAnim]);
+
+  const visiblePolyline = useMemo(
+    () => (drawCount >= polyline.length ? polyline : polyline.slice(0, drawCount)),
+    [polyline, drawCount],
+  );
+
   return (
     <MapView
       ref={mapRef}
@@ -81,9 +113,9 @@ export function LiveMap({
       toolbarEnabled={false}
       onPanDrag={onUserPan}
     >
-      {polyline.length > 1 && (
+      {visiblePolyline.length > 1 && (
         <Polyline
-          coordinates={polyline}
+          coordinates={visiblePolyline}
           strokeColor={colors.primary}
           strokeWidth={4}
           lineCap="round"

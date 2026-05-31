@@ -21,6 +21,18 @@ function asString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function normalizePhase(value: unknown): ActiveTrip["preTripPhase"] {
+  const raw = asString(value);
+  if (
+    raw === "AT_DEPOT" ||
+    raw === "APPROACHING_ORIGIN" ||
+    raw === "AT_ORIGIN"
+  ) {
+    return raw;
+  }
+  return null;
+}
+
 function normalizeActiveTrip(raw: any): ActiveTrip {
   return {
     tripId: asString(raw?.tripId ?? raw?.id) ?? "",
@@ -33,6 +45,9 @@ function normalizeActiveTrip(raw: any): ActiveTrip {
     status: asString(raw?.status) ?? "RUNNING",
     startedAt: asString(raw?.startedAt ?? raw?.startTime),
     isStale: typeof raw?.isStale === "boolean" ? raw.isStale : undefined,
+    preTripPhase: normalizePhase(raw?.preTripPhase),
+    preTripStartedAt: asString(raw?.preTripStartedAt),
+    originArrivedAt: asString(raw?.originArrivedAt),
   };
 }
 

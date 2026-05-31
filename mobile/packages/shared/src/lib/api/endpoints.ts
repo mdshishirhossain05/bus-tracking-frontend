@@ -19,6 +19,12 @@ export const API_ENDPOINTS = {
       `/passenger/routes/${routeId}/live-buses`,
     favorites: "/passenger/favorites",
     favorite: (routeId: string) => `/passenger/favorites/${routeId}`,
+    visits: "/passenger/visits",
+    endVisit: (visitId: string) => `/passenger/visits/${visitId}/end`,
+    stats: "/passenger/stats",
+    occupancyVote: (tripId: string) => `/passenger/trips/${tripId}/occupancy`,
+    occupancy: (tripId: string) => `/passenger/trips/${tripId}/occupancy`,
+    alerts: "/passenger/alerts",
   },
   routes: {
     presentation: (routeId: string) => `/routes/${routeId}/presentation`,
@@ -28,5 +34,9 @@ export const API_ENDPOINTS = {
     readAll: "/notifications/read-all",
     read: (id: string) => `/notifications/${id}/read`,
     pushToken: "/notifications/push-token",
+    preferences: "/notifications/preferences",
+    subscriptions: "/notifications/subscriptions",
+    subscription: (routeId: string, stopId: string) =>
+      `/notifications/subscriptions/${routeId}/${stopId}`,
   },
 } as const;

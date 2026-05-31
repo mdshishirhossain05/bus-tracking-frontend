@@ -5,9 +5,12 @@ import BottomSheet, {
   type BottomSheetBackgroundProps,
 } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
-import { Text } from "@ubts/shared";
+import { Text, StatusBadge, type StatusBadgeTone } from "@ubts/shared";
 import { colors, radius, spacing } from "@ubts/shared";
 import { StopTimeline } from "./StopTimeline";
+import { OccupancyVoter } from "./OccupancyVoter";
+import { useStopSubscriptions } from "../hooks/useStopSubscriptions";
+import { useTripOccupancy } from "../hooks/useTripOccupancy";
 import type {
   ActiveTrip,
   LiveBusLocation,
@@ -48,6 +51,36 @@ export function TripSheet({
 }: TripSheetProps) {
   const snapPoints = useMemo(() => ["17%", "52%", "90%"], []);
 
+  const selectedTrip = useMemo(
+    () => trips.find((t) => t.tripId === selectedTripId) ?? null,
+    [trips, selectedTripId],
+  );
+
+  const subs = useStopSubscriptions();
+  const routeIdForSubs = route?.routeId ?? selectedTrip?.routeId ?? null;
+  const occupancy = useTripOccupancy(
+    selectedTrip?.status === "RUNNING" ? selectedTripId : null,
+  );
+
+  const statusBadge = useMemo<{
+    tone: StatusBadgeTone;
+    label: string;
+    withDot: boolean;
+  } | null>(() => {
+    if (tripEnded) return { tone: "ended", label: "ENDED", withDot: false };
+    if (!selectedTrip) return null;
+    if (selectedTrip.status === "PRE_TRIP") {
+      return { tone: "preTrip", label: "PRE-TRIP", withDot: true };
+    }
+    if (selectedTrip.status === "RUNNING") {
+      return { tone: "live", label: "LIVE", withDot: true };
+    }
+    if (selectedTrip.status === "ENDED") {
+      return { tone: "ended", label: "ENDED", withDot: false };
+    }
+    return null;
+  }, [selectedTrip, tripEnded]);
+
   const etaLabel = tripEnded
     ? "Ended"
     : eta?.finalStopReached
@@ -71,9 +104,18 @@ export function TripSheet({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text variant="label" color={colors.mutedForeground}>
-          {route?.routeName ?? trips.find((t) => t.tripId === selectedTripId)?.routeName ?? "Live trip"}
-        </Text>
+        <View style={styles.headerRow}>
+          <Text variant="label" color={colors.mutedForeground}>
+            {route?.routeName ?? selectedTrip?.routeName ?? "Live trip"}
+          </Text>
+          {statusBadge ? (
+            <StatusBadge
+              tone={statusBadge.tone}
+              label={statusBadge.label}
+              withDot={statusBadge.withDot}
+            />
+          ) : null}
+        </View>
 
         <View style={styles.etaRow}>
           <Text variant="display" color={colors.foreground} tabular>
@@ -110,6 +152,14 @@ export function TripSheet({
           </View>
         )}
 
+        {selectedTrip?.status === "RUNNING" ? (
+          <OccupancyVoter
+            aggregate={occupancy.aggregate}
+            onVote={occupancy.vote}
+            busy={occupancy.busy}
+          />
+        ) : null}
+
         {trips.length > 1 && (
           <ScrollView
             horizontal
@@ -142,7 +192,24 @@ export function TripSheet({
             <Text variant="label" color={colors.mutedForeground} style={styles.timelineTitle}>
               Route
             </Text>
-            <StopTimeline stops={route.stops} nextStopName={eta?.nextStopName} />
+            <StopTimeline
+              stops={route.stops}
+              nextStopName={eta?.nextStopName}
+              routeId={routeIdForSubs}
+              isSubscribed={(stopId) =>
+                routeIdForSubs
+                  ? subs.isSubscribed(routeIdForSubs, stopId)
+                  : false
+              }
+              onToggleSubscription={(stopId, stopName) => {
+                if (!routeIdForSubs) return;
+                void subs.toggle({
+                  routeId: routeIdForSubs,
+                  stopId,
+                  stopName,
+                });
+              }}
+            />
           </View>
         ) : null}
       </BottomSheetScrollView>
@@ -189,6 +256,12 @@ const styles = StyleSheet.create({
   bgTint: { backgroundColor: colors.glass },
   handle: { backgroundColor: colors.borderStrong, width: 40 },
   content: { padding: spacing.xl, paddingBottom: spacing.xxl, gap: spacing.xs },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
   etaRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm },
   unit: { marginBottom: 8 },
   metrics: {

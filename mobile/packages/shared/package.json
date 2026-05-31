@@ -8,6 +8,7 @@
     "@expo/vector-icons": "*",
     "axios": "*",
     "expo-blur": "*",
+    "expo-haptics": "*",
     "expo-secure-store": "*",
     "react": "*",
     "react-native": "*",

@@ -24,6 +24,15 @@ export interface DriverFix {
   at: number;
 }
 
+/**
+ * A trip is "broadcast-eligible" when the bus should be publishing live
+ * location updates. That's true for any trip the backend will accept
+ * location for: PRE_TRIP (window opened ahead of departure) and RUNNING.
+ */
+function shouldBroadcast(trip: DriverTrip | null): boolean {
+  return trip?.status === "PRE_TRIP" || trip?.status === "RUNNING";
+}
+
 export function useDriverTrip() {
   const [loading, setLoading] = useState(true);
   const [trip, setTrip] = useState<DriverTrip | null>(null);
@@ -45,7 +54,9 @@ export function useDriverTrip() {
         ]);
         if (!active) return;
         setTrip(current);
-        setStreaming(streamingNow && current?.status === "RUNNING");
+        // Sync the in-memory streaming flag with the OS task state, but only
+        // consider the trip-status side broadcast-eligible (PRE_TRIP or RUNNING).
+        setStreaming(streamingNow && shouldBroadcast(current));
       } catch (e: any) {
         if (active) {
           setError(e?.response?.data?.message ?? "Failed to load your trip.");
@@ -58,6 +69,43 @@ export function useDriverTrip() {
       active = false;
     };
   }, []);
+
+  // Auto-start broadcasting when the trip enters PRE_TRIP (or RUNNING via
+  // a status promotion). This is what makes "the bus pin shows up before
+  // the driver taps Start" possible: as soon as the pre-trip window opens
+  // on the server, the next /trips/current poll lights up streaming.
+  useEffect(() => {
+    if (loading) return;
+    if (!shouldBroadcast(trip)) return;
+    if (streaming) return;
+    if (busy) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const granted = await ensureLocationPermissions();
+        if (cancelled) return;
+        if (!granted) {
+          setPermissionDenied(true);
+          return;
+        }
+        await startStreaming(trip!.tripId);
+        if (cancelled) return;
+        setStreaming(true);
+      } catch (e: any) {
+        if (!cancelled) {
+          setError(
+            e?.response?.data?.message ??
+              e?.message ??
+              "Failed to start broadcasting.",
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, trip, streaming, busy]);
 
   // Foreground watch is display-only — the background task owns the actual
   // posting, so this never double-sends.
@@ -97,10 +145,13 @@ export function useDriverTrip() {
     };
   }, [streaming]);
 
-  // While streaming, refresh the trip snapshot so ETA / next stop / status
-  // stay current (the foreground watch keeps the map position live separately).
+  // While broadcast-eligible, refresh the trip snapshot so phase / ETA /
+  // status promotions surface in the UI (the foreground watch keeps the
+  // map pin live separately). Faster cadence during PRE_TRIP so the
+  // auto-promote on origin-dwell shows up quickly.
   useEffect(() => {
-    if (!streaming) return;
+    if (!shouldBroadcast(trip)) return;
+    const intervalMs = trip?.status === "PRE_TRIP" ? 5000 : 15000;
     const id = setInterval(async () => {
       try {
         const current = await getCurrentTrip();
@@ -108,9 +159,9 @@ export function useDriverTrip() {
       } catch {
         // transient; next tick retries
       }
-    }, 15000);
+    }, intervalMs);
     return () => clearInterval(id);
-  }, [streaming]);
+  }, [trip?.status]);
 
   const start = useCallback(async () => {
     setBusy(true);
@@ -122,6 +173,10 @@ export function useDriverTrip() {
         setPermissionDenied(true);
         return;
       }
+      // Backend handles all three cases here:
+      //   * No current trip → create + RUNNING
+      //   * PRE_TRIP for this driver → promote to RUNNING in place
+      //   * Already RUNNING → no-op (idempotent return of current trip)
       const started =
         (await startTrip(preferredSource)) ?? (await getCurrentTrip());
       if (!started) {
@@ -129,9 +184,6 @@ export function useDriverTrip() {
           "Could not start a trip — check your bus and route assignment.",
         );
       }
-      // The phone always streams while a trip is active so there is always a
-      // live source; preferredSource only tells the backend which to favor
-      // when a bus GPS device is also reporting.
       await startStreaming(started.tripId);
       setTrip(started);
       setStreaming(true);

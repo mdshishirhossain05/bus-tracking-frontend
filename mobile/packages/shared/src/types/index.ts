@@ -15,6 +15,11 @@ export interface AuthUser {
   approvalStatus?: string | null;
 }
 
+export type TripPreTripPhaseValue =
+  | "AT_DEPOT"
+  | "APPROACHING_ORIGIN"
+  | "AT_ORIGIN";
+
 export interface ActiveTrip {
   tripId: string;
   routeId: string;
@@ -26,6 +31,9 @@ export interface ActiveTrip {
   status: string;
   startedAt: string | null;
   isStale?: boolean;
+  preTripPhase?: TripPreTripPhaseValue | null;
+  preTripStartedAt?: string | null;
+  originArrivedAt?: string | null;
 }
 
 export interface LiveBusLocation {
@@ -146,6 +154,65 @@ export interface NotificationItem {
 export interface NotificationList {
   items: NotificationItem[];
   unreadCount: number;
+}
+
+export interface NotificationPreferences {
+  notificationsEnabled: boolean;
+  quietHoursStartMin: number | null;
+  quietHoursEndMin: number | null;
+}
+
+export interface StopSubscription {
+  id: string;
+  stopId: string;
+  stopName: string;
+  routeId: string;
+  routeName: string;
+  leadTimeMinutes: number;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export interface VisitRecord {
+  id: string;
+  routeId: string;
+  routeName: string;
+  tripId: string | null;
+  visitedAt: string;
+  durationSeconds: number | null;
+}
+
+export interface VisitStats {
+  visitCount30Days: number;
+  uniqueRoutes30Days: number;
+  totalMinutesTracked: number;
+  longestStreakDays: number;
+  topRoutes: { routeId: string; routeName: string; count: number }[];
+}
+
+export type OccupancyLevel = "LIGHT" | "MODERATE" | "FULL";
+
+export interface OccupancyAggregate {
+  tripId: string;
+  level: OccupancyLevel | null;
+  voteCount: number;
+  counts: Record<OccupancyLevel, number>;
+  myVote: OccupancyLevel | null;
+}
+
+export type ServiceAlertSeverity = "INFO" | "WARNING" | "CRITICAL";
+
+export interface ServiceAlert {
+  id: string;
+  title: string;
+  body: string;
+  severity: ServiceAlertSeverity;
+  routeId: string | null;
+  routeName: string | null;
+  validFrom: string;
+  validUntil: string | null;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface FavoriteRoute {

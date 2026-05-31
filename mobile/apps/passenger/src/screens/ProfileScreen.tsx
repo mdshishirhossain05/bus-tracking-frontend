@@ -412,6 +412,41 @@ export function ProfileScreen() {
           </View>
         </Pressable>
 
+        <Pressable
+          onPress={() => navigate("history")}
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        >
+          <View style={styles.cardHeader}>
+            <Icon
+              name="time-outline"
+              size={15}
+              color={colors.mutedForeground}
+            />
+            <Text
+              variant="caption"
+              color={colors.mutedForeground}
+              style={styles.cardTitle}
+            >
+              TRIP HISTORY
+            </Text>
+          </View>
+          <View style={styles.notifRow}>
+            <View style={styles.flex}>
+              <Text variant="label" color={colors.foreground}>
+                Your trips & stats
+              </Text>
+              <Text variant="caption" color={colors.mutedForeground}>
+                Last 30 days of routes you've tracked, plus a streak count.
+              </Text>
+            </View>
+            <Icon
+              name="chevron-forward"
+              size={18}
+              color={colors.mutedForeground}
+            />
+          </View>
+        </Pressable>
+
         <Card icon="phone-portrait-outline" title="DEVICES">
           {activeSessions.map((s, i) => (
             <View

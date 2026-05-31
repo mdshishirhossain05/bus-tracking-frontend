@@ -13,6 +13,7 @@ export * from "./lib/api/endpoints";
 export * from "./lib/api/profile.api";
 export * from "./lib/api/sessions.api";
 export * from "./lib/api/notifications.api";
+export * from "./lib/api/companion.api";
 export * from "./lib/auth/AuthContext";
 export * from "./lib/auth/auth.api";
 export * from "./lib/auth/tokenStore";

@@ -11,6 +11,7 @@ export type PassengerScreen =
   | "routeDetail"
   | "notifications"
   | "notificationPreferences"
+  | "history"
   | "profile";
 
 export interface ScreenEntry {

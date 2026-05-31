@@ -19,6 +19,12 @@ export const API_ENDPOINTS = {
       `/passenger/routes/${routeId}/live-buses`,
     favorites: "/passenger/favorites",
     favorite: (routeId: string) => `/passenger/favorites/${routeId}`,
+    visits: "/passenger/visits",
+    endVisit: (visitId: string) => `/passenger/visits/${visitId}/end`,
+    stats: "/passenger/stats",
+    occupancyVote: (tripId: string) => `/passenger/trips/${tripId}/occupancy`,
+    occupancy: (tripId: string) => `/passenger/trips/${tripId}/occupancy`,
+    alerts: "/passenger/alerts",
   },
   routes: {
     presentation: (routeId: string) => `/routes/${routeId}/presentation`,

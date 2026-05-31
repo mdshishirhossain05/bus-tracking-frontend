@@ -6,7 +6,11 @@ import {
   getRoutePresentation,
   getTripEta,
 } from "../api/passenger.api";
-import { connectSocket } from "@ubts/shared";
+import {
+  connectSocket,
+  endRouteVisit,
+  startRouteVisit,
+} from "@ubts/shared";
 import { SOCKET_EVENTS } from "@ubts/shared";
 import type {
   ActiveTrip,
@@ -311,6 +315,41 @@ export function usePassengerLiveTrip() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-track route visits: once a passenger has dwelled on a specific
+  // trip for the visit-floor window (60 s), record the visit so it shows
+  // up in their history + stats. We end the visit on cleanup so the
+  // server can compute durationSeconds; visits below the floor are
+  // pruned server-side.
+  useEffect(() => {
+    if (!selectedTripId) return;
+    const trip = trips.find((t) => t.tripId === selectedTripId);
+    if (!trip) return;
+
+    let active = true;
+    let visitId: string | null = null;
+    const t = setTimeout(async () => {
+      try {
+        const id = await startRouteVisit({
+          routeId: trip.routeId,
+          tripId: selectedTripId,
+        });
+        if (!active) {
+          if (id) void endRouteVisit(id).catch(() => undefined);
+          return;
+        }
+        visitId = id;
+      } catch {
+        // History is best-effort.
+      }
+    }, 60_000);
+
+    return () => {
+      active = false;
+      clearTimeout(t);
+      if (visitId) void endRouteVisit(visitId).catch(() => undefined);
+    };
+  }, [selectedTripId, trips]);
 
   useEffect(() => {
     if (!selectedTripId) return;

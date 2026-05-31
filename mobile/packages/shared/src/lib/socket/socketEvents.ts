@@ -18,8 +18,13 @@ export const SOCKET_EVENTS = {
   TRIP_ENDED: "trip:ended",
   TRIP_PRE_OPENED: "trip:pre_opened",
   TRIP_PRE_STATE_CHANGED: "trip:pre_state_changed",
+  TRIP_OCCUPANCY_UPDATED: "trip:occupancy_updated",
   NOTIFICATION: "notification",
 } as const;
+
+export type OccupancyLevelValue = "LIGHT" | "MODERATE" | "FULL";
+
+export type ServiceAlertSeverityValue = "INFO" | "WARNING" | "CRITICAL";
 
 export type TripPreTripPhase =
   | "AT_DEPOT"

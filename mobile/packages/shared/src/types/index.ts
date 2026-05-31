@@ -173,6 +173,48 @@ export interface StopSubscription {
   createdAt: string;
 }
 
+export interface VisitRecord {
+  id: string;
+  routeId: string;
+  routeName: string;
+  tripId: string | null;
+  visitedAt: string;
+  durationSeconds: number | null;
+}
+
+export interface VisitStats {
+  visitCount30Days: number;
+  uniqueRoutes30Days: number;
+  totalMinutesTracked: number;
+  longestStreakDays: number;
+  topRoutes: { routeId: string; routeName: string; count: number }[];
+}
+
+export type OccupancyLevel = "LIGHT" | "MODERATE" | "FULL";
+
+export interface OccupancyAggregate {
+  tripId: string;
+  level: OccupancyLevel | null;
+  voteCount: number;
+  counts: Record<OccupancyLevel, number>;
+  myVote: OccupancyLevel | null;
+}
+
+export type ServiceAlertSeverity = "INFO" | "WARNING" | "CRITICAL";
+
+export interface ServiceAlert {
+  id: string;
+  title: string;
+  body: string;
+  severity: ServiceAlertSeverity;
+  routeId: string | null;
+  routeName: string | null;
+  validFrom: string;
+  validUntil: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface FavoriteRoute {
   id: string;
   routeId: string;

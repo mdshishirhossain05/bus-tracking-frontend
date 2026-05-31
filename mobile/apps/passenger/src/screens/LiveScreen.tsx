@@ -26,6 +26,7 @@ import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
 import { NextBusBanner } from "../components/NextBusBanner";
 import { PreTripBanner } from "../features/passenger/components/PreTripBanner";
+import { ServiceAlertBanner } from "../features/passenger/components/ServiceAlertBanner";
 import { useNav } from "../navigation/NavigationContext";
 
 function TopActions() {
@@ -172,6 +173,10 @@ export function LiveScreen() {
           <ConnectionPill status={connectionStatus} />
           <TopActions />
         </View>
+        {/* Service alerts always trump everything else — admin's voice. */}
+        <ServiceAlertBanner
+          routeId={trips.find((t) => t.tripId === selectedTripId)?.routeId}
+        />
         {/*
           The pre-trip banner takes precedence over NextBusBanner when the
           current trip hasn't officially started yet — what matters most

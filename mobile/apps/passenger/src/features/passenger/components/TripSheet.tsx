@@ -8,7 +8,9 @@ import { BlurView } from "expo-blur";
 import { Text, StatusBadge, type StatusBadgeTone } from "@ubts/shared";
 import { colors, radius, spacing } from "@ubts/shared";
 import { StopTimeline } from "./StopTimeline";
+import { OccupancyVoter } from "./OccupancyVoter";
 import { useStopSubscriptions } from "../hooks/useStopSubscriptions";
+import { useTripOccupancy } from "../hooks/useTripOccupancy";
 import type {
   ActiveTrip,
   LiveBusLocation,
@@ -56,6 +58,9 @@ export function TripSheet({
 
   const subs = useStopSubscriptions();
   const routeIdForSubs = route?.routeId ?? selectedTrip?.routeId ?? null;
+  const occupancy = useTripOccupancy(
+    selectedTrip?.status === "RUNNING" ? selectedTripId : null,
+  );
 
   const statusBadge = useMemo<{
     tone: StatusBadgeTone;
@@ -146,6 +151,14 @@ export function TripSheet({
             </Text>
           </View>
         )}
+
+        {selectedTrip?.status === "RUNNING" ? (
+          <OccupancyVoter
+            aggregate={occupancy.aggregate}
+            onVote={occupancy.vote}
+            busy={occupancy.busy}
+          />
+        ) : null}
 
         {trips.length > 1 && (
           <ScrollView

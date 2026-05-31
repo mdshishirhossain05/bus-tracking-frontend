@@ -13,7 +13,11 @@ import { Text } from "@ubts/shared";
 import { colors, fonts, radius, spacing } from "@ubts/shared";
 import { useAuth } from "@ubts/shared";
 
-export function LoginScreen() {
+interface LoginScreenProps {
+  onGoToRegister?: () => void;
+}
+
+export function LoginScreen({ onGoToRegister }: LoginScreenProps = {}) {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -85,6 +89,8 @@ export function LoginScreen() {
                 pressed && styles.buttonPressed,
                 submitting && styles.buttonDisabled,
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Sign in"
             >
               {submitting ? (
                 <ActivityIndicator color={colors.primaryForeground} />
@@ -94,6 +100,19 @@ export function LoginScreen() {
                 </Text>
               )}
             </Pressable>
+
+            {onGoToRegister ? (
+              <View style={styles.signupRow}>
+                <Text variant="caption" color={colors.mutedForeground}>
+                  Don't have an account?
+                </Text>
+                <Pressable onPress={onGoToRegister} hitSlop={8}>
+                  <Text variant="caption" color={colors.primary}>
+                    Create one
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -152,4 +171,11 @@ const styles = StyleSheet.create({
   },
   buttonPressed: { backgroundColor: colors.primaryActive },
   buttonDisabled: { opacity: 0.7 },
+  signupRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
 });

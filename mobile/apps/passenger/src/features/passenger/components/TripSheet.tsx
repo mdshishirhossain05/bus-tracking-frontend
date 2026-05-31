@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import BottomSheet, {
   BottomSheetScrollView,
   type BottomSheetBackgroundProps,
@@ -28,6 +28,8 @@ interface TripSheetProps {
   route: RoutePresentation | null;
   tripEnded: boolean;
   recentArrival: TripStopArrivalPayload | null;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 function GlassBackground({ style }: BottomSheetBackgroundProps) {
@@ -48,6 +50,8 @@ export function TripSheet({
   route,
   tripEnded,
   recentArrival,
+  refreshing = false,
+  onRefresh,
 }: TripSheetProps) {
   const snapPoints = useMemo(() => ["17%", "52%", "90%"], []);
 
@@ -103,6 +107,15 @@ export function TripSheet({
       <BottomSheetScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+            />
+          ) : undefined
+        }
       >
         <View style={styles.headerRow}>
           <Text variant="label" color={colors.mutedForeground}>

@@ -211,6 +211,8 @@ export function LiveScreen() {
         route={route}
         tripEnded={tripEnded}
         recentArrival={recentArrival}
+        refreshing={refreshing}
+        onRefresh={retry}
       />
     </View>
   );

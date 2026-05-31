@@ -1,12 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
 import { useAuth, colors } from "@ubts/shared";
 import { LoginScreen } from "../screens/LoginScreen";
+import { RegisterScreen } from "../screens/RegisterScreen";
 import { NavigationProvider } from "./NavigationContext";
 import { MainNavigator } from "./MainNavigator";
 
+type AuthScreen = "login" | "register";
+
 export function RootNavigator() {
   const { status } = useAuth();
+  const [authScreen, setAuthScreen] = useState<AuthScreen>("login");
 
   if (status === "loading") {
     return (
@@ -16,7 +20,13 @@ export function RootNavigator() {
     );
   }
 
-  if (status !== "authenticated") return <LoginScreen />;
+  if (status !== "authenticated") {
+    return authScreen === "register" ? (
+      <RegisterScreen onBackToLogin={() => setAuthScreen("login")} />
+    ) : (
+      <LoginScreen onGoToRegister={() => setAuthScreen("register")} />
+    );
+  }
 
   return (
     <NavigationProvider>

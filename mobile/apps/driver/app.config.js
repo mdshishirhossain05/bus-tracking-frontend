@@ -60,5 +60,18 @@ module.exports = ({ config }) => ({
         isAndroidForegroundServiceEnabled: true,
       },
     ],
+    [
+      "expo-build-properties",
+      {
+        android: {
+          // ProGuard + resource shrinking trim ~30-50% of the release APK
+          // by removing unused Java code and Android resources, and dex2oat
+          // has much less to compile at install time, so install + cold
+          // start drop noticeably.
+          enableProguardInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+        },
+      },
+    ],
   ],
 });

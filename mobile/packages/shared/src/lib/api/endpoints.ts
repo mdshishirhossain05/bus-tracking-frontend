@@ -10,6 +10,9 @@ export const API_ENDPOINTS = {
     changePassword: "/auth/change-password",
     sessions: "/auth/sessions",
     session: (sessionId: string) => `/auth/sessions/${sessionId}`,
+    requestRegisterOtp: "/auth/register/request-otp",
+    verifyRegisterOtp: "/auth/register/verify-otp",
+    register: "/auth/register",
   },
   passenger: {
     activeTrips: "/passenger/trips/active",

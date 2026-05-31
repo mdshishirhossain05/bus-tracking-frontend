@@ -9,6 +9,7 @@
     "axios": "^1.16.1",
     "expo": "~56.0.3",
     "expo-blur": "~56.0.3",
+    "expo-build-properties": "~0.15.0",
     "expo-font": "~56.0.5",
     "expo-haptics": "~56.0.3",
     "expo-keep-awake": "~56.0.3",

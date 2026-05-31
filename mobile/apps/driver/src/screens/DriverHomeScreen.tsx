@@ -30,6 +30,27 @@ import type { TrackingSource } from "../api/driver.api";
 type RegionView = "map" | "stops";
 const APPROACH_METERS = 150;
 
+const PRE_TRIP_PILL_COPY: Record<
+  "AT_DEPOT" | "APPROACHING_ORIGIN" | "AT_ORIGIN",
+  { label: string; icon: IconName; tint: string }
+> = {
+  AT_DEPOT: {
+    label: "Pre-trip · Parked at depot",
+    icon: "bed-outline",
+    tint: colors.mutedForeground,
+  },
+  APPROACHING_ORIGIN: {
+    label: "Pre-trip · Heading to start",
+    icon: "navigate-outline",
+    tint: colors.primary,
+  },
+  AT_ORIGIN: {
+    label: "Pre-trip · At start point",
+    icon: "checkmark-circle-outline",
+    tint: colors.success,
+  },
+};
+
 function SegmentButton({
   icon,
   label,
@@ -156,8 +177,15 @@ export function DriverHomeScreen() {
     [presentation, trip?.nextStopName, lat, lng],
   );
 
+  const inPreTrip = trip?.status === "PRE_TRIP";
+  const isRunning = trip?.status === "RUNNING";
+  const preTripCopy =
+    inPreTrip && trip?.preTripPhase
+      ? PRE_TRIP_PILL_COPY[trip.preTripPhase]
+      : null;
+
   const approaching =
-    streaming &&
+    isRunning &&
     progress.distanceToNextM != null &&
     progress.distanceToNextM <= APPROACH_METERS;
 
@@ -235,7 +263,16 @@ export function DriverHomeScreen() {
           <DriverMap presentation={presentation} latitude={lat} longitude={lng} />
         )}
 
-        {approaching ? (
+        {preTripCopy ? (
+          <View style={styles.approachWrap} pointerEvents="none">
+            <GlassSurface rounded="pill" style={styles.approachPill}>
+              <Icon name={preTripCopy.icon} size={18} color={preTripCopy.tint} />
+              <Text variant="label" color={colors.foreground}>
+                {preTripCopy.label}
+              </Text>
+            </GlassSurface>
+          </View>
+        ) : approaching ? (
           <View style={styles.approachWrap} pointerEvents="none">
             <GlassSurface rounded="pill" style={styles.approachPill}>
               <Icon name="navigate-circle" size={18} color={colors.warning} />
@@ -325,12 +362,20 @@ export function DriverHomeScreen() {
           </Text>
         )}
 
+        {/*
+          Three button states:
+            * RUNNING   → "End trip"   (red)
+            * PRE_TRIP  → "Start trip now" (green; promotes the open pre-trip
+                          row instead of waiting for the auto-promote on
+                          origin geofence dwell)
+            * otherwise → "Start trip" (green; creates a new trip)
+        */}
         <Pressable
-          onPress={streaming ? end : start}
+          onPress={isRunning ? end : start}
           disabled={busy}
           style={({ pressed }) => [
             styles.action,
-            streaming ? styles.actionEnd : styles.actionStart,
+            isRunning ? styles.actionEnd : styles.actionStart,
             pressed && styles.actionPressed,
             busy && styles.actionDisabled,
           ]}
@@ -340,16 +385,33 @@ export function DriverHomeScreen() {
           ) : (
             <>
               <Icon
-                name={streaming ? "stop-circle-outline" : "play-circle-outline"}
+                name={
+                  isRunning ? "stop-circle-outline" : "play-circle-outline"
+                }
                 size={22}
                 color={colors.primaryForeground}
               />
               <Text variant="subtitle" color={colors.primaryForeground}>
-                {streaming ? "End trip" : "Start trip"}
+                {isRunning
+                  ? "End trip"
+                  : inPreTrip
+                    ? "Start trip now"
+                    : "Start trip"}
               </Text>
             </>
           )}
         </Pressable>
+
+        {inPreTrip ? (
+          <Text
+            variant="caption"
+            color={colors.mutedForeground}
+            style={styles.preTripHint}
+          >
+            Bus is broadcasting location. Trip will start automatically when
+            you arrive at the first stop, or tap above to start now.
+          </Text>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -487,4 +549,5 @@ const styles = StyleSheet.create({
   actionEnd: { backgroundColor: colors.danger },
   actionPressed: { opacity: 0.85 },
   actionDisabled: { opacity: 0.6 },
+  preTripHint: { textAlign: "center" },
 });

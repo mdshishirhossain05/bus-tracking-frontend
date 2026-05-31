@@ -18,6 +18,7 @@ import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
 import { NextBusBanner } from "../components/NextBusBanner";
+import { PreTripBanner } from "../features/passenger/components/PreTripBanner";
 import { useNav } from "../navigation/NavigationContext";
 
 function TopActions() {
@@ -52,6 +53,7 @@ export function LiveScreen() {
     isStale,
     tripEnded,
     passengerLocation,
+    preTripPhase,
     retry,
   } = usePassengerLiveTrip();
 
@@ -141,7 +143,17 @@ export function LiveScreen() {
           <ConnectionPill status={connectionStatus} />
           <TopActions />
         </View>
-        <NextBusBanner />
+        {/*
+          The pre-trip banner takes precedence over NextBusBanner when the
+          current trip hasn't officially started yet — what matters most
+          right then is WHERE the bus is (depot / approaching / arrived),
+          not which other route is next.
+        */}
+        {preTripPhase ? (
+          <PreTripBanner phase={preTripPhase} />
+        ) : (
+          <NextBusBanner />
+        )}
       </SafeAreaView>
 
       <View style={styles.fabWrap} pointerEvents="box-none">

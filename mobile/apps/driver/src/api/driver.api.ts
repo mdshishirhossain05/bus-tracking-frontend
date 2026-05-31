@@ -1,18 +1,27 @@
-import { api, unwrap } from "@ubts/shared";
+import { api, unwrap, type TripPreTripPhase } from "@ubts/shared";
 
 export type TrackingSource = "DRIVER_MOBILE" | "GPS_DEVICE";
+
+export type DriverTripStatus =
+  | "PLANNED"
+  | "PRE_TRIP"
+  | "RUNNING"
+  | "ENDED";
 
 export interface DriverTrip {
   tripId: string;
   routeId: string | null;
   routeName: string | null;
   busLabel: string | null;
-  status: string;
+  status: DriverTripStatus;
   startedAt: string | null;
   etaMinutes: number | null;
   nextStopName: string | null;
   latitude: number | null;
   longitude: number | null;
+  preTripPhase: TripPreTripPhase | null;
+  preTripStartedAt: string | null;
+  originArrivedAt: string | null;
 }
 
 function uuidV4(): string {
@@ -36,6 +45,31 @@ function n(value: unknown): number | null {
   return null;
 }
 
+function normalizeStatus(value: unknown): DriverTripStatus {
+  const raw = s(value);
+  if (
+    raw === "PLANNED" ||
+    raw === "PRE_TRIP" ||
+    raw === "RUNNING" ||
+    raw === "ENDED"
+  ) {
+    return raw;
+  }
+  return "PLANNED";
+}
+
+function normalizePhase(value: unknown): TripPreTripPhase | null {
+  const raw = s(value);
+  if (
+    raw === "AT_DEPOT" ||
+    raw === "APPROACHING_ORIGIN" ||
+    raw === "AT_ORIGIN"
+  ) {
+    return raw;
+  }
+  return null;
+}
+
 function normalizeTrip(raw: any): DriverTrip | null {
   if (!raw) return null;
   const tripId = s(raw.tripId ?? raw.id);
@@ -53,7 +87,7 @@ function normalizeTrip(raw: any): DriverTrip | null {
         raw.bus?.label ??
         raw.bus?.busNumber,
     ),
-    status: s(raw.status) ?? "PLANNED",
+    status: normalizeStatus(raw.status),
     startedAt: s(raw.startedAt ?? raw.startTime),
     etaMinutes: n(eta?.etaMinutes ?? eta?.minutes ?? raw.lastEtaMinutes),
     nextStopName: s(
@@ -61,6 +95,9 @@ function normalizeTrip(raw: any): DriverTrip | null {
     ),
     latitude: n(live?.latitude ?? live?.lat ?? raw.lastLatitude),
     longitude: n(live?.longitude ?? live?.lng ?? raw.lastLongitude),
+    preTripPhase: normalizePhase(raw.preTripPhase),
+    preTripStartedAt: s(raw.preTripStartedAt),
+    originArrivedAt: s(raw.originArrivedAt),
   };
 }
 

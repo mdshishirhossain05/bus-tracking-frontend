@@ -15,6 +15,11 @@ export interface AuthUser {
   approvalStatus?: string | null;
 }
 
+export type TripPreTripPhaseValue =
+  | "AT_DEPOT"
+  | "APPROACHING_ORIGIN"
+  | "AT_ORIGIN";
+
 export interface ActiveTrip {
   tripId: string;
   routeId: string;
@@ -26,6 +31,9 @@ export interface ActiveTrip {
   status: string;
   startedAt: string | null;
   isStale?: boolean;
+  preTripPhase?: TripPreTripPhaseValue | null;
+  preTripStartedAt?: string | null;
+  originArrivedAt?: string | null;
 }
 
 export interface LiveBusLocation {

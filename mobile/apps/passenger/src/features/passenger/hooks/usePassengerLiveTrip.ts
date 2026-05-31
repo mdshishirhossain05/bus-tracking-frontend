@@ -15,8 +15,16 @@ import type {
   PassengerLocation,
   RoutePresentation,
   TripEta,
+  TripPreTripPhaseValue,
   TripStopArrivalPayload,
 } from "@ubts/shared";
+
+export type PreTripPhaseState = {
+  phase: TripPreTripPhaseValue;
+  distanceToOriginMeters: number | null;
+  originArrivedAt: string | null;
+  updatedAt: string;
+};
 
 const STALE_AFTER_MS = 60_000;
 const ARRIVAL_VISIBILITY_MS = 20_000;
@@ -99,6 +107,9 @@ export function usePassengerLiveTrip() {
   const [error, setError] = useState<string | null>(null);
   const [passengerLocation, setPassengerLocation] =
     useState<PassengerLocation | null>(null);
+  const [preTripPhase, setPreTripPhase] = useState<PreTripPhaseState | null>(
+    null,
+  );
 
   const staleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const arrivalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -160,6 +171,19 @@ export function usePassengerLiveTrip() {
     }
   }, []);
 
+  const seedPreTripFromTrip = useCallback((trip: ActiveTrip | null) => {
+    if (!trip || trip.status !== "PRE_TRIP" || !trip.preTripPhase) {
+      setPreTripPhase(null);
+      return;
+    }
+    setPreTripPhase({
+      phase: trip.preTripPhase,
+      distanceToOriginMeters: null,
+      originArrivedAt: trip.originArrivedAt ?? null,
+      updatedAt: trip.preTripStartedAt ?? new Date().toISOString(),
+    });
+  }, []);
+
   const loadTripData = useCallback(
     async (tripId: string, routeId?: string | null) => {
       const [state, tripEta] = await Promise.all([
@@ -194,6 +218,7 @@ export function usePassengerLiveTrip() {
           setLiveSafe(null);
           setEta(null);
           setRoute(null);
+          setPreTripPhase(null);
           clearStaleTimer();
           return;
         }
@@ -206,6 +231,7 @@ export function usePassengerLiveTrip() {
         const trip = activeTrips.find((t) => t.tripId === current) ?? null;
 
         setSelectedTripId(current);
+        seedPreTripFromTrip(trip);
         await loadTripData(current, trip?.routeId);
       } catch (err: any) {
         if (mode === "initial") {
@@ -232,13 +258,14 @@ export function usePassengerLiveTrip() {
       setRecentArrival(null);
       setTripEnded(false);
       const trip = trips.find((t) => t.tripId === tripId) ?? null;
+      seedPreTripFromTrip(trip);
       try {
         await loadTripData(tripId, trip?.routeId);
       } catch {
         setError("Failed to switch trips.");
       }
     },
-    [loadTripData, selectedTripId, trips],
+    [loadTripData, seedPreTripFromTrip, selectedTripId, trips],
   );
 
   const retry = useCallback(() => loadInitial("refresh"), [loadInitial]);
@@ -369,7 +396,58 @@ export function usePassengerLiveTrip() {
       setTripEnded(true);
       setConnectionStatus("disconnected");
       setIsStale(false);
+      setPreTripPhase(null);
       clearStaleTimer();
+    };
+    const onPreStateChanged = (payload: any) => {
+      if (payload?.tripId !== tripId) return;
+      const phase = str(payload?.preTripPhase);
+      if (
+        phase !== "AT_DEPOT" &&
+        phase !== "APPROACHING_ORIGIN" &&
+        phase !== "AT_ORIGIN"
+      ) {
+        return;
+      }
+      setPreTripPhase({
+        phase,
+        distanceToOriginMeters: num(payload?.distanceToOriginMeters),
+        originArrivedAt: str(payload?.originArrivedAt),
+        updatedAt:
+          str(payload?.recordedAt) ?? new Date().toISOString(),
+      });
+      // Also keep the trips-array status in sync so other consumers see it.
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.tripId === tripId
+            ? {
+                ...t,
+                preTripPhase: phase,
+                originArrivedAt:
+                  str(payload?.originArrivedAt) ?? t.originArrivedAt ?? null,
+              }
+            : t,
+        ),
+      );
+    };
+    const onTripStarted = (payload: any) => {
+      if (payload?.tripId !== tripId) return;
+      // The PRE_TRIP trip just got promoted to RUNNING (server-side dwell
+      // auto-start OR the driver tapped Start). Clear the phase banner.
+      setPreTripPhase(null);
+      setTripEnded(false);
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.tripId === tripId
+            ? {
+                ...t,
+                status: "RUNNING",
+                startedAt: str(payload?.startedAt) ?? t.startedAt,
+                preTripPhase: null,
+              }
+            : t,
+        ),
+      );
     };
 
     socket.on("connect", onConnect);
@@ -380,6 +458,8 @@ export function usePassengerLiveTrip() {
     socket.on(SOCKET_EVENTS.TRIP_ETA_UPDATED, onEta);
     socket.on(SOCKET_EVENTS.TRIP_STOP_ARRIVAL, onStopArrival);
     socket.on(SOCKET_EVENTS.TRIP_ENDED, onTripEnded);
+    socket.on(SOCKET_EVENTS.TRIP_PRE_STATE_CHANGED, onPreStateChanged);
+    socket.on(SOCKET_EVENTS.TRIP_STARTED, onTripStarted);
 
     if (socket.connected) onConnect();
 
@@ -396,6 +476,8 @@ export function usePassengerLiveTrip() {
       socket.off(SOCKET_EVENTS.TRIP_ETA_UPDATED, onEta);
       socket.off(SOCKET_EVENTS.TRIP_STOP_ARRIVAL, onStopArrival);
       socket.off(SOCKET_EVENTS.TRIP_ENDED, onTripEnded);
+      socket.off(SOCKET_EVENTS.TRIP_PRE_STATE_CHANGED, onPreStateChanged);
+      socket.off(SOCKET_EVENTS.TRIP_STARTED, onTripStarted);
     };
   }, [
     selectedTripId,
@@ -421,6 +503,7 @@ export function usePassengerLiveTrip() {
     isStale,
     tripEnded,
     passengerLocation,
+    preTripPhase,
     selectTrip,
     retry,
   };

@@ -8,6 +8,7 @@ import { BlurView } from "expo-blur";
 import { Text, StatusBadge, type StatusBadgeTone } from "@ubts/shared";
 import { colors, radius, spacing } from "@ubts/shared";
 import { StopTimeline } from "./StopTimeline";
+import { useStopSubscriptions } from "../hooks/useStopSubscriptions";
 import type {
   ActiveTrip,
   LiveBusLocation,
@@ -52,6 +53,9 @@ export function TripSheet({
     () => trips.find((t) => t.tripId === selectedTripId) ?? null,
     [trips, selectedTripId],
   );
+
+  const subs = useStopSubscriptions();
+  const routeIdForSubs = route?.routeId ?? selectedTrip?.routeId ?? null;
 
   const statusBadge = useMemo<{
     tone: StatusBadgeTone;
@@ -175,7 +179,24 @@ export function TripSheet({
             <Text variant="label" color={colors.mutedForeground} style={styles.timelineTitle}>
               Route
             </Text>
-            <StopTimeline stops={route.stops} nextStopName={eta?.nextStopName} />
+            <StopTimeline
+              stops={route.stops}
+              nextStopName={eta?.nextStopName}
+              routeId={routeIdForSubs}
+              isSubscribed={(stopId) =>
+                routeIdForSubs
+                  ? subs.isSubscribed(routeIdForSubs, stopId)
+                  : false
+              }
+              onToggleSubscription={(stopId, stopName) => {
+                if (!routeIdForSubs) return;
+                void subs.toggle({
+                  routeId: routeIdForSubs,
+                  stopId,
+                  stopName,
+                });
+              }}
+            />
           </View>
         ) : null}
       </BottomSheetScrollView>

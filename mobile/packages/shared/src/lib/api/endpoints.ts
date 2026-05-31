@@ -28,5 +28,9 @@ export const API_ENDPOINTS = {
     readAll: "/notifications/read-all",
     read: (id: string) => `/notifications/${id}/read`,
     pushToken: "/notifications/push-token",
+    preferences: "/notifications/preferences",
+    subscriptions: "/notifications/subscriptions",
+    subscription: (routeId: string, stopId: string) =>
+      `/notifications/subscriptions/${routeId}/${stopId}`,
   },
 } as const;

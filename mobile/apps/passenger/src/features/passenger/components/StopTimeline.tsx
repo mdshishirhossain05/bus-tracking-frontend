@@ -1,18 +1,26 @@
 import React, { useMemo } from "react";
-import { StyleSheet, View } from "react-native";
-import { Text } from "@ubts/shared";
-import { colors, spacing } from "@ubts/shared";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text, Icon, colors, spacing, radius } from "@ubts/shared";
 import type { RouteStop } from "@ubts/shared";
 
 interface StopTimelineProps {
   stops: RouteStop[];
   nextStopName?: string | null;
+  routeId?: string | null;
+  isSubscribed?: (stopId: string) => boolean;
+  onToggleSubscription?: (stopId: string, stopName: string) => void;
 }
 
 type Phase = "passed" | "current" | "upcoming";
 
 /** Vertical metro-line itinerary: passed stops dim, the next stop is accented. */
-export function StopTimeline({ stops, nextStopName }: StopTimelineProps) {
+export function StopTimeline({
+  stops,
+  nextStopName,
+  routeId,
+  isSubscribed,
+  onToggleSubscription,
+}: StopTimelineProps) {
   const nextOrder = useMemo(() => {
     if (!nextStopName) return null;
     const match = stops.find((s) => s.name === nextStopName);
@@ -53,23 +61,51 @@ export function StopTimeline({ stops, nextStopName }: StopTimelineProps) {
               )}
             </View>
             <View style={styles.labelWrap}>
-              <Text
-                variant={phase === "current" ? "label" : "body"}
-                color={
-                  phase === "passed"
-                    ? colors.faintForeground
-                    : phase === "current"
-                      ? colors.primary
-                      : colors.foreground
-                }
-              >
-                {stop.name}
-              </Text>
-              {phase === "current" && (
-                <Text variant="caption" color={colors.mutedForeground}>
-                  Next stop
-                </Text>
-              )}
+              <View style={styles.labelRow}>
+                <View style={styles.flex}>
+                  <Text
+                    variant={phase === "current" ? "label" : "body"}
+                    color={
+                      phase === "passed"
+                        ? colors.faintForeground
+                        : phase === "current"
+                          ? colors.primary
+                          : colors.foreground
+                    }
+                  >
+                    {stop.name}
+                  </Text>
+                  {phase === "current" && (
+                    <Text variant="caption" color={colors.mutedForeground}>
+                      Next stop
+                    </Text>
+                  )}
+                </View>
+                {routeId && onToggleSubscription && phase !== "passed" ? (
+                  <Pressable
+                    onPress={() => onToggleSubscription(stop.id, stop.name)}
+                    hitSlop={10}
+                    style={[
+                      styles.bell,
+                      isSubscribed?.(stop.id) && styles.bellActive,
+                    ]}
+                  >
+                    <Icon
+                      name={
+                        isSubscribed?.(stop.id)
+                          ? "notifications"
+                          : "notifications-outline"
+                      }
+                      size={16}
+                      color={
+                        isSubscribed?.(stop.id)
+                          ? colors.primary
+                          : colors.mutedForeground
+                      }
+                    />
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
           </View>
         );
@@ -109,5 +145,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: spacing.md,
     paddingBottom: spacing.md,
+  },
+  labelRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  flex: { flex: 1 },
+  bell: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.muted,
+  },
+  bellActive: {
+    backgroundColor: colors.primarySoft,
   },
 });

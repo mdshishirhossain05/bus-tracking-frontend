@@ -156,6 +156,23 @@ export interface NotificationList {
   unreadCount: number;
 }
 
+export interface NotificationPreferences {
+  notificationsEnabled: boolean;
+  quietHoursStartMin: number | null;
+  quietHoursEndMin: number | null;
+}
+
+export interface StopSubscription {
+  id: string;
+  stopId: string;
+  stopName: string;
+  routeId: string;
+  routeName: string;
+  leadTimeMinutes: number;
+  enabled: boolean;
+  createdAt: string;
+}
+
 export interface FavoriteRoute {
   id: string;
   routeId: string;

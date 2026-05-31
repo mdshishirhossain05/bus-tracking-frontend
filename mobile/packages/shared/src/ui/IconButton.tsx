@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 import { colors } from "../theme/tokens";
 import { Icon, type IconName } from "./Icon";
 import { Badge } from "./Badge";
@@ -12,6 +13,8 @@ interface IconButtonProps {
   iconSize?: number;
   color?: string;
   badge?: number;
+  /** Set to false to suppress the default selection haptic. */
+  haptic?: boolean;
 }
 
 /** A circular frosted-glass button — the app's primary floating control. */
@@ -22,11 +25,16 @@ export function IconButton({
   iconSize = 20,
   color = colors.foreground,
   badge,
+  haptic = true,
 }: IconButtonProps) {
   const r = size / 2;
+  const handlePress = useCallback(() => {
+    if (haptic) void Haptics.selectionAsync();
+    onPress?.();
+  }, [onPress, haptic]);
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       hitSlop={6}
       style={({ pressed }) => (pressed ? styles.pressed : null)}
     >

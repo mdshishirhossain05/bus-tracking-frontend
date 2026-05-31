@@ -13,11 +13,14 @@ import {
   GlassSurface,
   Text,
   Icon,
+  StatusBadge,
+  Skeleton,
   colors,
   radius,
   spacing,
   useAuth,
   type IconName,
+  type StatusBadgeTone,
 } from "@ubts/shared";
 import { useDriverTrip } from "../hooks/useDriverTrip";
 import { LiveIndicator } from "../components/LiveIndicator";
@@ -184,6 +187,20 @@ export function DriverHomeScreen() {
       ? PRE_TRIP_PILL_COPY[trip.preTripPhase]
       : null;
 
+  const statusBadge = ((): { tone: StatusBadgeTone; label: string; withDot: boolean } | null => {
+    if (!trip) return null;
+    if (trip.status === "RUNNING") {
+      return { tone: "live", label: "LIVE", withDot: true };
+    }
+    if (trip.status === "PRE_TRIP") {
+      return { tone: "preTrip", label: "PRE-TRIP", withDot: true };
+    }
+    if (trip.status === "ENDED") {
+      return { tone: "ended", label: "ENDED", withDot: false };
+    }
+    return { tone: "muted", label: "PLANNED", withDot: false };
+  })();
+
   const approaching =
     isRunning &&
     progress.distanceToNextM != null &&
@@ -199,9 +216,24 @@ export function DriverHomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <View style={styles.topBar}>
+          <View>
+            <Skeleton width={120} height={12} />
+            <View style={{ height: spacing.xs }} />
+            <Skeleton width={180} height={18} />
+          </View>
+          <Skeleton width={40} height={40} rounded="pill" />
+        </View>
+        <View style={styles.skeletonMap}>
+          <Skeleton width="100%" height="100%" rounded={0} />
+        </View>
+        <View style={styles.panel}>
+          <Skeleton width="60%" height={14} />
+          <Skeleton width="40%" height={22} />
+          <Skeleton width="100%" height={56} rounded="lg" />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -300,7 +332,15 @@ export function DriverHomeScreen() {
               {trip?.busLabel ?? (trip ? "Bus" : "Ready when you are")}
             </Text>
           </View>
-          <LiveIndicator live={streaming} />
+          {statusBadge ? (
+            <StatusBadge
+              tone={statusBadge.tone}
+              label={statusBadge.label}
+              withDot={statusBadge.withDot}
+            />
+          ) : (
+            <LiveIndicator live={streaming} />
+          )}
         </View>
 
         {streaming && hasStops ? (
@@ -550,4 +590,5 @@ const styles = StyleSheet.create({
   actionPressed: { opacity: 0.85 },
   actionDisabled: { opacity: 0.6 },
   preTripHint: { textAlign: "center" },
+  skeletonMap: { flex: 1, overflow: "hidden", margin: spacing.lg, borderRadius: radius.lg },
 });

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,8 +9,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import type MapView from "react-native-maps";
 import * as Haptics from "expo-haptics";
-import { Text, GlassSurface, Icon, IconButton } from "@ubts/shared";
-import { colors, spacing } from "@ubts/shared";
+import {
+  Text,
+  GlassSurface,
+  Icon,
+  IconButton,
+  Skeleton,
+  SkeletonGroup,
+  EmptyState,
+} from "@ubts/shared";
+import { colors, spacing, radius } from "@ubts/shared";
 import { useNotifications } from "@ubts/shared";
 import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLiveTrip";
 import { LiveMap } from "../features/passenger/components/LiveMap";
@@ -68,6 +75,7 @@ export function LiveScreen() {
   }, [recentArrival]);
 
   const recenter = useCallback(() => {
+    void Haptics.selectionAsync();
     setFollowing(true);
     if (liveState) {
       mapRef.current?.animateCamera(
@@ -83,38 +91,59 @@ export function LiveScreen() {
   }, [liveState]);
 
   if (loading) {
+    // Skeleton scaffold of the live tracking screen — same shape as the
+    // loaded UI so the layout doesn't jump when data arrives.
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-        <Text variant="body" color={colors.mutedForeground}>
-          Finding your bus…
-        </Text>
-      </View>
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <View style={styles.skeletonTop}>
+          <Skeleton width={120} height={28} rounded="pill" />
+          <View style={styles.skeletonActions}>
+            <Skeleton width={40} height={40} rounded="md" />
+            <Skeleton width={40} height={40} rounded="md" />
+            <Skeleton width={40} height={40} rounded="md" />
+          </View>
+        </View>
+        <View style={styles.skeletonMap}>
+          <Skeleton width="100%" height="100%" rounded={0} />
+        </View>
+        <View style={styles.skeletonSheet}>
+          <SkeletonGroup gap={12}>
+            <Skeleton width={160} height={14} />
+            <Skeleton width={240} height={22} />
+            <Skeleton width="100%" height={56} rounded="lg" />
+            <View style={styles.skeletonRow}>
+              <Skeleton width={48} height={48} rounded="md" />
+              <Skeleton width={48} height={48} rounded="md" />
+              <Skeleton width={48} height={48} rounded="md" />
+            </View>
+          </SkeletonGroup>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (!trips.length) {
     return (
       <View style={styles.root}>
-        <View style={styles.centered}>
-          <ScrollView
-            contentContainerStyle={styles.emptyScroll}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={retry}
-                tintColor={colors.primary}
-              />
+        <ScrollView
+          contentContainerStyle={styles.emptyScroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={retry}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          <EmptyState
+            icon="bus-outline"
+            title="No buses running right now"
+            subtitle={
+              error ??
+              "We're not seeing any active trips. Pull down to refresh, or check back closer to your scheduled departure."
             }
-          >
-            <Text variant="subtitle" color={colors.foreground}>
-              No buses running
-            </Text>
-            <Text variant="body" color={colors.mutedForeground} style={styles.center}>
-              {error ?? "There are no active trips right now. Pull to refresh."}
-            </Text>
-          </ScrollView>
-        </View>
+          />
+        </ScrollView>
 
         <SafeAreaView style={styles.overlay} pointerEvents="box-none" edges={["top"]}>
           <View style={styles.topBar} pointerEvents="box-none">
@@ -219,4 +248,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  skeletonTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  skeletonActions: { flexDirection: "row", gap: spacing.sm },
+  skeletonMap: {
+    flex: 1,
+    margin: spacing.lg,
+    overflow: "hidden",
+    borderRadius: radius.lg,
+  },
+  skeletonSheet: {
+    padding: spacing.xl,
+    backgroundColor: colors.backgroundElevated,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    gap: spacing.md,
+  },
+  skeletonRow: { flexDirection: "row", gap: spacing.sm },
 });

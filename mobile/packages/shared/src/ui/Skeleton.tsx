@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View, type ViewStyle } from "react-native";
 import { colors, radius } from "../theme/tokens";
+import { useReduceMotion } from "../a11y/useReduceMotion";
 
 interface SkeletonProps {
   width?: ViewStyle["width"];
@@ -22,8 +23,15 @@ export function Skeleton({
   style,
 }: SkeletonProps) {
   const opacity = useRef(new Animated.Value(0.5)).current;
+  const reduceMotion = useReduceMotion();
 
   useEffect(() => {
+    if (reduceMotion) {
+      // Stay at a constant medium opacity instead of pulsing — still
+      // signals "loading content here" without animation.
+      opacity.setValue(0.6);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
@@ -40,7 +48,7 @@ export function Skeleton({
     );
     loop.start();
     return () => loop.stop();
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
 
   const borderRadius =
     typeof rounded === "number" ? rounded : radius[rounded];

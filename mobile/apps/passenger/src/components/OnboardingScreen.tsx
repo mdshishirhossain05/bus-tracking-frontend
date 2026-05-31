@@ -16,7 +16,9 @@ import {
   colors,
   spacing,
   radius,
+  useT,
   type IconName,
+  type StringKey,
 } from "@ubts/shared";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -25,8 +27,8 @@ type Slide = {
   icon: IconName;
   iconBg: string;
   iconColor: string;
-  title: string;
-  body: string;
+  titleKey: StringKey;
+  bodyKey: StringKey;
 };
 
 const SLIDES: Slide[] = [
@@ -34,22 +36,22 @@ const SLIDES: Slide[] = [
     icon: "navigate-circle",
     iconBg: "rgba(99, 102, 241, 0.18)",
     iconColor: "#a5b4fc",
-    title: "Real-time bus tracking",
-    body: "See your bus moving on the map, second by second. No more guessing whether it's coming or already passed.",
+    titleKey: "onboarding.slide1.title",
+    bodyKey: "onboarding.slide1.body",
   },
   {
     icon: "notifications",
     iconBg: "rgba(34, 197, 94, 0.16)",
     iconColor: colors.success,
-    title: "Smart alerts",
-    body: "Get a heads-up when your bus is a few minutes from your stop — even when the app is closed.",
+    titleKey: "onboarding.slide2.title",
+    bodyKey: "onboarding.slide2.body",
   },
   {
     icon: "time",
     iconBg: "rgba(59, 130, 246, 0.16)",
     iconColor: "#60a5fa",
-    title: "Pre-trip visibility",
-    body: "Know whether the bus is still parked, on the way to the start, or already boarding — long before it leaves the depot.",
+    titleKey: "onboarding.slide3.title",
+    bodyKey: "onboarding.slide3.body",
   },
 ];
 
@@ -58,6 +60,7 @@ interface OnboardingScreenProps {
 }
 
 export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
+  const t = useT();
   const scrollRef = useRef<ScrollView | null>(null);
   const [index, setIndex] = useState(0);
 
@@ -109,9 +112,14 @@ export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.skipRow}>
         {!isLast ? (
-          <Pressable onPress={skip} hitSlop={12}>
+          <Pressable
+            onPress={skip}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.skip")}
+          >
             <Text variant="label" color={colors.mutedForeground}>
-              Skip
+              {t("common.skip")}
             </Text>
           </Pressable>
         ) : (
@@ -139,14 +147,14 @@ export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
               color={colors.foreground}
               style={styles.title}
             >
-              {slide.title}
+              {t(slide.titleKey)}
             </Text>
             <Text
               variant="body"
               color={colors.mutedForeground}
               style={styles.body}
             >
-              {slide.body}
+              {t(slide.bodyKey)}
             </Text>
           </View>
         ))}
@@ -156,13 +164,17 @@ export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
         <View style={styles.dots}>{dots}</View>
         <Pressable
           onPress={next}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isLast ? t("onboarding.getStarted") : t("common.next")
+          }
           style={({ pressed }) => [
             styles.cta,
             pressed && styles.ctaPressed,
           ]}
         >
           <Text variant="subtitle" color={colors.primaryForeground}>
-            {isLast ? "Get started" : "Next"}
+            {isLast ? t("onboarding.getStarted") : t("common.next")}
           </Text>
           <Icon
             name={isLast ? "checkmark" : "arrow-forward"}

@@ -24,7 +24,11 @@ import {
   listSessions,
   revokeSession,
   logoutOtherSessions,
+  useI18n,
+  LOCALES,
+  LOCALE_LABELS,
   type IconName,
+  type Locale,
 } from "@ubts/shared";
 import type { SessionInfo, UserProfile } from "@ubts/shared";
 import { useNav } from "../navigation/NavigationContext";
@@ -102,6 +106,7 @@ function formatWhen(iso?: string | null): string {
 
 export function ProfileScreen() {
   const { goBack, navigate } = useNav();
+  const { t, locale, setLocale } = useI18n();
   const { signOut } = useAuth();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -380,6 +385,9 @@ export function ProfileScreen() {
         <Pressable
           onPress={() => navigate("notificationPreferences")}
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={t("profile.notificationsTitle")}
+          accessibilityHint={t("profile.notificationsSubtitle")}
         >
           <View style={styles.cardHeader}>
             <Icon
@@ -392,16 +400,16 @@ export function ProfileScreen() {
               color={colors.mutedForeground}
               style={styles.cardTitle}
             >
-              NOTIFICATIONS
+              {t("profile.notifications")}
             </Text>
           </View>
           <View style={styles.notifRow}>
             <View style={styles.flex}>
               <Text variant="label" color={colors.foreground}>
-                Stop alerts & quiet hours
+                {t("profile.notificationsTitle")}
               </Text>
               <Text variant="caption" color={colors.mutedForeground}>
-                Get pushed before your bus arrives — on your schedule.
+                {t("profile.notificationsSubtitle")}
               </Text>
             </View>
             <Icon
@@ -415,6 +423,9 @@ export function ProfileScreen() {
         <Pressable
           onPress={() => navigate("history")}
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={t("profile.tripHistoryTitle")}
+          accessibilityHint={t("profile.tripHistorySubtitle")}
         >
           <View style={styles.cardHeader}>
             <Icon
@@ -427,16 +438,16 @@ export function ProfileScreen() {
               color={colors.mutedForeground}
               style={styles.cardTitle}
             >
-              TRIP HISTORY
+              {t("profile.tripHistory")}
             </Text>
           </View>
           <View style={styles.notifRow}>
             <View style={styles.flex}>
               <Text variant="label" color={colors.foreground}>
-                Your trips & stats
+                {t("profile.tripHistoryTitle")}
               </Text>
               <Text variant="caption" color={colors.mutedForeground}>
-                Last 30 days of routes you've tracked, plus a streak count.
+                {t("profile.tripHistorySubtitle")}
               </Text>
             </View>
             <Icon
@@ -446,6 +457,50 @@ export function ProfileScreen() {
             />
           </View>
         </Pressable>
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Icon
+              name="language-outline"
+              size={15}
+              color={colors.mutedForeground}
+            />
+            <Text
+              variant="caption"
+              color={colors.mutedForeground}
+              style={styles.cardTitle}
+            >
+              {t("profile.language")}
+            </Text>
+          </View>
+          <View style={styles.langGrid}>
+            {LOCALES.map((code) => {
+              const active = code === locale;
+              return (
+                <Pressable
+                  key={code}
+                  onPress={() => setLocale(code as Locale)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={LOCALE_LABELS[code as Locale].english}
+                  style={[styles.langChip, active && styles.langChipActive]}
+                >
+                  <Text
+                    variant="label"
+                    color={
+                      active ? colors.primaryForeground : colors.foreground
+                    }
+                  >
+                    {LOCALE_LABELS[code as Locale].native}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text variant="caption" color={colors.mutedForeground}>
+            {t("profile.languageHelp")}
+          </Text>
+        </View>
 
         <Card icon="phone-portrait-outline" title="DEVICES">
           {activeSessions.map((s, i) => (
@@ -546,6 +601,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
   },
+  langGrid: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    flexWrap: "wrap",
+  },
+  langChip: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.muted,
+    borderRadius: radius.pill,
+  },
+  langChipActive: { backgroundColor: colors.primary },
   field: { gap: spacing.xs },
   input: {
     backgroundColor: colors.muted,

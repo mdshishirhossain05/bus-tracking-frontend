@@ -17,6 +17,7 @@ import {
   Skeleton,
   SkeletonGroup,
   EmptyState,
+  useT,
 } from "@ubts/shared";
 import { colors, spacing, radius } from "@ubts/shared";
 import { useNotifications } from "@ubts/shared";
@@ -46,6 +47,7 @@ function TopActions() {
 }
 
 export function LiveScreen() {
+  const t = useT();
   const {
     loading,
     refreshing,
@@ -138,11 +140,8 @@ export function LiveScreen() {
         >
           <EmptyState
             icon="bus-outline"
-            title="No buses running right now"
-            subtitle={
-              error ??
-              "We're not seeing any active trips. Pull down to refresh, or check back closer to your scheduled departure."
-            }
+            title={t("live.emptyTitle")}
+            subtitle={error ?? t("live.emptySubtitle")}
           />
         </ScrollView>
 

@@ -7,6 +7,8 @@ import {
   colors,
   spacing,
   radius,
+  localizeNumber,
+  useI18n,
   type IconName,
 } from "@ubts/shared";
 import type { PreTripPhaseState } from "../hooks/usePassengerLiveTrip";
@@ -19,69 +21,87 @@ type Copy = {
   pulse: boolean;
 };
 
-function copyFor(phase: PreTripPhaseState): Copy {
-  switch (phase.phase) {
-    case "AT_DEPOT":
-      return {
-        headline: "Bus is parked at the depot",
-        detail: "Waiting for departure. We'll show you the live location as soon as it starts moving.",
-        icon: "bed-outline",
-        iconTint: colors.mutedForeground,
-        pulse: false,
-      };
-    case "APPROACHING_ORIGIN": {
-      const dist = phase.distanceToOriginMeters;
-      const detail =
-        dist != null
-          ? dist >= 1000
-            ? `${(dist / 1000).toFixed(1)} km to the start point`
-            : `${Math.max(50, Math.round(dist / 10) * 10)}m to the start point`
-          : "On the way to the start point";
-      return {
-        headline: "Bus is on the way",
-        detail,
-        icon: "navigate-outline",
-        iconTint: colors.primary,
-        pulse: true,
-      };
-    }
-    case "AT_ORIGIN":
-      return {
-        headline: "Bus has arrived at the start",
-        detail: "Boarding soon — the trip will start any moment.",
-        icon: "checkmark-circle-outline",
-        iconTint: colors.success,
-        pulse: true,
-      };
-  }
-}
-
 export function PreTripBanner({ phase }: { phase: PreTripPhaseState }) {
-  const c = copyFor(phase);
+  const { t, locale } = useI18n();
+
+  const copy: Copy = (() => {
+    switch (phase.phase) {
+      case "AT_DEPOT":
+        return {
+          headline: t("preTrip.atDepot.title"),
+          detail: t("preTrip.atDepot.detail"),
+          icon: "bed-outline",
+          iconTint: colors.mutedForeground,
+          pulse: false,
+        };
+      case "APPROACHING_ORIGIN": {
+        const dist = phase.distanceToOriginMeters;
+        const detail =
+          dist != null
+            ? dist >= 1000
+              ? t("preTrip.approaching.distanceKm", {
+                  n: localizeNumber((dist / 1000).toFixed(1), locale),
+                })
+              : t("preTrip.approaching.distanceM", {
+                  n: localizeNumber(
+                    Math.max(50, Math.round(dist / 10) * 10),
+                    locale,
+                  ),
+                })
+            : t("preTrip.approaching.detail");
+        return {
+          headline: t("preTrip.approaching.title"),
+          detail,
+          icon: "navigate-outline",
+          iconTint: colors.primary,
+          pulse: true,
+        };
+      }
+      case "AT_ORIGIN":
+        return {
+          headline: t("preTrip.atOrigin.title"),
+          detail: t("preTrip.atOrigin.detail"),
+          icon: "checkmark-circle-outline",
+          iconTint: colors.success,
+          pulse: true,
+        };
+    }
+  })();
+
   return (
-    <GlassSurface style={styles.card}>
+    <GlassSurface
+      style={styles.card}
+      // Whole banner reads as one item to screen readers — the icon is
+      // decorative, so we surface headline + detail together.
+    >
       <View
-        style={[
-          styles.iconWrap,
-          c.pulse ? styles.iconPulse : null,
-        ]}
+        accessible
+        accessibilityLabel={`${t("preTrip.label")}. ${copy.headline}. ${copy.detail}`}
+        style={styles.row}
       >
-        <Icon name={c.icon} size={18} color={c.iconTint} />
-      </View>
-      <View style={styles.flex}>
-        <Text variant="caption" color={colors.mutedForeground}>
-          PRE-TRIP
-        </Text>
-        <Text variant="label" color={colors.foreground} numberOfLines={1}>
-          {c.headline}
-        </Text>
-        <Text
-          variant="caption"
-          color={colors.mutedForeground}
-          numberOfLines={2}
+        <View
+          style={[
+            styles.iconWrap,
+            copy.pulse ? styles.iconPulse : null,
+          ]}
         >
-          {c.detail}
-        </Text>
+          <Icon name={copy.icon} size={18} color={copy.iconTint} />
+        </View>
+        <View style={styles.flex}>
+          <Text variant="caption" color={colors.mutedForeground}>
+            {t("preTrip.label")}
+          </Text>
+          <Text variant="label" color={colors.foreground} numberOfLines={1}>
+            {copy.headline}
+          </Text>
+          <Text
+            variant="caption"
+            color={colors.mutedForeground}
+            numberOfLines={2}
+          >
+            {copy.detail}
+          </Text>
+        </View>
       </View>
     </GlassSurface>
   );
@@ -89,14 +109,16 @@ export function PreTripBanner({ phase }: { phase: PreTripPhaseState }) {
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
     marginHorizontal: spacing.lg,
     marginTop: spacing.sm,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderRadius: radius.lg,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
   },
   iconWrap: {
     width: 40,

@@ -19,8 +19,11 @@ import {
   radius,
   spacing,
   useAuth,
+  useI18n,
+  localizeNumber,
   type IconName,
   type StatusBadgeTone,
+  type StringKey,
 } from "@ubts/shared";
 import { useDriverTrip } from "../hooks/useDriverTrip";
 import { LiveIndicator } from "../components/LiveIndicator";
@@ -35,20 +38,20 @@ const APPROACH_METERS = 150;
 
 const PRE_TRIP_PILL_COPY: Record<
   "AT_DEPOT" | "APPROACHING_ORIGIN" | "AT_ORIGIN",
-  { label: string; icon: IconName; tint: string }
+  { labelKey: StringKey; icon: IconName; tint: string }
 > = {
   AT_DEPOT: {
-    label: "Pre-trip · Parked at depot",
+    labelKey: "driver.preTrip.parked",
     icon: "bed-outline",
     tint: colors.mutedForeground,
   },
   APPROACHING_ORIGIN: {
-    label: "Pre-trip · Heading to start",
+    labelKey: "driver.preTrip.heading",
     icon: "navigate-outline",
     tint: colors.primary,
   },
   AT_ORIGIN: {
-    label: "Pre-trip · At start point",
+    labelKey: "driver.preTrip.atStart",
     icon: "checkmark-circle-outline",
     tint: colors.success,
   },
@@ -83,21 +86,22 @@ function SourceToggle({
   value: TrackingSource;
   onChange: (v: TrackingSource) => void;
 }) {
+  const { t } = useI18n();
   return (
     <View>
       <Text variant="caption" color={colors.faintForeground} style={styles.segmentLabel}>
-        LOCATION SOURCE
+        {t("driver.source.label")}
       </Text>
       <View style={styles.segment}>
         <SegmentButton
           icon="phone-portrait-outline"
-          label="My phone"
+          label={t("driver.source.phone")}
           active={value === "DRIVER_MOBILE"}
           onPress={() => onChange("DRIVER_MOBILE")}
         />
         <SegmentButton
           icon="hardware-chip-outline"
-          label="Bus device"
+          label={t("driver.source.busDevice")}
           active={value === "GPS_DEVICE"}
           onPress={() => onChange("GPS_DEVICE")}
         />
@@ -142,6 +146,7 @@ function Metric({
 export function DriverHomeScreen() {
   useKeepAwake();
   const { user, signOut } = useAuth();
+  const { t, locale } = useI18n();
   const {
     loading,
     trip,
@@ -239,13 +244,15 @@ export function DriverHomeScreen() {
 
   const updatedAgo =
     streaming && lastFix
-      ? `${Math.max(0, Math.round((now - lastFix.at) / 1000))}s`
+      ? `${localizeNumber(Math.max(0, Math.round((now - lastFix.at) / 1000)), locale)}s`
       : "—";
   const speed =
-    streaming && lastFix?.speedKmh != null ? `${Math.round(lastFix.speedKmh)}` : "—";
+    streaming && lastFix?.speedKmh != null
+      ? localizeNumber(Math.round(lastFix.speedKmh), locale)
+      : "—";
   const accuracy =
     streaming && lastFix?.accuracyM != null
-      ? `±${Math.round(lastFix.accuracyM)}m`
+      ? `±${localizeNumber(Math.round(lastFix.accuracyM), locale)}m`
       : "—";
 
   const hasStops = (presentation?.stops?.length ?? 0) > 0;
@@ -258,13 +265,19 @@ export function DriverHomeScreen() {
       <View style={styles.topBar}>
         <View>
           <Text variant="caption" color={colors.primary}>
-            UNIBUS DRIVER
+            {t("driver.brand")}
           </Text>
           <Text variant="subtitle" color={colors.foreground}>
-            {user?.fullName ?? "Driver"}
+            {user?.fullName ?? t("driver.driverFallback")}
           </Text>
         </View>
-        <Pressable onPress={signOut} hitSlop={8} style={styles.signOut}>
+        <Pressable
+          onPress={signOut}
+          hitSlop={8}
+          style={styles.signOut}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.signOut")}
+        >
           <Icon name="log-out-outline" size={20} color={colors.mutedForeground} />
         </Pressable>
       </View>
@@ -275,13 +288,13 @@ export function DriverHomeScreen() {
             <View style={styles.toggle}>
               <SegmentButton
                 icon="map-outline"
-                label="Map"
+                label={t("common.map")}
                 active={view === "map"}
                 onPress={() => setView("map")}
               />
               <SegmentButton
                 icon="list-outline"
-                label="Stops"
+                label={t("common.stops")}
                 active={view === "stops"}
                 onPress={() => setView("stops")}
               />
@@ -300,7 +313,7 @@ export function DriverHomeScreen() {
             <GlassSurface rounded="pill" style={styles.approachPill}>
               <Icon name={preTripCopy.icon} size={18} color={preTripCopy.tint} />
               <Text variant="label" color={colors.foreground}>
-                {preTripCopy.label}
+                {t(preTripCopy.labelKey)}
               </Text>
             </GlassSurface>
           </View>
@@ -309,9 +322,11 @@ export function DriverHomeScreen() {
             <GlassSurface rounded="pill" style={styles.approachPill}>
               <Icon name="navigate-circle" size={18} color={colors.warning} />
               <Text variant="label" color={colors.foreground}>
-                Approaching {trip?.nextStopName ?? "next stop"}
+                {t("driver.approaching", {
+                  stop: trip?.nextStopName ?? t("driver.nextStop"),
+                })}
                 {progress.distanceToNextM != null
-                  ? ` · ${Math.round(progress.distanceToNextM)}m`
+                  ? ` · ${localizeNumber(Math.round(progress.distanceToNextM), locale)}m`
                   : ""}
               </Text>
             </GlassSurface>
@@ -326,10 +341,10 @@ export function DriverHomeScreen() {
           </View>
           <View style={styles.flex}>
             <Text variant="label" color={colors.mutedForeground}>
-              {trip ? (trip.routeName ?? "Assigned route") : "No active trip"}
+              {trip ? (trip.routeName ?? t("driver.assignedRoute")) : t("driver.noTrip")}
             </Text>
             <Text variant="subtitle" color={colors.foreground}>
-              {trip?.busLabel ?? (trip ? "Bus" : "Ready when you are")}
+              {trip?.busLabel ?? (trip ? t("driver.bus") : t("driver.ready"))}
             </Text>
           </View>
           {statusBadge ? (
@@ -349,11 +364,14 @@ export function DriverHomeScreen() {
             <View style={styles.flex}>
               <Text variant="caption" color={colors.faintForeground}>
                 {progress.nextIndex >= 0
-                  ? `NEXT STOP · ${progress.nextIndex + 1} OF ${progress.total}`
-                  : "NEXT STOP"}
+                  ? t("driver.nextStopXofY", {
+                      x: localizeNumber(progress.nextIndex + 1, locale),
+                      y: localizeNumber(progress.total, locale),
+                    })
+                  : t("driver.nextStop")}
               </Text>
               <Text variant="subtitle" color={colors.foreground}>
-                {trip?.nextStopName ?? "On route"}
+                {trip?.nextStopName ?? t("driver.onRoute")}
               </Text>
               <View style={styles.progressTrack}>
                 <View style={[styles.progressFill, { width: `${progressFraction * 100}%` }]} />
@@ -362,10 +380,10 @@ export function DriverHomeScreen() {
             {trip?.etaMinutes != null ? (
               <View style={styles.etaBox}>
                 <Text variant="title" color={colors.primary} tabular>
-                  {trip.etaMinutes}
+                  {localizeNumber(trip.etaMinutes, locale)}
                 </Text>
                 <Text variant="caption" color={colors.mutedForeground}>
-                  min
+                  {t("common.min")}
                 </Text>
               </View>
             ) : null}
@@ -373,9 +391,22 @@ export function DriverHomeScreen() {
         ) : null}
 
         <View style={styles.metrics}>
-          <Metric icon="speedometer-outline" label="Speed" value={speed} unit="km/h" />
-          <Metric icon="navigate-outline" label="GPS" value={accuracy} />
-          <Metric icon="time-outline" label="Updated" value={updatedAgo} />
+          <Metric
+            icon="speedometer-outline"
+            label={t("driver.metrics.speed")}
+            value={speed}
+            unit={t("common.kmh")}
+          />
+          <Metric
+            icon="navigate-outline"
+            label={t("driver.metrics.gps")}
+            value={accuracy}
+          />
+          <Metric
+            icon="time-outline"
+            label={t("driver.metrics.updated")}
+            value={updatedAgo}
+          />
         </View>
 
         {!streaming ? (
@@ -386,11 +417,10 @@ export function DriverHomeScreen() {
           <Pressable onPress={() => void Linking.openSettings()}>
             <View style={styles.warning}>
               <Text variant="label" color={colors.warning}>
-                Location permission required
+                {t("driver.permission.title")}
               </Text>
               <Text variant="caption" color={colors.mutedForeground}>
-                Allow "Always" location so the bus stays live while your screen
-                is off. Tap to open Settings.
+                {t("driver.permission.body")}
               </Text>
             </View>
           </Pressable>
@@ -433,10 +463,10 @@ export function DriverHomeScreen() {
               />
               <Text variant="subtitle" color={colors.primaryForeground}>
                 {isRunning
-                  ? "End trip"
+                  ? t("driver.endTrip")
                   : inPreTrip
-                    ? "Start trip now"
-                    : "Start trip"}
+                    ? t("driver.startTripNow")
+                    : t("driver.startTrip")}
               </Text>
             </>
           )}
@@ -448,8 +478,7 @@ export function DriverHomeScreen() {
             color={colors.mutedForeground}
             style={styles.preTripHint}
           >
-            Bus is broadcasting location. Trip will start automatically when
-            you arrive at the first stop, or tap above to start now.
+            {t("driver.preTripHint")}
           </Text>
         ) : null}
       </View>

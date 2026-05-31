@@ -24,9 +24,14 @@ import {
   listStopSubscriptions,
   toggleStopSubscription,
   deleteStopSubscription,
+  formatMinuteOfDay,
+  localizeNumber,
+  useI18n,
   type NotificationPreferences,
   type StopSubscription,
   type IconName,
+  type Locale,
+  type StringKey,
 } from "@ubts/shared";
 import { useNav } from "../navigation/NavigationContext";
 
@@ -34,12 +39,12 @@ type QuietPreset = "off" | "night1" | "night2" | "custom";
 
 const PRESETS: Record<
   QuietPreset,
-  { label: string; start: number | null; end: number | null }
+  { labelKey: StringKey; start: number | null; end: number | null }
 > = {
-  off: { label: "Off", start: null, end: null },
-  night1: { label: "10 PM — 7 AM", start: 22 * 60, end: 7 * 60 },
-  night2: { label: "11 PM — 6 AM", start: 23 * 60, end: 6 * 60 },
-  custom: { label: "Custom", start: null, end: null },
+  off: { labelKey: "notifPrefs.quietOff", start: null, end: null },
+  night1: { labelKey: "notifPrefs.quiet22to7", start: 22 * 60, end: 7 * 60 },
+  night2: { labelKey: "notifPrefs.quiet23to6", start: 23 * 60, end: 6 * 60 },
+  custom: { labelKey: "notifPrefs.quietCustom", start: null, end: null },
 };
 
 function presetFor(prefs: NotificationPreferences): QuietPreset {
@@ -59,13 +64,6 @@ function presetFor(prefs: NotificationPreferences): QuietPreset {
     return "night2";
   }
   return "custom";
-}
-
-function formatMinute(value: number | null): string {
-  if (value == null) return "—";
-  const h = Math.floor(value / 60);
-  const m = value % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 function Section({
@@ -123,10 +121,12 @@ function HourStepper({
   label,
   value,
   onChange,
+  locale,
 }: {
   label: string;
   value: number;
   onChange: (next: number) => void;
+  locale: Locale;
 }) {
   return (
     <View style={styles.stepper}>
@@ -141,11 +141,13 @@ function HourStepper({
           }}
           style={styles.stepBtn}
           hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} -30`}
         >
           <Icon name="remove" size={16} color={colors.foreground} />
         </Pressable>
         <Text variant="subtitle" color={colors.foreground} tabular>
-          {formatMinute(value)}
+          {formatMinuteOfDay(value, locale)}
         </Text>
         <Pressable
           onPress={() => {
@@ -154,6 +156,8 @@ function HourStepper({
           }}
           style={styles.stepBtn}
           hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} +30`}
         >
           <Icon name="add" size={16} color={colors.foreground} />
         </Pressable>
@@ -164,6 +168,7 @@ function HourStepper({
 
 export function NotificationPreferencesScreen() {
   const { goBack } = useNav();
+  const { t, locale } = useI18n();
   const [loading, setLoading] = useState(true);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
@@ -272,9 +277,13 @@ export function NotificationPreferencesScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
-        <IconButton name="chevron-back" onPress={goBack} />
+        <IconButton
+          name="chevron-back"
+          onPress={goBack}
+          accessibilityLabel={t("common.back")}
+        />
         <Text variant="subtitle" color={colors.foreground}>
-          Notifications
+          {t("notifPrefs.title")}
         </Text>
         <View style={styles.spacer} />
       </View>
@@ -288,14 +297,14 @@ export function NotificationPreferencesScreen() {
           </SkeletonGroup>
         ) : (
           <>
-            <Section icon="notifications-outline" title="GENERAL">
+            <Section icon="notifications-outline" title={t("notifPrefs.general")}>
               <View style={styles.row}>
                 <View style={styles.flex}>
                   <Text variant="label" color={colors.foreground}>
-                    Push notifications
+                    {t("notifPrefs.pushNotifications")}
                   </Text>
                   <Text variant="caption" color={colors.mutedForeground}>
-                    Master switch — turn off to silence every alert.
+                    {t("notifPrefs.masterSwitch")}
                   </Text>
                 </View>
                 <Switch
@@ -306,16 +315,17 @@ export function NotificationPreferencesScreen() {
                   }
                   trackColor={{ false: colors.muted, true: colors.primary }}
                   thumbColor={colors.foreground}
+                  accessibilityLabel={t("notifPrefs.pushNotifications")}
                 />
               </View>
             </Section>
 
-            <Section icon="moon-outline" title="QUIET HOURS">
+            <Section icon="moon-outline" title={t("notifPrefs.quietHours")}>
               <View style={styles.presetGrid}>
                 {(Object.keys(PRESETS) as QuietPreset[]).map((key) => (
                   <PresetChip
                     key={key}
-                    label={PRESETS[key].label}
+                    label={t(PRESETS[key].labelKey)}
                     active={currentPreset === key}
                     onPress={() => {
                       void Haptics.selectionAsync();
@@ -328,18 +338,20 @@ export function NotificationPreferencesScreen() {
               {inCustomMode && prefs ? (
                 <View style={styles.steppers}>
                   <HourStepper
-                    label="From"
+                    label={t("notifPrefs.from")}
                     value={prefs.quietHoursStartMin ?? 22 * 60}
                     onChange={(value) =>
                       void savePrefs({ quietHoursStartMin: value })
                     }
+                    locale={locale}
                   />
                   <HourStepper
-                    label="Until"
+                    label={t("notifPrefs.until")}
                     value={prefs.quietHoursEndMin ?? 7 * 60}
                     onChange={(value) =>
                       void savePrefs({ quietHoursEndMin: value })
                     }
+                    locale={locale}
                   />
                 </View>
               ) : null}
@@ -349,18 +361,17 @@ export function NotificationPreferencesScreen() {
                 color={colors.mutedForeground}
                 style={styles.helpText}
               >
-                During quiet hours, you'll get no pushes — alerts still pile
-                up in the in-app feed.
+                {t("notifPrefs.quietHelp")}
               </Text>
             </Section>
 
-            <Section icon="alarm-outline" title="STOP ALERTS">
+            <Section icon="alarm-outline" title={t("notifPrefs.stopAlerts")}>
               {subs.length === 0 ? (
                 <View style={styles.emptyWrap}>
                   <EmptyState
                     icon="bus-outline"
-                    title="No stop alerts yet"
-                    subtitle="Open a route and tap the bell next to a stop to get a heads-up before the bus arrives."
+                    title={t("notifPrefs.emptyTitle")}
+                    subtitle={t("notifPrefs.emptySubtitle")}
                   />
                 </View>
               ) : (
@@ -385,7 +396,9 @@ export function NotificationPreferencesScreen() {
                         </Text>
                         <StatusBadge
                           tone={sub.enabled ? "live" : "muted"}
-                          label={`${sub.leadTimeMinutes}m before`}
+                          label={t("notifPrefs.leadBefore", {
+                            n: localizeNumber(sub.leadTimeMinutes, locale),
+                          })}
                           withDot={sub.enabled}
                         />
                       </View>
@@ -395,11 +408,14 @@ export function NotificationPreferencesScreen() {
                       onValueChange={(value) => void onToggleSub(sub, value)}
                       trackColor={{ false: colors.muted, true: colors.primary }}
                       thumbColor={colors.foreground}
+                      accessibilityLabel={sub.stopName}
                     />
                     <Pressable
                       onPress={() => void onDeleteSub(sub)}
                       hitSlop={8}
                       style={styles.deleteBtn}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t("common.cancel")} ${sub.stopName}`}
                     >
                       <Icon
                         name="trash-outline"

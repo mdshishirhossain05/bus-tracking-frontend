@@ -10,7 +10,12 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { AuthProvider, NotificationsProvider, colors } from "@ubts/shared";
+import {
+  AuthProvider,
+  LocaleProvider,
+  NotificationsProvider,
+  colors,
+} from "@ubts/shared";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { OnboardingScreen } from "./src/components/OnboardingScreen";
 
@@ -52,16 +57,18 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <NotificationsProvider>
-            <StatusBar style="light" />
-            {onboardingDone ? (
-              <RootNavigator />
-            ) : (
-              <OnboardingScreen onDone={dismissOnboarding} />
-            )}
-          </NotificationsProvider>
-        </AuthProvider>
+        <LocaleProvider>
+          <AuthProvider>
+            <NotificationsProvider>
+              <StatusBar style="light" />
+              {onboardingDone ? (
+                <RootNavigator />
+              ) : (
+                <OnboardingScreen onDone={dismissOnboarding} />
+              )}
+            </NotificationsProvider>
+          </AuthProvider>
+        </LocaleProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

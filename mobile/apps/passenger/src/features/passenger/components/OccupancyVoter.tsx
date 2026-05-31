@@ -7,26 +7,39 @@ import {
   colors,
   spacing,
   radius,
+  localizeNumber,
+  useI18n,
   type IconName,
   type StatusBadgeTone,
   type OccupancyLevel,
   type OccupancyAggregate,
+  type StringKey,
 } from "@ubts/shared";
 
 const OPTIONS: {
   level: OccupancyLevel;
-  label: string;
+  labelKey: StringKey;
   icon: IconName;
   tone: StatusBadgeTone;
 }[] = [
-  { level: "LIGHT", label: "Light", icon: "leaf-outline", tone: "success" },
+  {
+    level: "LIGHT",
+    labelKey: "occupancy.light",
+    icon: "leaf-outline",
+    tone: "success",
+  },
   {
     level: "MODERATE",
-    label: "Some",
+    labelKey: "occupancy.some",
     icon: "people-outline",
     tone: "info",
   },
-  { level: "FULL", label: "Full", icon: "warning-outline", tone: "delayed" },
+  {
+    level: "FULL",
+    labelKey: "occupancy.full",
+    icon: "warning-outline",
+    tone: "delayed",
+  },
 ];
 
 interface OccupancyVoterProps {
@@ -36,15 +49,21 @@ interface OccupancyVoterProps {
 }
 
 export function OccupancyVoter({ aggregate, onVote, busy }: OccupancyVoterProps) {
+  const { t, locale } = useI18n();
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <Text variant="caption" color={colors.mutedForeground}>
-          HOW CROWDED?
+          {t("occupancy.howCrowded")}
         </Text>
         {aggregate.voteCount > 0 ? (
           <Text variant="caption" color={colors.faintForeground}>
-            {aggregate.voteCount} vote{aggregate.voteCount === 1 ? "" : "s"}
+            {t(
+              aggregate.voteCount === 1
+                ? "occupancy.voteCountOne"
+                : "occupancy.voteCount",
+              { n: localizeNumber(aggregate.voteCount, locale) },
+            )}
           </Text>
         ) : null}
       </View>
@@ -54,11 +73,19 @@ export function OccupancyVoter({ aggregate, onVote, busy }: OccupancyVoterProps)
           const isMine = aggregate.myVote === opt.level;
           const isConsensus = aggregate.level === opt.level;
           const count = aggregate.counts[opt.level] ?? 0;
+          const label = t(opt.labelKey);
           return (
             <Pressable
               key={opt.level}
               disabled={busy}
               onPress={() => onVote(opt.level)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isMine, disabled: !!busy }}
+              accessibilityLabel={`${label}${
+                count > 0
+                  ? ` · ${localizeNumber(count, locale)}`
+                  : ""
+              }`}
               style={({ pressed }) => [
                 styles.btn,
                 isMine && styles.btnMine,
@@ -76,7 +103,7 @@ export function OccupancyVoter({ aggregate, onVote, busy }: OccupancyVoterProps)
                   isMine ? colors.primaryForeground : colors.foreground
                 }
               >
-                {opt.label}
+                {label}
               </Text>
               {count > 0 ? (
                 <Text
@@ -87,7 +114,7 @@ export function OccupancyVoter({ aggregate, onVote, busy }: OccupancyVoterProps)
                       : colors.mutedForeground
                   }
                 >
-                  {count}
+                  {localizeNumber(count, locale)}
                 </Text>
               ) : null}
               {isConsensus && !isMine ? (
@@ -110,10 +137,10 @@ export function OccupancyVoter({ aggregate, onVote, busy }: OccupancyVoterProps)
             }
             label={
               aggregate.level === "FULL"
-                ? "Bus is full"
+                ? t("occupancy.busFull")
                 : aggregate.level === "MODERATE"
-                  ? "Some seats left"
-                  : "Plenty of room"
+                  ? t("occupancy.someSeats")
+                  : t("occupancy.plentyOfRoom")
             }
             withDot
           />

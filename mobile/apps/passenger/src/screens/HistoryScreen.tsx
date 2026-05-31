@@ -14,7 +14,10 @@ import {
   spacing,
   listVisitHistory,
   getVisitStats,
+  localizeNumber,
+  useI18n,
   type IconName,
+  type Locale,
   type VisitRecord,
   type VisitStats,
 } from "@ubts/shared";
@@ -51,32 +54,45 @@ function MetricCard({
   );
 }
 
-function formatDuration(seconds: number | null): string {
+function formatDuration(seconds: number | null, locale: Locale): string {
   if (!seconds) return "—";
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  if (seconds < 60) return `${localizeNumber(seconds, locale)}s`;
+  if (seconds < 3600) return `${localizeNumber(Math.round(seconds / 60), locale)}m`;
   const h = Math.floor(seconds / 3600);
   const m = Math.round((seconds % 3600) / 60);
-  return m ? `${h}h ${m}m` : `${h}h`;
+  return m
+    ? `${localizeNumber(h, locale)}h ${localizeNumber(m, locale)}m`
+    : `${localizeNumber(h, locale)}h`;
 }
 
-function formatWhen(iso: string): string {
+function formatWhen(
+  iso: string,
+  t: ReturnType<typeof useI18n>["t"],
+  locale: Locale,
+): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
-  if (diffMs < 60_000) return "just now";
+  if (diffMs < 60_000) return t("history.justNow");
   if (diffMs < 3_600_000)
-    return `${Math.round(diffMs / 60_000)} min ago`;
+    return t("history.minAgo", {
+      n: localizeNumber(Math.round(diffMs / 60_000), locale),
+    });
   if (diffMs < 86_400_000)
-    return `${Math.round(diffMs / 3_600_000)} hr ago`;
+    return t("history.hrAgo", {
+      n: localizeNumber(Math.round(diffMs / 3_600_000), locale),
+    });
   if (diffMs < 86_400_000 * 7)
-    return `${Math.round(diffMs / 86_400_000)} d ago`;
-  return d.toLocaleDateString();
+    return t("history.dAgo", {
+      n: localizeNumber(Math.round(diffMs / 86_400_000), locale),
+    });
+  return d.toLocaleDateString(locale === "bn" ? "bn-BD" : "en-US");
 }
 
 export function HistoryScreen() {
   const { goBack } = useNav();
+  const { t, locale } = useI18n();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<VisitStats | null>(null);
@@ -105,9 +121,13 @@ export function HistoryScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <View style={styles.topBar}>
-        <IconButton name="chevron-back" onPress={goBack} />
+        <IconButton
+          name="chevron-back"
+          onPress={goBack}
+          accessibilityLabel={t("common.back")}
+        />
         <Text variant="subtitle" color={colors.foreground}>
-          Your trips
+          {t("history.title")}
         </Text>
         <View style={styles.spacer} />
       </View>
@@ -131,37 +151,37 @@ export function HistoryScreen() {
           <>
             <View style={styles.statsCard}>
               <Text variant="caption" color={colors.mutedForeground}>
-                LAST 30 DAYS
+                {t("history.last30Days")}
               </Text>
               <View style={styles.metrics}>
                 <MetricCard
                   icon="bus"
-                  value={String(stats?.visitCount30Days ?? 0)}
-                  label="trips tracked"
+                  value={localizeNumber(stats?.visitCount30Days ?? 0, locale)}
+                  label={t("history.tripsTracked")}
                 />
                 <MetricCard
                   icon="git-network-outline"
-                  value={String(stats?.uniqueRoutes30Days ?? 0)}
-                  label="routes"
+                  value={localizeNumber(stats?.uniqueRoutes30Days ?? 0, locale)}
+                  label={t("history.routes")}
                 />
                 <MetricCard
                   icon="time-outline"
-                  value={String(stats?.totalMinutesTracked ?? 0)}
-                  unit="min"
-                  label="time tracked"
+                  value={localizeNumber(stats?.totalMinutesTracked ?? 0, locale)}
+                  unit={t("common.min")}
+                  label={t("history.timeTracked")}
                 />
                 <MetricCard
                   icon="flame-outline"
-                  value={String(stats?.longestStreakDays ?? 0)}
-                  unit="d"
-                  label="current streak"
+                  value={localizeNumber(stats?.longestStreakDays ?? 0, locale)}
+                  unit={t("history.streakUnit")}
+                  label={t("history.currentStreak")}
                 />
               </View>
 
               {stats && stats.topRoutes.length > 0 ? (
                 <View style={styles.topRoutes}>
                   <Text variant="caption" color={colors.mutedForeground}>
-                    TOP ROUTES
+                    {t("history.topRoutes")}
                   </Text>
                   {stats.topRoutes.map((r) => (
                     <View key={r.routeId} style={styles.topRouteRow}>
@@ -175,7 +195,12 @@ export function HistoryScreen() {
                       </Text>
                       <StatusBadge
                         tone="info"
-                        label={`${r.count} trip${r.count === 1 ? "" : "s"}`}
+                        label={t(
+                          r.count === 1
+                            ? "history.tripCountOne"
+                            : "history.tripCount",
+                          { n: localizeNumber(r.count, locale) },
+                        )}
                       />
                     </View>
                   ))}
@@ -185,14 +210,14 @@ export function HistoryScreen() {
 
             <View style={styles.listCard}>
               <Text variant="caption" color={colors.mutedForeground}>
-                RECENT VISITS
+                {t("history.recentVisits")}
               </Text>
               {items.length === 0 ? (
                 <View style={styles.emptyWrap}>
                   <EmptyState
                     icon="time-outline"
-                    title="No trips yet"
-                    subtitle="Once you watch a live bus for at least a minute, it'll show up here."
+                    title={t("history.empty.title")}
+                    subtitle={t("history.empty.subtitle")}
                   />
                 </View>
               ) : (
@@ -216,11 +241,11 @@ export function HistoryScreen() {
                         {item.routeName}
                       </Text>
                       <Text variant="caption" color={colors.mutedForeground}>
-                        {formatWhen(item.visitedAt)}
+                        {formatWhen(item.visitedAt, t, locale)}
                       </Text>
                     </View>
                     <Text variant="caption" color={colors.mutedForeground}>
-                      {formatDuration(item.durationSeconds)}
+                      {formatDuration(item.durationSeconds, locale)}
                     </Text>
                   </View>
                 ))

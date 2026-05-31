@@ -8,7 +8,7 @@ import MapView, {
   type Region,
 } from "react-native-maps";
 import { MAP_STYLE_DARK } from "@ubts/shared";
-import { colors } from "@ubts/shared";
+import { colors, useReduceMotion } from "@ubts/shared";
 import { env } from "@ubts/shared";
 import type {
   LiveBusLocation,
@@ -74,11 +74,18 @@ export function LiveMap({
   // to the full path so the route "draws itself" in instead of popping in
   // as a finished line. The Animated.Value listener updates state at most
   // ~30 times per animation — cheap enough on RN's UI thread.
+  // Skipped when the OS reports "reduce motion" so accessibility-conscious
+  // users see the route appear instantly.
+  const reduceMotion = useReduceMotion();
   const drawAnim = useRef(new Animated.Value(0)).current;
   const [drawCount, setDrawCount] = useState(0);
   useEffect(() => {
     if (polyline.length === 0) {
       setDrawCount(0);
+      return;
+    }
+    if (reduceMotion) {
+      setDrawCount(polyline.length);
       return;
     }
     setDrawCount(1);
@@ -94,7 +101,7 @@ export function LiveMap({
       useNativeDriver: false,
     }).start();
     return () => drawAnim.removeListener(listener);
-  }, [route?.routeId, polyline.length, drawAnim]);
+  }, [route?.routeId, polyline.length, drawAnim, reduceMotion]);
 
   const visiblePolyline = useMemo(
     () => (drawCount >= polyline.length ? polyline : polyline.slice(0, drawCount)),

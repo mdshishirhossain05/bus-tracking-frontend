@@ -5,7 +5,13 @@ import BottomSheet, {
   type BottomSheetBackgroundProps,
 } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
-import { Text, StatusBadge, type StatusBadgeTone } from "@ubts/shared";
+import {
+  Text,
+  StatusBadge,
+  localizeNumber,
+  useI18n,
+  type StatusBadgeTone,
+} from "@ubts/shared";
 import { colors, radius, spacing } from "@ubts/shared";
 import { StopTimeline } from "./StopTimeline";
 import { OccupancyVoter } from "./OccupancyVoter";
@@ -53,10 +59,11 @@ export function TripSheet({
   refreshing = false,
   onRefresh,
 }: TripSheetProps) {
+  const { t, locale } = useI18n();
   const snapPoints = useMemo(() => ["17%", "52%", "90%"], []);
 
   const selectedTrip = useMemo(
-    () => trips.find((t) => t.tripId === selectedTripId) ?? null,
+    () => trips.find((trip) => trip.tripId === selectedTripId) ?? null,
     [trips, selectedTripId],
   );
 
@@ -71,26 +78,27 @@ export function TripSheet({
     label: string;
     withDot: boolean;
   } | null>(() => {
-    if (tripEnded) return { tone: "ended", label: "ENDED", withDot: false };
+    if (tripEnded)
+      return { tone: "ended", label: t("badge.ended"), withDot: false };
     if (!selectedTrip) return null;
     if (selectedTrip.status === "PRE_TRIP") {
-      return { tone: "preTrip", label: "PRE-TRIP", withDot: true };
+      return { tone: "preTrip", label: t("badge.preTrip"), withDot: true };
     }
     if (selectedTrip.status === "RUNNING") {
-      return { tone: "live", label: "LIVE", withDot: true };
+      return { tone: "live", label: t("badge.live"), withDot: true };
     }
     if (selectedTrip.status === "ENDED") {
-      return { tone: "ended", label: "ENDED", withDot: false };
+      return { tone: "ended", label: t("badge.ended"), withDot: false };
     }
     return null;
-  }, [selectedTrip, tripEnded]);
+  }, [selectedTrip, tripEnded, t]);
 
   const etaLabel = tripEnded
-    ? "Ended"
+    ? t("tripSheet.ended")
     : eta?.finalStopReached
-      ? "Arrived"
+      ? t("tripSheet.arrived")
       : eta?.etaMinutes != null
-        ? String(eta.etaMinutes)
+        ? localizeNumber(eta.etaMinutes, locale)
         : "—";
   const showsUnit = !tripEnded && !eta?.finalStopReached && eta?.etaMinutes != null;
   const speed =
@@ -119,7 +127,7 @@ export function TripSheet({
       >
         <View style={styles.headerRow}>
           <Text variant="label" color={colors.mutedForeground}>
-            {route?.routeName ?? selectedTrip?.routeName ?? "Live trip"}
+            {route?.routeName ?? selectedTrip?.routeName ?? t("tripSheet.liveTrip")}
           </Text>
           {statusBadge ? (
             <StatusBadge
@@ -136,23 +144,33 @@ export function TripSheet({
           </Text>
           {showsUnit && (
             <Text variant="subtitle" color={colors.mutedForeground} style={styles.unit}>
-              min
+              {t("common.min")}
             </Text>
           )}
         </View>
         <Text variant="body" color={colors.mutedForeground}>
-          {eta?.nextStopName ? `to ${eta.nextStopName}` : "Tracking live position"}
+          {eta?.nextStopName
+            ? t("tripSheet.toStop", { stop: eta.nextStopName })
+            : t("tripSheet.tracking")}
         </Text>
 
         <View style={styles.metrics}>
-          <Metric label="Speed" value={speed != null ? `${speed}` : "—"} unit="km/h" />
           <Metric
-            label="Confidence"
+            label={t("tripSheet.speed")}
+            value={speed != null ? localizeNumber(speed, locale) : "—"}
+            unit={t("common.kmh")}
+          />
+          <Metric
+            label={t("tripSheet.confidence")}
             value={eta?.confidence ?? "—"}
           />
           <Metric
-            label="Stops"
-            value={route?.stops.length ? String(route.stops.length) : "—"}
+            label={t("tripSheet.stops")}
+            value={
+              route?.stops.length
+                ? localizeNumber(route.stops.length, locale)
+                : "—"
+            }
           />
         </View>
 
@@ -160,7 +178,7 @@ export function TripSheet({
           <View style={styles.arrival}>
             <View style={styles.arrivalDot} />
             <Text variant="label" color={colors.foreground}>
-              Arrived at {recentArrival.stopName}
+              {t("tripSheet.arrivedAtStop", { stop: recentArrival.stopName })}
             </Text>
           </View>
         )}
@@ -203,7 +221,7 @@ export function TripSheet({
         {route?.stops.length ? (
           <View style={styles.timeline}>
             <Text variant="label" color={colors.mutedForeground} style={styles.timelineTitle}>
-              Route
+              {t("tripSheet.route")}
             </Text>
             <StopTimeline
               stops={route.stops}

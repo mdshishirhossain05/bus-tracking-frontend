@@ -35,13 +35,27 @@ function TopActions() {
   const { unreadCount } = useNotifications();
   return (
     <View style={styles.actions}>
-      <IconButton name="map-outline" onPress={() => navigate("routes")} />
+      <IconButton
+        name="calendar-outline"
+        onPress={() => navigate("todaysSchedules")}
+        accessibilityLabel="Today's schedules"
+      />
+      <IconButton
+        name="map-outline"
+        onPress={() => navigate("routes")}
+        accessibilityLabel="Routes"
+      />
       <IconButton
         name="notifications-outline"
         onPress={() => navigate("notifications")}
         badge={unreadCount}
+        accessibilityLabel="Notifications"
       />
-      <IconButton name="person-outline" onPress={() => navigate("profile")} />
+      <IconButton
+        name="person-outline"
+        onPress={() => navigate("profile")}
+        accessibilityLabel="Profile"
+      />
     </View>
   );
 }

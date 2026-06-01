@@ -5,7 +5,10 @@ import type {
   LiveBusLocation,
   RoutePresentation,
   RouteStop,
+  ScheduleTodayItem,
+  ScheduleTodayStatus,
   TripEta,
+  TripPreTripPhaseValue,
 } from "@ubts/shared";
 
 function asNumber(value: unknown): number | null {
@@ -185,4 +188,60 @@ export async function getRoutePresentation(
 ): Promise<RoutePresentation | null> {
   const res = await api.get(API_ENDPOINTS.routes.presentation(routeId));
   return normalizeRoutePresentation(unwrap(res.data));
+}
+
+function normalizeScheduleStatus(value: unknown): ScheduleTodayStatus {
+  return value === "PRE_TRIP" || value === "RUNNING" || value === "ENDED"
+    ? value
+    : "PLANNED";
+}
+
+function normalizeSchedulePhase(
+  value: unknown,
+): TripPreTripPhaseValue | null {
+  return value === "AT_DEPOT" ||
+    value === "APPROACHING_ORIGIN" ||
+    value === "AT_ORIGIN"
+    ? value
+    : null;
+}
+
+function normalizeScheduleItem(raw: any): ScheduleTodayItem | null {
+  const scheduleId = asString(raw?.scheduleId);
+  const routeId = asString(raw?.routeId);
+  if (!scheduleId || !routeId) return null;
+  const rawTrip = raw?.trip;
+  return {
+    scheduleId,
+    routeId,
+    routeName: asString(raw?.routeName) ?? "Route",
+    busId: asString(raw?.busId) ?? "",
+    busLabel: asString(raw?.busLabel) ?? "",
+    driverId: asString(raw?.driverId),
+    driverName: asString(raw?.driverName),
+    departureTime: asString(raw?.departureTime) ?? "",
+    departureAtIso: asString(raw?.departureAtIso) ?? new Date().toISOString(),
+    notes: asString(raw?.notes),
+    isFavorite: raw?.isFavorite === true,
+    trip: rawTrip
+      ? {
+          id: asString(rawTrip.id) ?? "",
+          status: normalizeScheduleStatus(rawTrip.status),
+          preTripPhase: normalizeSchedulePhase(rawTrip.preTripPhase),
+          startedAt: asString(rawTrip.startedAt),
+          endedAt: asString(rawTrip.endedAt),
+          lastEtaMinutes: asNumber(rawTrip.lastEtaMinutes),
+          nextStopName: asString(rawTrip.nextStopName),
+        }
+      : null,
+  };
+}
+
+export async function getSchedulesToday(): Promise<ScheduleTodayItem[]> {
+  const res = await api.get(API_ENDPOINTS.passenger.schedulesToday);
+  const data = unwrap<{ items: unknown[] }>(res.data);
+  const raw = Array.isArray(data?.items) ? data.items : [];
+  return raw
+    .map(normalizeScheduleItem)
+    .filter((s): s is ScheduleTodayItem => s !== null);
 }

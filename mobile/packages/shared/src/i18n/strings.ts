@@ -29,6 +29,43 @@ export const STRINGS = {
   "common.signOut": { en: "Sign out", bn: "সাইন আউট" },
   "common.map": { en: "Map", bn: "মানচিত্র" },
   "common.stops": { en: "Stops", bn: "স্টপ" },
+  "common.search": { en: "Search", bn: "অনুসন্ধান" },
+
+  // ---- today's schedules ----
+  "today.title": { en: "Today's schedules", bn: "আজকের সময়সূচী" },
+  "today.searchPlaceholder": {
+    en: "Search routes or buses",
+    bn: "রুট বা বাস খুঁজুন",
+  },
+  "today.section.live": { en: "Live now", bn: "এখন চলছে" },
+  "today.section.preTrip": { en: "Departing soon", bn: "শীঘ্রই ছাড়বে" },
+  "today.section.upcoming": { en: "Upcoming today", bn: "আজকের পরবর্তী" },
+  "today.section.completed": { en: "Completed today", bn: "আজ শেষ হয়েছে" },
+  "today.section.favorites": { en: "Your favorites", bn: "আপনার পছন্দের" },
+  "today.empty.title": {
+    en: "No schedules for today",
+    bn: "আজ কোনো সময়সূচী নেই",
+  },
+  "today.empty.subtitle": {
+    en: "Today's day-of-week has no active schedules in the system. Check back tomorrow or talk to your admin.",
+    bn: "আজকের দিনের জন্য সিস্টেমে কোনো সক্রিয় সময়সূচী নেই। আগামীকাল আবার দেখুন বা আপনার অ্যাডমিনের সাথে কথা বলুন।",
+  },
+  "today.empty.searchTitle": {
+    en: "No matches",
+    bn: "কোনো মিল নেই",
+  },
+  "today.empty.searchSubtitle": {
+    en: "Try a different route name or bus code.",
+    bn: "অন্য রুট বা বাসের নাম দিয়ে চেষ্টা করুন।",
+  },
+  "today.tap.viewLive": { en: "View live", bn: "লাইভ দেখুন" },
+  "today.inMinutes": { en: "in {n} min", bn: "{n} মিনিট পর" },
+  "today.now": { en: "starting now", bn: "এখনই শুরু" },
+  "today.passed": { en: "departed", bn: "ছেড়ে গেছে" },
+  "today.driverNotAssigned": {
+    en: "GPS-only",
+    bn: "শুধু জিপিএস",
+  },
 
   // ---- onboarding ----
   "onboarding.slide1.title": {

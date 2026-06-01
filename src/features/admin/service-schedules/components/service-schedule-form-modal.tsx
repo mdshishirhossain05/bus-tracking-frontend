@@ -51,6 +51,28 @@ interface FormState {
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 
+/**
+ * `<input type="time">` round-trips HH:mm. The backend stores HH:mm:ss.
+ * Strip seconds when seeding the input; the change handler adds them
+ * back on save.
+ */
+function normalizeTimeForInput(value: string): string {
+  if (!value) return "";
+  const match = value.match(/^(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : "";
+}
+
+/** Render an HH:mm[:ss] string in human 12-hour form for the helper hint. */
+function formatTwelveHour(value: string): string {
+  const match = value.match(/^(\d{2}):(\d{2})/);
+  if (!match) return value;
+  const h = Number(match[1]);
+  const m = match[2];
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${hour12}:${m} ${period}`;
+}
+
 const DAY_OPTIONS: DayType[] = [
   "SUNDAY",
   "MONDAY",
@@ -533,17 +555,34 @@ export function ServiceScheduleFormModal({
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">
                 Departure time
+                <span className="ml-2 text-xs font-normal text-slate-500">
+                  (Dhaka local · 24-hour)
+                </span>
               </label>
               <Input
-                placeholder="08:30:00"
-                value={values.departureTime}
+                type="time"
+                step={60}
+                placeholder="16:30"
+                value={normalizeTimeForInput(values.departureTime)}
                 onChange={(e) =>
                   setValues((prev) => ({
                     ...prev,
-                    departureTime: e.target.value,
+                    // Always emit HH:mm:ss to the backend so the Time column
+                    // is unambiguous; the native picker hands us HH:mm.
+                    departureTime: e.target.value
+                      ? `${e.target.value}:00`
+                      : "",
                   }))
                 }
               />
+              <p className="text-xs text-slate-500">
+                Enter the bus's local Dhaka departure time. Examples:{" "}
+                <span className="font-mono text-slate-400">08:30</span> = 8:30 AM,{" "}
+                <span className="font-mono text-slate-400">16:30</span> = 4:30 PM.
+                {values.departureTime
+                  ? ` Saving as ${formatTwelveHour(values.departureTime)}.`
+                  : ""}
+              </p>
               {errors.departureTime ? (
                 <p className="text-xs text-red-400">{errors.departureTime}</p>
               ) : null}

@@ -215,6 +215,39 @@ export interface ServiceAlert {
   createdAt: string;
 }
 
+export type ScheduleTodayStatus =
+  | "PLANNED"
+  | "PRE_TRIP"
+  | "RUNNING"
+  | "ENDED";
+
+export interface ScheduleTodayTripState {
+  id: string;
+  status: ScheduleTodayStatus;
+  preTripPhase: TripPreTripPhaseValue | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  lastEtaMinutes: number | null;
+  nextStopName: string | null;
+}
+
+export interface ScheduleTodayItem {
+  scheduleId: string;
+  routeId: string;
+  routeName: string;
+  busId: string;
+  busLabel: string;
+  driverId: string | null;
+  driverName: string | null;
+  /** HH:mm:ss in Dhaka local time. */
+  departureTime: string;
+  /** UTC instant for today's departure (admin-entered local time on today's date). */
+  departureAtIso: string;
+  notes: string | null;
+  isFavorite: boolean;
+  trip: ScheduleTodayTripState | null;
+}
+
 export interface FavoriteRoute {
   id: string;
   routeId: string;

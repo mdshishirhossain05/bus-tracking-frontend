@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
     occupancyVote: (tripId: string) => `/passenger/trips/${tripId}/occupancy`,
     occupancy: (tripId: string) => `/passenger/trips/${tripId}/occupancy`,
     alerts: "/passenger/alerts",
+    schedulesToday: "/passenger/schedules/today",
   },
   routes: {
     presentation: (routeId: string) => `/routes/${routeId}/presentation`,

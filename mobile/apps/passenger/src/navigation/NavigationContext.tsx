@@ -9,6 +9,7 @@ import React, {
 export type PassengerScreen =
   | "routes"
   | "routeDetail"
+  | "todaysSchedules"
   | "notifications"
   | "notificationPreferences"
   | "history"

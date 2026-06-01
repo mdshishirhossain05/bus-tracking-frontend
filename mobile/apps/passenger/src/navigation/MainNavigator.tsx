@@ -8,6 +8,7 @@ import { RouteDetailScreen } from "../screens/RouteDetailScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { NotificationPreferencesScreen } from "../screens/NotificationPreferencesScreen";
 import { HistoryScreen } from "../screens/HistoryScreen";
+import { TodaysSchedulesScreen } from "../screens/TodaysSchedulesScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { PushBootstrap } from "../components/PushBootstrap";
 
@@ -28,6 +29,8 @@ function renderScreen(entry: ScreenEntry) {
       return <NotificationPreferencesScreen />;
     case "history":
       return <HistoryScreen />;
+    case "todaysSchedules":
+      return <TodaysSchedulesScreen />;
     case "profile":
       return <ProfileScreen />;
     default:

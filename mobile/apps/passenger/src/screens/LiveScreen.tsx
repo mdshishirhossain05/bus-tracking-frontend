@@ -26,25 +26,16 @@ import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
 import { NextBusBanner } from "../components/NextBusBanner";
+import { HamburgerMenu } from "../components/HamburgerMenu";
 import { PreTripBanner } from "../features/passenger/components/PreTripBanner";
 import { ServiceAlertBanner } from "../features/passenger/components/ServiceAlertBanner";
 import { useNav } from "../navigation/NavigationContext";
 
-function TopActions() {
+function TopActions({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { navigate } = useNav();
   const { unreadCount } = useNotifications();
   return (
     <View style={styles.actions}>
-      <IconButton
-        name="calendar-outline"
-        onPress={() => navigate("todaysSchedules")}
-        accessibilityLabel="Today's schedules"
-      />
-      <IconButton
-        name="map-outline"
-        onPress={() => navigate("routes")}
-        accessibilityLabel="Routes"
-      />
       <IconButton
         name="notifications-outline"
         onPress={() => navigate("notifications")}
@@ -52,9 +43,14 @@ function TopActions() {
         accessibilityLabel="Notifications"
       />
       <IconButton
-        name="person-outline"
-        onPress={() => navigate("profile")}
-        accessibilityLabel="Profile"
+        name="calendar-outline"
+        onPress={() => navigate("todaysSchedules")}
+        accessibilityLabel="Today's schedules"
+      />
+      <IconButton
+        name="menu-outline"
+        onPress={onOpenMenu}
+        accessibilityLabel="Menu"
       />
     </View>
   );
@@ -83,6 +79,9 @@ export function LiveScreen() {
 
   const mapRef = useRef<MapView | null>(null);
   const [following, setFollowing] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { navigate } = useNav();
+  const { unreadCount } = useNotifications();
 
   // A gentle haptic when the bus reaches a stop — a native-only "real" cue.
   useEffect(() => {
@@ -162,7 +161,7 @@ export function LiveScreen() {
         <SafeAreaView style={styles.overlay} pointerEvents="box-none" edges={["top"]}>
           <View style={styles.topBar} pointerEvents="box-none">
             <View />
-            <TopActions />
+            <TopActions onOpenMenu={() => setMenuOpen(true)} />
           </View>
         </SafeAreaView>
       </View>
@@ -184,7 +183,7 @@ export function LiveScreen() {
       <SafeAreaView style={styles.overlay} pointerEvents="box-none" edges={["top"]}>
         <View style={styles.topBar} pointerEvents="box-none">
           <ConnectionPill status={connectionStatus} />
-          <TopActions />
+          <TopActions onOpenMenu={() => setMenuOpen(true)} />
         </View>
         {/* Service alerts always trump everything else — admin's voice. */}
         <ServiceAlertBanner
@@ -226,6 +225,13 @@ export function LiveScreen() {
         recentArrival={recentArrival}
         refreshing={refreshing}
         onRefresh={retry}
+      />
+
+      <HamburgerMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onNavigate={(screen) => navigate(screen)}
+        unreadCount={unreadCount}
       />
     </View>
   );

@@ -51,27 +51,40 @@ interface FormState {
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 
-/**
- * `<input type="time">` round-trips HH:mm. The backend stores HH:mm:ss.
- * Strip seconds when seeding the input; the change handler adds them
- * back on save.
- */
-function normalizeTimeForInput(value: string): string {
-  if (!value) return "";
+/** Parse a stored HH:mm[:ss] (24-hour) value into 12-hour parts. */
+function parseTwelveHourParts(value: string): {
+  hour12: number;
+  minute: number;
+  period: "AM" | "PM";
+} {
   const match = value.match(/^(\d{2}):(\d{2})/);
-  return match ? `${match[1]}:${match[2]}` : "";
+  if (!match) return { hour12: 8, minute: 30, period: "AM" };
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  const period: "AM" | "PM" = h >= 12 ? "PM" : "AM";
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return { hour12, minute: m, period };
+}
+
+/** Serialize 12-hour parts back into HH:mm:ss for the backend. */
+function buildTwentyFourHour(
+  hour12: number,
+  minute: number,
+  period: "AM" | "PM",
+): string {
+  let h = hour12 % 12; // 12 AM → 0, 12 PM → 0 then +12
+  if (period === "PM") h += 12;
+  return `${String(h).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
 }
 
 /** Render an HH:mm[:ss] string in human 12-hour form for the helper hint. */
 function formatTwelveHour(value: string): string {
-  const match = value.match(/^(\d{2}):(\d{2})/);
-  if (!match) return value;
-  const h = Number(match[1]);
-  const m = match[2];
-  const period = h >= 12 ? "PM" : "AM";
-  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${hour12}:${m} ${period}`;
+  const { hour12, minute, period } = parseTwelveHourParts(value);
+  return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
 }
+
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => i * 5);
 
 const DAY_OPTIONS: DayType[] = [
   "SUNDAY",
@@ -82,6 +95,98 @@ const DAY_OPTIONS: DayType[] = [
   "FRIDAY",
   "SATURDAY",
 ];
+
+/**
+ * 12-hour time picker: hour (1-12) · minute (in 5-min steps) · AM/PM
+ * toggle. Synchronises a HH:mm:ss 24-hour string with the form state so
+ * the backend never has to guess which side of noon the admin meant.
+ *
+ * The minute select offers 5-minute increments by default (covers the
+ * vast majority of scheduled departures); for off-grid minutes the
+ * picker round-trips the existing value untouched.
+ */
+function TwelveHourTimePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const parsed = parseTwelveHourParts(value);
+
+  const update = (
+    hour12: number,
+    minute: number,
+    period: "AM" | "PM",
+  ) => onChange(buildTwentyFourHour(hour12, minute, period));
+
+  const minuteOptions = MINUTE_OPTIONS.includes(parsed.minute)
+    ? MINUTE_OPTIONS
+    : [...MINUTE_OPTIONS, parsed.minute].sort((a, b) => a - b);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Select
+        value={String(parsed.hour12)}
+        onChange={(e) =>
+          update(Number(e.target.value), parsed.minute, parsed.period)
+        }
+        className="w-20"
+        aria-label="Hour"
+      >
+        {HOUR_OPTIONS.map((h) => (
+          <option key={h} value={h}>
+            {h}
+          </option>
+        ))}
+      </Select>
+      <span className="text-slate-400">:</span>
+      <Select
+        value={String(parsed.minute)}
+        onChange={(e) =>
+          update(parsed.hour12, Number(e.target.value), parsed.period)
+        }
+        className="w-24"
+        aria-label="Minute"
+      >
+        {minuteOptions.map((m) => (
+          <option key={m} value={m}>
+            {String(m).padStart(2, "0")}
+          </option>
+        ))}
+      </Select>
+
+      <div
+        className="inline-flex overflow-hidden rounded-md border border-slate-700"
+        role="group"
+        aria-label="AM or PM"
+      >
+        <button
+          type="button"
+          onClick={() => update(parsed.hour12, parsed.minute, "AM")}
+          className={`px-3 py-1.5 text-sm font-medium transition ${
+            parsed.period === "AM"
+              ? "bg-blue-600 text-white"
+              : "bg-slate-900 text-slate-300 hover:bg-slate-800"
+          }`}
+        >
+          AM
+        </button>
+        <button
+          type="button"
+          onClick={() => update(parsed.hour12, parsed.minute, "PM")}
+          className={`px-3 py-1.5 text-sm font-medium transition ${
+            parsed.period === "PM"
+              ? "bg-blue-600 text-white"
+              : "bg-slate-900 text-slate-300 hover:bg-slate-800"
+          }`}
+        >
+          PM
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function mergeDrivers(
   drivers: DriverOption[],
@@ -556,32 +661,23 @@ export function ServiceScheduleFormModal({
               <label className="text-sm font-medium text-slate-300">
                 Departure time
                 <span className="ml-2 text-xs font-normal text-slate-500">
-                  (Dhaka local · 24-hour)
+                  (Dhaka local)
                 </span>
               </label>
-              <Input
-                type="time"
-                step={60}
-                placeholder="16:30"
-                value={normalizeTimeForInput(values.departureTime)}
-                onChange={(e) =>
-                  setValues((prev) => ({
-                    ...prev,
-                    // Always emit HH:mm:ss to the backend so the Time column
-                    // is unambiguous; the native picker hands us HH:mm.
-                    departureTime: e.target.value
-                      ? `${e.target.value}:00`
-                      : "",
-                  }))
+              <TwelveHourTimePicker
+                value={values.departureTime}
+                onChange={(next) =>
+                  setValues((prev) => ({ ...prev, departureTime: next }))
                 }
               />
               <p className="text-xs text-slate-500">
-                Enter the bus's local Dhaka departure time. Examples:{" "}
-                <span className="font-mono text-slate-400">08:30</span> = 8:30 AM,{" "}
-                <span className="font-mono text-slate-400">16:30</span> = 4:30 PM.
-                {values.departureTime
-                  ? ` Saving as ${formatTwelveHour(values.departureTime)}.`
-                  : ""}
+                Pick the bus's local Dhaka departure time. Saved as{" "}
+                <span className="font-mono text-slate-400">
+                  {values.departureTime || "—"}
+                </span>{" "}
+                ({values.departureTime
+                  ? formatTwelveHour(values.departureTime)
+                  : "—"}).
               </p>
               {errors.departureTime ? (
                 <p className="text-xs text-red-400">{errors.departureTime}</p>

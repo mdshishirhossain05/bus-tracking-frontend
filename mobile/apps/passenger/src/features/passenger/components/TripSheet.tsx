@@ -7,10 +7,13 @@ import BottomSheet, {
 import { BlurView } from "expo-blur";
 import {
   Text,
+  Icon,
   StatusBadge,
   localizeNumber,
   useI18n,
   type StatusBadgeTone,
+  type IconName,
+  type StringKey,
 } from "@ubts/shared";
 import { colors, radius, spacing } from "@ubts/shared";
 import { StopTimeline } from "./StopTimeline";
@@ -93,6 +96,10 @@ export function TripSheet({
     return null;
   }, [selectedTrip, tripEnded, t]);
 
+  const isRunning = selectedTrip?.status === "RUNNING" && !tripEnded;
+  const isPreTrip = selectedTrip?.status === "PRE_TRIP";
+  const isEnded = tripEnded || selectedTrip?.status === "ENDED";
+
   const etaLabel = tripEnded
     ? t("tripSheet.ended")
     : eta?.finalStopReached
@@ -103,6 +110,47 @@ export function TripSheet({
   const showsUnit = !tripEnded && !eta?.finalStopReached && eta?.etaMinutes != null;
   const speed =
     live?.displaySpeedKmh != null ? Math.round(live.displaySpeedKmh) : null;
+
+  // Trip-status hero block — one always-visible "what's happening right
+  // now" answer at the top of the sheet so passengers don't conflate
+  // a planned bus with a live one.
+  const hero = ((): {
+    tone: StatusBadgeTone;
+    icon: IconName;
+    titleKey: StringKey;
+    bodyKey: StringKey;
+  } => {
+    if (isRunning) {
+      return {
+        tone: "live",
+        icon: "radio-button-on",
+        titleKey: "tripSheet.hero.live.title",
+        bodyKey: "tripSheet.hero.live.body",
+      };
+    }
+    if (isPreTrip) {
+      return {
+        tone: "preTrip",
+        icon: "time-outline",
+        titleKey: "tripSheet.hero.preTrip.title",
+        bodyKey: "tripSheet.hero.preTrip.body",
+      };
+    }
+    if (isEnded) {
+      return {
+        tone: "ended",
+        icon: "checkmark-done-outline",
+        titleKey: "tripSheet.hero.ended.title",
+        bodyKey: "tripSheet.hero.ended.body",
+      };
+    }
+    return {
+      tone: "muted",
+      icon: "bus-outline",
+      titleKey: "tripSheet.hero.noTrip.title",
+      bodyKey: "tripSheet.hero.noTrip.body",
+    };
+  })();
 
   return (
     <BottomSheet
@@ -138,50 +186,92 @@ export function TripSheet({
           ) : null}
         </View>
 
-        <View style={styles.etaRow}>
-          <Text variant="display" color={colors.foreground} tabular>
-            {etaLabel}
-          </Text>
-          {showsUnit && (
-            <Text variant="subtitle" color={colors.mutedForeground} style={styles.unit}>
-              {t("common.min")}
-            </Text>
-          )}
-        </View>
-        <Text variant="body" color={colors.mutedForeground}>
-          {eta?.nextStopName
-            ? t("tripSheet.toStop", { stop: eta.nextStopName })
-            : t("tripSheet.tracking")}
-        </Text>
-
-        <View style={styles.metrics}>
-          <Metric
-            label={t("tripSheet.speed")}
-            value={speed != null ? localizeNumber(speed, locale) : "—"}
-            unit={t("common.kmh")}
-          />
-          <Metric
-            label={t("tripSheet.confidence")}
-            value={eta?.confidence ?? "—"}
-          />
-          <Metric
-            label={t("tripSheet.stops")}
-            value={
-              route?.stops.length
-                ? localizeNumber(route.stops.length, locale)
-                : "—"
+        <View
+          style={[
+            styles.hero,
+            hero.tone === "live" && styles.heroLive,
+            hero.tone === "preTrip" && styles.heroPreTrip,
+            hero.tone === "ended" && styles.heroEnded,
+          ]}
+        >
+          <Icon
+            name={hero.icon}
+            size={20}
+            color={
+              hero.tone === "live"
+                ? colors.success
+                : hero.tone === "preTrip"
+                  ? colors.primary
+                  : colors.mutedForeground
             }
           />
-        </View>
-
-        {recentArrival && (
-          <View style={styles.arrival}>
-            <View style={styles.arrivalDot} />
+          <View style={styles.flex}>
             <Text variant="label" color={colors.foreground}>
-              {t("tripSheet.arrivedAtStop", { stop: recentArrival.stopName })}
+              {t(hero.titleKey)}
+            </Text>
+            <Text variant="caption" color={colors.mutedForeground}>
+              {t(hero.bodyKey)}
             </Text>
           </View>
-        )}
+        </View>
+
+        {/*
+          ETA, "to next stop" label, and the speed/confidence/stops grid
+          only make sense once the trip is RUNNING. PRE_TRIP shows the
+          PreTripBanner above the map and the hero block above; ENDED
+          shows the hero block. Hiding them removes the most common
+          source of "is the trip on or off?" confusion.
+        */}
+        {isRunning ? (
+          <>
+            <View style={styles.etaRow}>
+              <Text variant="display" color={colors.foreground} tabular>
+                {etaLabel}
+              </Text>
+              {showsUnit && (
+                <Text variant="subtitle" color={colors.mutedForeground} style={styles.unit}>
+                  {t("common.min")}
+                </Text>
+              )}
+            </View>
+            <Text variant="body" color={colors.mutedForeground}>
+              {eta?.nextStopName
+                ? t("tripSheet.toStop", { stop: eta.nextStopName })
+                : t("tripSheet.tracking")}
+            </Text>
+
+            <View style={styles.metrics}>
+              <Metric
+                label={t("tripSheet.speed")}
+                value={speed != null ? localizeNumber(speed, locale) : "—"}
+                unit={t("common.kmh")}
+              />
+              <Metric
+                label={t("tripSheet.confidence")}
+                value={eta?.confidence ?? "—"}
+              />
+              <Metric
+                label={t("tripSheet.stops")}
+                value={
+                  route?.stops.length
+                    ? localizeNumber(route.stops.length, locale)
+                    : "—"
+                }
+              />
+            </View>
+
+            {recentArrival && (
+              <View style={styles.arrival}>
+                <View style={styles.arrivalDot} />
+                <Text variant="label" color={colors.foreground}>
+                  {t("tripSheet.arrivedAtStop", {
+                    stop: recentArrival.stopName,
+                  })}
+                </Text>
+              </View>
+            )}
+          </>
+        ) : null}
 
         {selectedTrip?.status === "RUNNING" ? (
           <OccupancyVoter
@@ -225,7 +315,11 @@ export function TripSheet({
             </Text>
             <StopTimeline
               stops={route.stops}
-              nextStopName={eta?.nextStopName}
+              // Suppress the "next stop" highlight + passed-stops fade while
+              // the trip isn't actually RUNNING. PRE_TRIP / ENDED stop
+              // progression would otherwise tell a story that doesn't match
+              // reality (the bus hasn't passed any stops yet).
+              nextStopName={isRunning ? eta?.nextStopName : null}
               routeId={routeIdForSubs}
               isSubscribed={(stopId) =>
                 routeIdForSubs
@@ -293,6 +387,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: spacing.sm,
   },
+  hero: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.muted,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  heroLive: { backgroundColor: "rgba(34, 197, 94, 0.12)" },
+  heroPreTrip: { backgroundColor: "rgba(59, 130, 246, 0.12)" },
+  heroEnded: { backgroundColor: colors.muted },
+  flex: { flex: 1 },
   etaRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm },
   unit: { marginBottom: 8 },
   metrics: {

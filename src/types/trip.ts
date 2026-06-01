@@ -1,3 +1,15 @@
+export type TripStatusValue =
+  | "PLANNED"
+  | "PRE_TRIP"
+  | "RUNNING"
+  | "ENDED"
+  | "UNKNOWN";
+
+export type TripPreTripPhaseValue =
+  | "AT_DEPOT"
+  | "APPROACHING_ORIGIN"
+  | "AT_ORIGIN";
+
 export interface ActiveTrip {
   tripId: string;
   routeId: string;
@@ -10,6 +22,9 @@ export interface ActiveTrip {
   startedAt: string | null;
   endedAt?: string | null;
   isStale?: boolean;
+  preTripPhase?: TripPreTripPhaseValue | null;
+  preTripStartedAt?: string | null;
+  originArrivedAt?: string | null;
   live?: {
     lat?: number | null;
     lng?: number | null;

@@ -1,4 +1,9 @@
-import type { ActiveTrip, LiveBusLocation, TripEta } from "@/types/trip";
+import type {
+  ActiveTrip,
+  LiveBusLocation,
+  TripEta,
+  TripPreTripPhaseValue,
+} from "@/types/trip";
 
 function asString(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
@@ -17,6 +22,14 @@ function asNullableNumber(value: unknown) {
   return null;
 }
 
+function asPreTripPhase(value: unknown): TripPreTripPhaseValue | null {
+  return value === "AT_DEPOT" ||
+    value === "APPROACHING_ORIGIN" ||
+    value === "AT_ORIGIN"
+    ? value
+    : null;
+}
+
 export function normalizeActiveTrip(input: any): ActiveTrip {
   return {
     tripId: asString(input?.tripId ?? input?.id),
@@ -32,6 +45,9 @@ export function normalizeActiveTrip(input: any): ActiveTrip {
     startedAt: asString(input?.startedAt ?? input?.startTime),
     endedAt: asNullableString(input?.endedAt ?? input?.endTime),
     isStale: typeof input?.isStale === "boolean" ? input.isStale : undefined,
+    preTripPhase: asPreTripPhase(input?.preTripPhase),
+    preTripStartedAt: asNullableString(input?.preTripStartedAt),
+    originArrivedAt: asNullableString(input?.originArrivedAt),
     live: input?.live ?? null,
     eta: input?.eta ?? null,
   };

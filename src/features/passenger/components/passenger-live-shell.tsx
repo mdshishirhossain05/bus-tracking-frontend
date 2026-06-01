@@ -20,6 +20,8 @@ import { SectionSkeleton } from "@/components/states/section-skeleton";
 import { TripSelectorPanel } from "@/features/passenger/components/trip-selector-panel";
 import { EtaCard } from "@/features/passenger/components/eta-card";
 import { LiveTripDetails } from "@/features/passenger/components/live-trip-details";
+import { LiveStatusHero } from "@/features/passenger/components/live-status-hero";
+import { PreTripBanner } from "@/features/passenger/components/pre-trip-banner";
 import { usePassengerLiveTrip } from "@/features/passenger/hooks/use-passenger-live-trip";
 import { useFavoriteRoutes } from "@/features/passenger/hooks/use-favorite-routes";
 import { useRoutePresentation } from "@/features/routes/hooks/use-route-presentation";
@@ -296,6 +298,22 @@ function PassengerLiveContent() {
         </div>
 
         <div className="order-1 space-y-4 xl:order-2">
+          {/*
+            Mirror of the mobile trip-status hero — always answers
+            "what is this bus doing right now" so a passenger doesn't
+            have to read a status badge + empty ETA value to figure out
+            if a trip is live or just scheduled.
+          */}
+          <LiveStatusHero
+            selectedTrip={selectedTrip ?? null}
+            tripEnded={tripEnded}
+          />
+          {/*
+            Pre-trip phase banner — same patterns as mobile. Only
+            renders when status === "PRE_TRIP" + a phase is present.
+          */}
+          <PreTripBanner trip={selectedTrip ?? null} />
+
           {/* Map with floating native-style overlays. */}
           <div className="relative overflow-hidden rounded-2xl border border-slate-800/80 shadow-xl shadow-slate-950/40">
             <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2">
@@ -304,7 +322,13 @@ function PassengerLiveContent() {
                 <span>{liveLabel}</span>
               </FloatingPill>
 
-              {etaMinutes != null ? (
+              {/*
+                ETA + next-stop pills only when the trip is actually
+                running. PRE_TRIP / ENDED hide them so the passenger
+                isn't told "next stop X" for a bus that hasn't started
+                yet.
+              */}
+              {selectedTrip?.status === "RUNNING" && !tripEnded && etaMinutes != null ? (
                 <FloatingPill tone="success">
                   <Clock3 className="h-3.5 w-3.5" />
                   <span>ETA {etaMinutes} min</span>
@@ -312,7 +336,7 @@ function PassengerLiveContent() {
               ) : null}
             </div>
 
-            {nextStopName ? (
+            {selectedTrip?.status === "RUNNING" && !tripEnded && nextStopName ? (
               <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-4">
                 <FloatingPill tone="neutral">
                   <span className="text-slate-400">Next stop</span>

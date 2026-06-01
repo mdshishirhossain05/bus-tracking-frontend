@@ -30,6 +30,17 @@ export const STRINGS = {
   "common.map": { en: "Map", bn: "মানচিত্র" },
   "common.stops": { en: "Stops", bn: "স্টপ" },
   "common.search": { en: "Search", bn: "অনুসন্ধান" },
+  "common.menu": { en: "Menu", bn: "মেনু" },
+  "common.close": { en: "Close", bn: "বন্ধ করুন" },
+
+  // ---- hamburger menu ----
+  "menu.live": { en: "Live tracking", bn: "লাইভ ট্র্যাকিং" },
+  "menu.today": { en: "Today's schedules", bn: "আজকের সময়সূচী" },
+  "menu.routes": { en: "All routes", bn: "সব রুট" },
+  "menu.notifications": { en: "Notifications", bn: "নোটিফিকেশন" },
+  "menu.history": { en: "Trip history", bn: "যাত্রার ইতিহাস" },
+  "menu.preferences": { en: "Notification preferences", bn: "নোটিফিকেশন সেটিংস" },
+  "menu.profile": { en: "Profile", bn: "প্রোফাইল" },
 
   // ---- today's schedules ----
   "today.title": { en: "Today's schedules", bn: "আজকের সময়সূচী" },
@@ -115,6 +126,32 @@ export const STRINGS = {
 
   // ---- trip sheet ----
   "tripSheet.liveTrip": { en: "Live trip", bn: "লাইভ ট্রিপ" },
+  "tripSheet.hero.noTrip.title": {
+    en: "Waiting for the bus",
+    bn: "বাসের জন্য অপেক্ষা",
+  },
+  "tripSheet.hero.noTrip.body": {
+    en: "No bus is broadcasting on this route yet. We'll show the live position the moment it starts.",
+    bn: "এই রুটে এখনো কোনো বাস সম্প্রচার করছে না। চলা শুরু করলেই লাইভ অবস্থান দেখাব।",
+  },
+  "tripSheet.hero.preTrip.title": {
+    en: "Trip hasn't started yet",
+    bn: "যাত্রা এখনো শুরু হয়নি",
+  },
+  "tripSheet.hero.preTrip.body": {
+    en: "ETA + stop progression will appear once the driver starts the trip.",
+    bn: "ড্রাইভার যাত্রা শুরু করার পর ETA ও স্টপ অগ্রগতি দেখানো হবে।",
+  },
+  "tripSheet.hero.live.title": { en: "LIVE", bn: "লাইভ" },
+  "tripSheet.hero.live.body": {
+    en: "Bus is on route — see where it is and when it reaches your stop.",
+    bn: "বাস পথে — কোথায় আছে ও আপনার স্টপে কখন পৌঁছাবে দেখুন।",
+  },
+  "tripSheet.hero.ended.title": { en: "Trip ended", bn: "যাত্রা শেষ" },
+  "tripSheet.hero.ended.body": {
+    en: "The driver has finished this trip.",
+    bn: "ড্রাইভার এই যাত্রা শেষ করেছেন।",
+  },
   "tripSheet.toStop": { en: "to {stop}", bn: "{stop} পর্যন্ত" },
   "tripSheet.tracking": {
     en: "Tracking live position",

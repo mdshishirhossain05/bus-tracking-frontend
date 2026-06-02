@@ -3,10 +3,11 @@ import { ActivityIndicator, View, StyleSheet } from "react-native";
 import { useAuth, colors } from "@ubts/shared";
 import { LoginScreen } from "../screens/LoginScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
+import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
 import { NavigationProvider } from "./NavigationContext";
 import { MainNavigator } from "./MainNavigator";
 
-type AuthScreen = "login" | "register";
+type AuthScreen = "login" | "register" | "forgotPassword";
 
 export function RootNavigator() {
   const { status } = useAuth();
@@ -21,10 +22,19 @@ export function RootNavigator() {
   }
 
   if (status !== "authenticated") {
-    return authScreen === "register" ? (
-      <RegisterScreen onBackToLogin={() => setAuthScreen("login")} />
-    ) : (
-      <LoginScreen onGoToRegister={() => setAuthScreen("register")} />
+    if (authScreen === "register") {
+      return <RegisterScreen onBackToLogin={() => setAuthScreen("login")} />;
+    }
+    if (authScreen === "forgotPassword") {
+      return (
+        <ForgotPasswordScreen onBackToLogin={() => setAuthScreen("login")} />
+      );
+    }
+    return (
+      <LoginScreen
+        onGoToRegister={() => setAuthScreen("register")}
+        onGoToForgotPassword={() => setAuthScreen("forgotPassword")}
+      />
     );
   }
 

@@ -13,6 +13,9 @@ export const API_ENDPOINTS = {
     requestRegisterOtp: "/auth/register/request-otp",
     verifyRegisterOtp: "/auth/register/verify-otp",
     register: "/auth/register",
+    forgotPasswordRequest: "/auth/forgot-password/request",
+    forgotPasswordVerify: "/auth/forgot-password/verify",
+    resetPassword: "/auth/reset-password",
   },
   passenger: {
     activeTrips: "/passenger/trips/active",

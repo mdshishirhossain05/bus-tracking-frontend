@@ -9,15 +9,20 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text } from "@ubts/shared";
+import { Text, useT } from "@ubts/shared";
 import { colors, fonts, radius, spacing } from "@ubts/shared";
 import { useAuth } from "@ubts/shared";
 
 interface LoginScreenProps {
   onGoToRegister?: () => void;
+  onGoToForgotPassword?: () => void;
 }
 
-export function LoginScreen({ onGoToRegister }: LoginScreenProps = {}) {
+export function LoginScreen({
+  onGoToRegister,
+  onGoToForgotPassword,
+}: LoginScreenProps = {}) {
+  const t = useT();
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +31,7 @@ export function LoginScreen({ onGoToRegister }: LoginScreenProps = {}) {
 
   const onSubmit = async () => {
     if (!email.trim() || !password) {
-      setError("Enter your email and password.");
+      setError(t("auth.login.missing"));
       return;
     }
     setSubmitting(true);
@@ -34,9 +39,7 @@ export function LoginScreen({ onGoToRegister }: LoginScreenProps = {}) {
     try {
       await signIn(email.trim().toLowerCase(), password);
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message ?? "Invalid credentials. Please try again.",
-      );
+      setError(err?.response?.data?.message ?? t("auth.login.invalid"));
     } finally {
       setSubmitting(false);
     }
@@ -51,27 +54,27 @@ export function LoginScreen({ onGoToRegister }: LoginScreenProps = {}) {
         <View style={styles.container}>
           <View style={styles.header}>
             <Text variant="title" color={colors.foreground}>
-              Track your bus
+              {t("auth.login.title")}
             </Text>
             <Text variant="body" color={colors.mutedForeground}>
-              Sign in to follow your route live.
+              {t("auth.login.subtitle")}
             </Text>
           </View>
 
           <View style={styles.form}>
             <Field
-              label="Email"
+              label={t("auth.field.email")}
               value={email}
               onChangeText={setEmail}
-              placeholder="you@university.edu"
+              placeholder={t("auth.field.emailPlaceholder")}
               keyboardType="email-address"
               autoCapitalize="none"
             />
             <Field
-              label="Password"
+              label={t("auth.field.password")}
               value={password}
               onChangeText={setPassword}
-              placeholder="••••••••"
+              placeholder={t("auth.field.passwordPlaceholder")}
               secureTextEntry
             />
 
@@ -90,25 +93,37 @@ export function LoginScreen({ onGoToRegister }: LoginScreenProps = {}) {
                 submitting && styles.buttonDisabled,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Sign in"
+              accessibilityLabel={t("auth.login.signIn")}
             >
               {submitting ? (
                 <ActivityIndicator color={colors.primaryForeground} />
               ) : (
                 <Text variant="label" color={colors.primaryForeground}>
-                  Sign in
+                  {t("auth.login.signIn")}
                 </Text>
               )}
             </Pressable>
 
+            {onGoToForgotPassword ? (
+              <Pressable
+                onPress={onGoToForgotPassword}
+                hitSlop={8}
+                style={styles.forgotRow}
+              >
+                <Text variant="caption" color={colors.primary}>
+                  {t("auth.login.forgotPassword")}
+                </Text>
+              </Pressable>
+            ) : null}
+
             {onGoToRegister ? (
               <View style={styles.signupRow}>
                 <Text variant="caption" color={colors.mutedForeground}>
-                  Don't have an account?
+                  {t("auth.login.noAccount")}
                 </Text>
                 <Pressable onPress={onGoToRegister} hitSlop={8}>
                   <Text variant="caption" color={colors.primary}>
-                    Create one
+                    {t("auth.login.createOne")}
                   </Text>
                 </Pressable>
               </View>
@@ -171,6 +186,10 @@ const styles = StyleSheet.create({
   },
   buttonPressed: { backgroundColor: colors.primaryActive },
   buttonDisabled: { opacity: 0.7 },
+  forgotRow: {
+    alignSelf: "center",
+    paddingVertical: spacing.xs,
+  },
   signupRow: {
     flexDirection: "row",
     justifyContent: "center",

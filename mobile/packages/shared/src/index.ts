@@ -22,6 +22,7 @@ export * from "./a11y/useReduceMotion";
 export * from "./lib/auth/AuthContext";
 export * from "./lib/auth/auth.api";
 export * from "./lib/auth/register.api";
+export * from "./lib/auth/forgotPassword.api";
 export * from "./lib/auth/tokenStore";
 export * from "./constants/academics";
 export * from "./lib/notifications/NotificationsContext";

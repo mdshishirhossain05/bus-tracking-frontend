@@ -25,6 +25,7 @@ import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLi
 import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
+import { OfflineBanner } from "../features/passenger/components/OfflineBanner";
 import { NextBusBanner } from "../components/NextBusBanner";
 import { HamburgerMenu } from "../components/HamburgerMenu";
 import { PreTripBanner } from "../features/passenger/components/PreTripBanner";
@@ -185,6 +186,7 @@ export function LiveScreen() {
           <ConnectionPill status={connectionStatus} />
           <TopActions onOpenMenu={() => setMenuOpen(true)} />
         </View>
+        <OfflineBanner status={connectionStatus} />
         {/* Service alerts always trump everything else — admin's voice. */}
         <ServiceAlertBanner
           routeId={trips.find((t) => t.tripId === selectedTripId)?.routeId}

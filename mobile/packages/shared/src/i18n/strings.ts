@@ -378,6 +378,262 @@ export const STRINGS = {
     en: "Pre-trip · At start point",
     bn: "যাত্রা-পূর্ব · শুরুর স্থানে",
   },
+
+  // ---- auth (login + register + forgot password) ----
+  "auth.login.title": { en: "Track your bus", bn: "আপনার বাস ট্র্যাক করুন" },
+  "auth.login.subtitle": {
+    en: "Sign in to follow your route live.",
+    bn: "লাইভ রুট দেখতে সাইন ইন করুন।",
+  },
+  "auth.field.email": { en: "Email", bn: "ইমেইল" },
+  "auth.field.emailPlaceholder": {
+    en: "you@university.edu",
+    bn: "you@university.edu",
+  },
+  "auth.field.password": { en: "Password", bn: "পাসওয়ার্ড" },
+  "auth.field.passwordPlaceholder": { en: "••••••••", bn: "••••••••" },
+  "auth.login.signIn": { en: "Sign in", bn: "সাইন ইন" },
+  "auth.login.missing": {
+    en: "Enter your email and password.",
+    bn: "ইমেইল ও পাসওয়ার্ড লিখুন।",
+  },
+  "auth.login.invalid": {
+    en: "Invalid credentials. Please try again.",
+    bn: "ভুল তথ্য। আবার চেষ্টা করুন।",
+  },
+  "auth.login.noAccount": {
+    en: "Don't have an account?",
+    bn: "অ্যাকাউন্ট নেই?",
+  },
+  "auth.login.createOne": { en: "Create one", bn: "তৈরি করুন" },
+  "auth.login.forgotPassword": {
+    en: "Forgot password?",
+    bn: "পাসওয়ার্ড ভুলে গেছেন?",
+  },
+
+  // forgot password flow
+  "auth.forgot.title": { en: "Reset your password", bn: "পাসওয়ার্ড রিসেট" },
+  "auth.forgot.subtitle": {
+    en: "We'll email you a 6-digit code to verify it's you.",
+    bn: "আপনাকে যাচাই করতে ইমেইলে ৬ সংখ্যার কোড পাঠানো হবে।",
+  },
+  "auth.forgot.stepXofY": {
+    en: "STEP {x} OF {y}",
+    bn: "ধাপ {x} / {y}",
+  },
+  "auth.forgot.sendCode": { en: "Send code", bn: "কোড পাঠান" },
+  "auth.forgot.codeLabel": { en: "6-digit code", bn: "৬ সংখ্যার কোড" },
+  "auth.forgot.codePlaceholder": { en: "123456", bn: "১২৩৪৫৬" },
+  "auth.forgot.verifyCode": { en: "Verify code", bn: "কোড যাচাই" },
+  "auth.forgot.changeEmail": { en: "Change email", bn: "ইমেইল বদলান" },
+  "auth.forgot.resendIn": {
+    en: "Resend in {n}s",
+    bn: "{n} সেকেন্ডে পুনরায় পাঠান",
+  },
+  "auth.forgot.resend": { en: "Resend code", bn: "কোড পুনরায় পাঠান" },
+  "auth.forgot.emailSent": {
+    en: "We sent a 6-digit code to {email}. Check your inbox (and spam).",
+    bn: "{email}-এ ৬ সংখ্যার কোড পাঠানো হয়েছে। ইনবক্স (ও স্প্যাম) দেখুন।",
+  },
+  "auth.forgot.codeFailedToSend": {
+    en: "We couldn't send the code. Check the email and try again.",
+    bn: "কোড পাঠানো যায়নি। ইমেইল দেখে আবার চেষ্টা করুন।",
+  },
+  "auth.forgot.codeWrong": {
+    en: "That code didn't match. Try again or request a new one.",
+    bn: "কোড মিলেনি। আবার চেষ্টা করুন বা নতুন কোড নিন।",
+  },
+  "auth.forgot.enterEmail": {
+    en: "Enter your email to receive the reset code.",
+    bn: "রিসেট কোড পেতে ইমেইল দিন।",
+  },
+  "auth.forgot.enterCode": {
+    en: "Enter the 6-digit code we sent to your email.",
+    bn: "ইমেইলে পাঠানো ৬ সংখ্যার কোড লিখুন।",
+  },
+  "auth.forgot.newPasswordTitle": {
+    en: "Choose a new password",
+    bn: "নতুন পাসওয়ার্ড দিন",
+  },
+  "auth.forgot.newPasswordSubtitle": {
+    en: "Pick something secure you'll remember.",
+    bn: "এমন কিছু বাছুন যা মনে রাখতে পারবেন।",
+  },
+  "auth.forgot.newPassword": { en: "New password", bn: "নতুন পাসওয়ার্ড" },
+  "auth.forgot.confirmPassword": {
+    en: "Confirm password",
+    bn: "পাসওয়ার্ড নিশ্চিত করুন",
+  },
+  "auth.forgot.resetPassword": {
+    en: "Reset password",
+    bn: "পাসওয়ার্ড রিসেট",
+  },
+  "auth.forgot.passwordsDontMatch": {
+    en: "Passwords don't match.",
+    bn: "পাসওয়ার্ড মেলেনি।",
+  },
+  "auth.forgot.passwordRulesFail": {
+    en: "Password doesn't meet all the requirements yet.",
+    bn: "পাসওয়ার্ড এখনো সব শর্ত পূরণ করেনি।",
+  },
+  "auth.forgot.success": {
+    en: "Password reset",
+    bn: "পাসওয়ার্ড রিসেট হয়েছে",
+  },
+  "auth.forgot.successBody": {
+    en: "You can now sign in with your new password.",
+    bn: "এখন নতুন পাসওয়ার্ড দিয়ে সাইন ইন করতে পারেন।",
+  },
+  "auth.forgot.backToLogin": {
+    en: "Back to sign in",
+    bn: "সাইন ইনে ফিরে যান",
+  },
+  "auth.forgot.failed": {
+    en: "Couldn't reset the password. Please try again.",
+    bn: "পাসওয়ার্ড রিসেট করা যায়নি। আবার চেষ্টা করুন।",
+  },
+
+  // password rules
+  "auth.rule.8chars": { en: "8+ characters", bn: "৮+ অক্ষর" },
+  "auth.rule.upper": { en: "Uppercase letter", bn: "একটি বড় হাতের অক্ষর" },
+  "auth.rule.lower": { en: "Lowercase letter", bn: "একটি ছোট হাতের অক্ষর" },
+  "auth.rule.number": { en: "Number", bn: "একটি সংখ্যা" },
+  "auth.rule.special": {
+    en: "Special character",
+    bn: "একটি বিশেষ অক্ষর",
+  },
+
+  // register screen
+  "auth.register.verifyTitle": {
+    en: "Verify your email",
+    bn: "ইমেইল যাচাই করুন",
+  },
+  "auth.register.verifySubtitle": {
+    en: "We'll send a 6-digit code to confirm it's yours.",
+    bn: "আপনার ইমেইল নিশ্চিত করতে ৬ সংখ্যার কোড পাঠানো হবে।",
+  },
+  "auth.register.aboutYou": { en: "Tell us about you", bn: "আপনার তথ্য দিন" },
+  "auth.register.aboutYouSubtitle": {
+    en: "These details help your admin approve your account.",
+    bn: "এই তথ্যগুলো অ্যাডমিনকে আপনার অ্যাকাউন্ট অনুমোদন করতে সাহায্য করে।",
+  },
+  "auth.register.setPasswordTitle": {
+    en: "Set a password",
+    bn: "পাসওয়ার্ড দিন",
+  },
+  "auth.register.setPasswordSubtitle": {
+    en: "Choose something you'll remember.",
+    bn: "এমন কিছু বাছুন যা মনে রাখবেন।",
+  },
+  "auth.register.fullName": { en: "Full name", bn: "পূর্ণ নাম" },
+  "auth.register.fullNamePlaceholder": {
+    en: "Your full name",
+    bn: "আপনার পূর্ণ নাম",
+  },
+  "auth.register.studentId": { en: "Student ID", bn: "স্টুডেন্ট আইডি" },
+  "auth.register.phoneOptional": {
+    en: "Phone (optional)",
+    bn: "ফোন (ঐচ্ছিক)",
+  },
+  "auth.register.deptOptional": {
+    en: "Department (optional)",
+    bn: "বিভাগ (ঐচ্ছিক)",
+  },
+  "auth.register.batchOptional": { en: "Batch (optional)", bn: "ব্যাচ (ঐচ্ছিক)" },
+  "auth.register.pickupOptional": {
+    en: "Pickup point (optional)",
+    bn: "পিকআপ স্থান (ঐচ্ছিক)",
+  },
+  "auth.register.pickupPlaceholder": {
+    en: "e.g. Mirpur 10",
+    bn: "যেমন: মিরপুর ১০",
+  },
+  "auth.register.continue": { en: "Continue", bn: "চালিয়ে যান" },
+  "auth.register.createAccount": {
+    en: "Create account",
+    bn: "অ্যাকাউন্ট তৈরি করুন",
+  },
+  "auth.register.welcome": { en: "Welcome, {name}!", bn: "স্বাগতম, {name}!" },
+  "auth.register.successBody": {
+    en: "Your account is being reviewed. We'll let you sign in once an admin approves your registration — typically within a few hours.",
+    bn: "আপনার অ্যাকাউন্ট পর্যালোচনা চলছে। অ্যাডমিন অনুমোদন দিলে সাইন ইন করতে পারবেন — সাধারণত কয়েক ঘণ্টার মধ্যে।",
+  },
+  "auth.register.emailSentBadge": { en: "Email sent", bn: "ইমেইল পাঠানো হয়েছে" },
+  "auth.register.errors.fullName": {
+    en: "Enter your full name.",
+    bn: "পূর্ণ নাম লিখুন।",
+  },
+  "auth.register.errors.studentId": {
+    en: "Enter your student ID.",
+    bn: "স্টুডেন্ট আইডি লিখুন।",
+  },
+  "auth.register.errors.email": {
+    en: "Enter your email to receive the verification code.",
+    bn: "যাচাইকরণ কোড পেতে ইমেইল লিখুন।",
+  },
+  "auth.register.errors.otp": {
+    en: "Enter the 6-digit code we sent to your email.",
+    bn: "ইমেইলে পাঠানো ৬ সংখ্যার কোড লিখুন।",
+  },
+  "auth.register.errors.send": {
+    en: "We couldn't send the code. Check the email address and try again.",
+    bn: "কোড পাঠানো যায়নি। ইমেইল দেখে আবার চেষ্টা করুন।",
+  },
+  "auth.register.errors.verify": {
+    en: "That code didn't match. Try again or request a new one.",
+    bn: "কোড মেলেনি। আবার চেষ্টা করুন বা নতুন কোড নিন।",
+  },
+  "auth.register.errors.registration": {
+    en: "Registration failed. Please check the form and try again.",
+    bn: "নিবন্ধন ব্যর্থ। তথ্য দেখে আবার চেষ্টা করুন।",
+  },
+
+  // ---- offline / no network banner ----
+  "offline.title": { en: "You're offline", bn: "আপনি অফলাইনে" },
+  "offline.subtitle": {
+    en: "Live updates pause until we reconnect.",
+    bn: "পুনরায় সংযোগ না হওয়া পর্যন্ত লাইভ আপডেট বিরতি।",
+  },
+  "offline.reconnecting": {
+    en: "Reconnecting…",
+    bn: "পুনঃসংযোগ হচ্ছে…",
+  },
+  "offline.signalLost": {
+    en: "Signal lost — last position shown.",
+    bn: "সিগন্যাল হারিয়েছে — সর্বশেষ অবস্থান দেখানো হচ্ছে।",
+  },
+
+  // ---- notification permission ----
+  "notifPerm.title": { en: "DEVICE PERMISSION", bn: "ডিভাইস অনুমতি" },
+  "notifPerm.granted": {
+    en: "Notifications allowed",
+    bn: "নোটিফিকেশন অনুমতি দেওয়া আছে",
+  },
+  "notifPerm.grantedBody": {
+    en: "This device will receive push alerts based on your settings below.",
+    bn: "নিচের সেটিংস অনুযায়ী এই ডিভাইস পুশ অ্যালার্ট পাবে।",
+  },
+  "notifPerm.denied": {
+    en: "Notifications blocked",
+    bn: "নোটিফিকেশন বন্ধ",
+  },
+  "notifPerm.deniedBody": {
+    en: "We can't send push alerts until you enable notifications in your device settings.",
+    bn: "ডিভাইস সেটিংসে নোটিফিকেশন চালু না করা পর্যন্ত আমরা পুশ অ্যালার্ট পাঠাতে পারব না।",
+  },
+  "notifPerm.askable": {
+    en: "Tap to allow notifications",
+    bn: "নোটিফিকেশনের অনুমতি দিতে ট্যাপ করুন",
+  },
+  "notifPerm.askableBody": {
+    en: "Get a heads-up before your bus arrives — even when the app is closed.",
+    bn: "অ্যাপ বন্ধ থাকলেও বাস আসার আগে নোটিফিকেশন পান।",
+  },
+  "notifPerm.openSettings": {
+    en: "Open settings",
+    bn: "সেটিংস খুলুন",
+  },
+  "notifPerm.allow": { en: "Allow", bn: "অনুমতি দিন" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

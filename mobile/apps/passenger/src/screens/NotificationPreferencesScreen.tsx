@@ -34,6 +34,7 @@ import {
   type StringKey,
 } from "@ubts/shared";
 import { useNav } from "../navigation/NavigationContext";
+import { NotificationPermissionCard } from "../components/NotificationPermissionCard";
 
 type QuietPreset = "off" | "night1" | "night2" | "custom";
 
@@ -297,6 +298,8 @@ export function NotificationPreferencesScreen() {
           </SkeletonGroup>
         ) : (
           <>
+            <NotificationPermissionCard />
+
             <Section icon="notifications-outline" title={t("notifPrefs.general")}>
               <View style={styles.row}>
                 <View style={styles.flex}>

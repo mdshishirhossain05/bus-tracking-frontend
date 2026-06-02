@@ -14,53 +14,41 @@ import {
   Text,
   Icon,
   StatusBadge,
-  ACADEMIC_BATCH_PLACEHOLDER,
-  ACADEMIC_DEPARTMENTS,
   colors,
   fonts,
   radius,
   spacing,
-  registerPassenger,
-  requestRegisterOtp,
-  verifyRegisterOtp,
+  forgotPasswordRequest,
+  forgotPasswordVerify,
+  resetPassword,
   useT,
   type StringKey,
 } from "@ubts/shared";
 
 type Step = 1 | 2 | 3;
 
-interface RegisterScreenProps {
+interface ForgotPasswordScreenProps {
   onBackToLogin: () => void;
 }
 
-export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
+export function ForgotPasswordScreen({
+  onBackToLogin,
+}: ForgotPasswordScreenProps) {
   const t = useT();
   const [step, setStep] = useState<Step>(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  // Step 1: email + otp
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [emailVerificationToken, setEmailVerificationToken] = useState("");
+  const [verificationToken, setVerificationToken] = useState("");
 
-  // Step 2: profile
-  const [fullName, setFullName] = useState("");
-  const [studentId, setStudentId] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [department, setDepartment] = useState("");
-  const [batch, setBatch] = useState("");
-  const [pickup, setPickup] = useState("");
-
-  // Step 3: password
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [done, setDone] = useState<{ fullName: string; email: string } | null>(
-    null,
-  );
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -76,14 +64,14 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
 
   const sendOtp = useCallback(async () => {
     if (!email.trim()) {
-      setError(t("auth.register.errors.email"));
+      setError(t("auth.forgot.enterEmail"));
       return;
     }
     setBusy(true);
     setError(null);
     setInfo(null);
     try {
-      const res = await requestRegisterOtp(email.trim().toLowerCase());
+      const res = await forgotPasswordRequest(email.trim().toLowerCase());
       setOtpSent(true);
       setResendCooldown(res.resendCooldownSeconds || 60);
       setInfo(
@@ -91,7 +79,7 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
       );
     } catch (e: any) {
       setError(
-        e?.response?.data?.message ?? t("auth.register.errors.send"),
+        e?.response?.data?.message ?? t("auth.forgot.codeFailedToSend"),
       );
     } finally {
       setBusy(false);
@@ -100,37 +88,25 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
 
   const verifyOtp = useCallback(async () => {
     if (!otp.trim() || otp.trim().length !== 6) {
-      setError(t("auth.register.errors.otp"));
+      setError(t("auth.forgot.enterCode"));
       return;
     }
     setBusy(true);
     setError(null);
     setInfo(null);
     try {
-      const res = await verifyRegisterOtp(email.trim().toLowerCase(), otp.trim());
-      setEmailVerificationToken(res.emailVerificationToken);
-      setStep(2);
-    } catch (e: any) {
-      setError(
-        e?.response?.data?.message ?? t("auth.register.errors.verify"),
+      const res = await forgotPasswordVerify(
+        email.trim().toLowerCase(),
+        otp.trim(),
       );
+      setVerificationToken(res.verificationToken);
+      setStep(3);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? t("auth.forgot.codeWrong"));
     } finally {
       setBusy(false);
     }
   }, [email, otp, t]);
-
-  const goToPassword = useCallback(() => {
-    setError(null);
-    if (!fullName.trim() || fullName.trim().length < 2) {
-      setError(t("auth.register.errors.fullName"));
-      return;
-    }
-    if (!studentId.trim() || studentId.trim().length < 3) {
-      setError(t("auth.register.errors.studentId"));
-      return;
-    }
-    setStep(3);
-  }, [fullName, studentId, t]);
 
   const submit = useCallback(async () => {
     setError(null);
@@ -144,43 +120,19 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
     }
     setBusy(true);
     try {
-      const result = await registerPassenger({
-        fullName: fullName.trim(),
+      await resetPassword({
         email: email.trim().toLowerCase(),
-        password,
+        verificationToken,
+        newPassword: password,
         confirmPassword,
-        studentId: studentId.trim(),
-        phoneNumber: phoneNumber.trim() || undefined,
-        academicDepartment: department.trim() || undefined,
-        academicBatch: batch.trim() || undefined,
-        transportPickupPoint: pickup.trim() || undefined,
-        emailVerificationToken,
       });
-      setDone({
-        fullName: result.user.fullName,
-        email: result.user.email,
-      });
+      setDone(true);
     } catch (e: any) {
-      setError(
-        e?.response?.data?.message ?? t("auth.register.errors.registration"),
-      );
+      setError(e?.response?.data?.message ?? t("auth.forgot.failed"));
     } finally {
       setBusy(false);
     }
-  }, [
-    batch,
-    confirmPassword,
-    department,
-    email,
-    emailVerificationToken,
-    fullName,
-    password,
-    passwordOk,
-    phoneNumber,
-    pickup,
-    studentId,
-    t,
-  ]);
+  }, [confirmPassword, email, password, passwordOk, t, verificationToken]);
 
   if (done) {
     return (
@@ -190,14 +142,14 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
             <Icon name="checkmark" size={40} color={colors.success} />
           </View>
           <Text variant="title" color={colors.foreground} style={styles.center}>
-            {t("auth.register.welcome", { name: done.fullName.split(" ")[0] })}
+            {t("auth.forgot.success")}
           </Text>
           <Text
             variant="body"
             color={colors.mutedForeground}
             style={styles.center}
           >
-            {t("auth.register.successBody")}
+            {t("auth.forgot.successBody")}
           </Text>
           <Pressable
             onPress={onBackToLogin}
@@ -214,6 +166,10 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
       </SafeAreaView>
     );
   }
+
+  // Step 1 = email, Step 2 = OTP, Step 3 = password. When otpSent toggles
+  // we move from email field to OTP field inside step 1/2.
+  const displayStep: Step = step === 3 ? 3 : otpSent ? 2 : 1;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -240,7 +196,7 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
               />
             </Pressable>
             <Text variant="caption" color={colors.mutedForeground}>
-              {t("auth.forgot.stepXofY", { x: step, y: 3 })}
+              {t("auth.forgot.stepXofY", { x: displayStep, y: 3 })}
             </Text>
             <View style={styles.spacer} />
           </View>
@@ -251,19 +207,19 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
                 key={s}
                 style={[
                   styles.stepDot,
-                  s <= step && styles.stepDotActive,
+                  s <= displayStep && styles.stepDotActive,
                 ]}
               />
             ))}
           </View>
 
-          {step === 1 ? (
+          {step !== 3 ? (
             <View style={styles.section}>
               <Text variant="title" color={colors.foreground}>
-                {t("auth.register.verifyTitle")}
+                {t("auth.forgot.title")}
               </Text>
               <Text variant="body" color={colors.mutedForeground}>
-                {t("auth.register.verifySubtitle")}
+                {t("auth.forgot.subtitle")}
               </Text>
 
               <View style={styles.form}>
@@ -344,104 +300,18 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
             </View>
           ) : null}
 
-          {step === 2 ? (
-            <View style={styles.section}>
-              <Text variant="title" color={colors.foreground}>
-                {t("auth.register.aboutYou")}
-              </Text>
-              <Text variant="body" color={colors.mutedForeground}>
-                {t("auth.register.aboutYouSubtitle")}
-              </Text>
-
-              <View style={styles.form}>
-                <Field
-                  label={t("auth.register.fullName")}
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder={t("auth.register.fullNamePlaceholder")}
-                  autoCapitalize="words"
-                />
-                <Field
-                  label={t("auth.register.studentId")}
-                  value={studentId}
-                  onChangeText={setStudentId}
-                  placeholder="221-15-XXXX"
-                  autoCapitalize="characters"
-                />
-                <Field
-                  label={t("auth.register.phoneOptional")}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  placeholder="+880 1XXX XXXXXX"
-                  keyboardType="phone-pad"
-                />
-
-                <View style={styles.field}>
-                  <Text variant="caption" color={colors.mutedForeground}>
-                    {t("auth.register.deptOptional")}
-                  </Text>
-                  <View style={styles.deptGrid}>
-                    {ACADEMIC_DEPARTMENTS.map((d) => {
-                      const active = department === d;
-                      return (
-                        <Pressable
-                          key={d}
-                          onPress={() => setDepartment(active ? "" : d)}
-                          style={[
-                            styles.deptChip,
-                            active && styles.deptChipActive,
-                          ]}
-                        >
-                          <Text
-                            variant="caption"
-                            color={
-                              active
-                                ? colors.primaryForeground
-                                : colors.foreground
-                            }
-                          >
-                            {shortenDept(d)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                <Field
-                  label={t("auth.register.batchOptional")}
-                  value={batch}
-                  onChangeText={setBatch}
-                  placeholder={ACADEMIC_BATCH_PLACEHOLDER}
-                />
-                <Field
-                  label={t("auth.register.pickupOptional")}
-                  value={pickup}
-                  onChangeText={setPickup}
-                  placeholder={t("auth.register.pickupPlaceholder")}
-                />
-
-                <PrimaryButton
-                  onPress={goToPassword}
-                  busy={false}
-                  label={t("auth.register.continue")}
-                />
-              </View>
-            </View>
-          ) : null}
-
           {step === 3 ? (
             <View style={styles.section}>
               <Text variant="title" color={colors.foreground}>
-                {t("auth.register.setPasswordTitle")}
+                {t("auth.forgot.newPasswordTitle")}
               </Text>
               <Text variant="body" color={colors.mutedForeground}>
-                {t("auth.register.setPasswordSubtitle")}
+                {t("auth.forgot.newPasswordSubtitle")}
               </Text>
 
               <View style={styles.form}>
                 <Field
-                  label={t("auth.field.password")}
+                  label={t("auth.forgot.newPassword")}
                   value={password}
                   onChangeText={setPassword}
                   placeholder={t("auth.field.passwordPlaceholder")}
@@ -459,9 +329,7 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
                   {passwordRules.map((r) => (
                     <View key={r.key} style={styles.ruleRow}>
                       <Icon
-                        name={
-                          r.met ? "checkmark-circle" : "ellipse-outline"
-                        }
+                        name={r.met ? "checkmark-circle" : "ellipse-outline"}
                         size={14}
                         color={
                           r.met ? colors.success : colors.faintForeground
@@ -482,7 +350,7 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
                 <PrimaryButton
                   onPress={submit}
                   busy={busy}
-                  label={t("auth.register.createAccount")}
+                  label={t("auth.forgot.resetPassword")}
                 />
               </View>
             </View>
@@ -562,12 +430,6 @@ function Field({
   );
 }
 
-function shortenDept(name: string): string {
-  // Show the abbreviation in parens if present, else the full name.
-  const m = name.match(/\(([^)]+)\)/);
-  return m?.[1] ?? name;
-}
-
 function evaluatePassword(p: string): { key: StringKey; met: boolean }[] {
   return [
     { key: "auth.rule.8chars", met: p.length >= 8 },
@@ -615,14 +477,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 16,
   },
-  deptGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-  deptChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.muted,
-  },
-  deptChipActive: { backgroundColor: colors.primary },
   button: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,

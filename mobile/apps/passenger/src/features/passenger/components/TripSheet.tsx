@@ -18,11 +18,18 @@ import {
 import { colors, radius, spacing } from "@ubts/shared";
 import { StopTimeline } from "./StopTimeline";
 import { OccupancyVoter } from "./OccupancyVoter";
+import { WalkToStopChip } from "./WalkToStopChip";
+import { OtherBusesCard } from "./OtherBusesCard";
+import { DestinationBanner } from "./DestinationBanner";
 import { useStopSubscriptions } from "../hooks/useStopSubscriptions";
 import { useTripOccupancy } from "../hooks/useTripOccupancy";
+import { useRouteLiveBuses } from "../hooks/useRouteLiveBuses";
+import { useDestinationStop } from "../hooks/useDestinationStop";
+import { haversineMeters } from "@ubts/shared";
 import type {
   ActiveTrip,
   LiveBusLocation,
+  PassengerLocation,
   RoutePresentation,
   TripEta,
   TripStopArrivalPayload,
@@ -37,6 +44,7 @@ interface TripSheetProps {
   route: RoutePresentation | null;
   tripEnded: boolean;
   recentArrival: TripStopArrivalPayload | null;
+  passengerLocation?: PassengerLocation | null;
   refreshing?: boolean;
   onRefresh?: () => void;
 }
@@ -59,6 +67,7 @@ export function TripSheet({
   route,
   tripEnded,
   recentArrival,
+  passengerLocation,
   refreshing = false,
   onRefresh,
 }: TripSheetProps) {
@@ -75,6 +84,35 @@ export function TripSheet({
   const occupancy = useTripOccupancy(
     selectedTrip?.status === "RUNNING" ? selectedTripId : null,
   );
+  const liveBuses = useRouteLiveBuses(
+    selectedTrip?.routeId ?? route?.routeId ?? null,
+  );
+  const destination = useDestinationStop({
+    tripId: selectedTripId || null,
+    eta,
+    routeStops: route?.stops,
+  });
+
+  // Passenger's nearest stop on the selected route + walking distance.
+  // Computed locally from the route geometry + passenger location so
+  // the chip doesn't depend on a backend round-trip.
+  const nearestStop = useMemo(() => {
+    if (!passengerLocation || !route?.stops?.length) return null;
+    let best: { stop: { id: string; name: string }; meters: number } | null =
+      null;
+    for (const stop of route.stops) {
+      const d = haversineMeters(
+        passengerLocation.latitude,
+        passengerLocation.longitude,
+        stop.latitude,
+        stop.longitude,
+      );
+      if (!best || d < best.meters) {
+        best = { stop: { id: stop.id, name: stop.name }, meters: d };
+      }
+    }
+    return best;
+  }, [passengerLocation, route?.stops]);
 
   const statusBadge = useMemo<{
     tone: StatusBadgeTone;
@@ -273,6 +311,23 @@ export function TripSheet({
           </>
         ) : null}
 
+        {/* Walk-time to nearest stop on the route — small green chip, only
+            shown when the passenger is within 5km and not already at the
+            stop. Uses local haversine, no backend round-trip. */}
+        {nearestStop && nearestStop.meters > 80 && nearestStop.meters < 5000 ? (
+          <WalkToStopChip
+            stopName={nearestStop.stop.name}
+            distanceMeters={nearestStop.meters}
+          />
+        ) : null}
+
+        {/* Destination-approaching banner — get-off-here reminder.
+            Triggered by useDestinationStop when the bus is closing in. */}
+        <DestinationBanner
+          alert={destination.alert}
+          onDismiss={destination.clearAlert}
+        />
+
         {selectedTrip?.status === "RUNNING" ? (
           <OccupancyVoter
             aggregate={occupancy.aggregate}
@@ -280,6 +335,14 @@ export function TripSheet({
             busy={occupancy.busy}
           />
         ) : null}
+
+        {/* Multi-bus comparison — only shown when another active bus
+            is running on the same route. Tap to switch to that trip. */}
+        <OtherBusesCard
+          buses={liveBuses.buses}
+          selectedTripId={selectedTripId}
+          onSelect={(tripId) => onSelectTrip(tripId)}
+        />
 
         {trips.length > 1 && (
           <ScrollView
@@ -333,6 +396,12 @@ export function TripSheet({
                   stopId,
                   stopName,
                 });
+              }}
+              isDestination={(stopId) => destination.isDestination(stopId)}
+              onToggleDestination={(stopId) => {
+                destination.setDestination(
+                  destination.isDestination(stopId) ? null : stopId,
+                );
               }}
             />
           </View>

@@ -223,6 +223,7 @@ export function LiveScreen() {
         route={route}
         tripEnded={tripEnded}
         recentArrival={recentArrival}
+        passengerLocation={passengerLocation}
         refreshing={refreshing}
         onRefresh={retry}
       />

@@ -78,6 +78,43 @@ export const STRINGS = {
     bn: "শুধু জিপিএস",
   },
 
+  // ---- walk-time / multi-bus / destination ----
+  "walk.toStop": {
+    en: "{n} min walk to {stop}",
+    bn: "{stop} পর্যন্ত {n} মিনিটের হাঁটাপথ",
+  },
+  "walk.toStopFar": {
+    en: "~{n} min walk to {stop}",
+    bn: "{stop} পর্যন্ত প্রায় {n} মিনিটের হাঁটাপথ",
+  },
+  "otherBuses.title": {
+    en: "Other buses on this route",
+    bn: "এই রুটের অন্য বাস",
+  },
+  "otherBuses.tapHint": {
+    en: "Tap to track",
+    bn: "ট্র্যাক করতে ট্যাপ করুন",
+  },
+  "otherBuses.noEta": {
+    en: "No ETA yet",
+    bn: "এখনো ETA নেই",
+  },
+  "destination.set": { en: "Set destination", bn: "গন্তব্য নির্ধারণ" },
+  "destination.clear": { en: "Clear destination", bn: "গন্তব্য মুছুন" },
+  "destination.chip": { en: "Your stop", bn: "আপনার স্টপ" },
+  "destination.approachingTitle": {
+    en: "Get off at the next stop",
+    bn: "পরের স্টপে নেমে যান",
+  },
+  "destination.approachingBody": {
+    en: "{stop} is coming up — get ready to step off.",
+    bn: "{stop} আসছে — নামার জন্য প্রস্তুত হন।",
+  },
+  "destination.atStopTitle": {
+    en: "You've reached {stop}",
+    bn: "আপনি {stop}-এ পৌঁছেছেন",
+  },
+
   // ---- onboarding ----
   "onboarding.slide1.title": {
     en: "Real-time bus tracking",

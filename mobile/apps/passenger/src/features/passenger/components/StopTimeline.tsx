@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text, Icon, colors, spacing, radius } from "@ubts/shared";
+import { Text, Icon, colors, spacing, radius, useI18n } from "@ubts/shared";
 import type { RouteStop } from "@ubts/shared";
 
 interface StopTimelineProps {
@@ -9,6 +9,8 @@ interface StopTimelineProps {
   routeId?: string | null;
   isSubscribed?: (stopId: string) => boolean;
   onToggleSubscription?: (stopId: string, stopName: string) => void;
+  isDestination?: (stopId: string) => boolean;
+  onToggleDestination?: (stopId: string, stopName: string) => void;
 }
 
 type Phase = "passed" | "current" | "upcoming";
@@ -20,7 +22,10 @@ export function StopTimeline({
   routeId,
   isSubscribed,
   onToggleSubscription,
+  isDestination,
+  onToggleDestination,
 }: StopTimelineProps) {
+  const { t } = useI18n();
   const nextOrder = useMemo(() => {
     if (!nextStopName) return null;
     const match = stops.find((s) => s.name === nextStopName);
@@ -41,6 +46,7 @@ export function StopTimeline({
                 ? "current"
                 : "upcoming";
         const isLast = index === stops.length - 1;
+        const dest = isDestination?.(stop.id) ?? false;
         return (
           <View key={stop.id} style={styles.row}>
             <View style={styles.rail}>
@@ -49,6 +55,7 @@ export function StopTimeline({
                   styles.node,
                   phase === "passed" && styles.nodePassed,
                   phase === "current" && styles.nodeCurrent,
+                  dest && styles.nodeDestination,
                 ]}
               />
               {!isLast && (
@@ -63,24 +70,59 @@ export function StopTimeline({
             <View style={styles.labelWrap}>
               <View style={styles.labelRow}>
                 <View style={styles.flex}>
-                  <Text
-                    variant={phase === "current" ? "label" : "body"}
-                    color={
-                      phase === "passed"
-                        ? colors.faintForeground
-                        : phase === "current"
-                          ? colors.primary
-                          : colors.foreground
-                    }
-                  >
-                    {stop.name}
-                  </Text>
+                  <View style={styles.nameRow}>
+                    <Text
+                      variant={phase === "current" ? "label" : "body"}
+                      color={
+                        phase === "passed"
+                          ? colors.faintForeground
+                          : phase === "current"
+                            ? colors.primary
+                            : colors.foreground
+                      }
+                    >
+                      {stop.name}
+                    </Text>
+                    {dest ? (
+                      <View style={styles.destPill}>
+                        <Icon
+                          name="flag"
+                          size={10}
+                          color={colors.primaryForeground}
+                        />
+                        <Text variant="caption" color={colors.primaryForeground}>
+                          {t("destination.chip")}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
                   {phase === "current" && (
                     <Text variant="caption" color={colors.mutedForeground}>
                       Next stop
                     </Text>
                   )}
                 </View>
+                {onToggleDestination && phase !== "passed" ? (
+                  <Pressable
+                    onPress={() => onToggleDestination(stop.id, stop.name)}
+                    hitSlop={10}
+                    style={[
+                      styles.bell,
+                      dest && styles.destActive,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: dest }}
+                    accessibilityLabel={
+                      dest ? t("destination.clear") : t("destination.set")
+                    }
+                  >
+                    <Icon
+                      name={dest ? "flag" : "flag-outline"}
+                      size={16}
+                      color={dest ? colors.primary : colors.mutedForeground}
+                    />
+                  </Pressable>
+                ) : null}
                 {routeId && onToggleSubscription && phase !== "passed" ? (
                   <Pressable
                     onPress={() => onToggleSubscription(stop.id, stop.name)}
@@ -134,6 +176,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
+  nodeDestination: {
+    borderColor: colors.warning,
+    backgroundColor: colors.warning,
+  },
   connector: {
     flex: 1,
     width: 2,
@@ -147,6 +193,21 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   labelRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    flexWrap: "wrap",
+  },
+  destPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+  },
   flex: { flex: 1 },
   bell: {
     width: 32,
@@ -157,6 +218,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.muted,
   },
   bellActive: {
+    backgroundColor: colors.primarySoft,
+  },
+  destActive: {
     backgroundColor: colors.primarySoft,
   },
 });

@@ -634,6 +634,62 @@ export const STRINGS = {
     bn: "সেটিংস খুলুন",
   },
   "notifPerm.allow": { en: "Allow", bn: "অনুমতি দিন" },
+
+  // ---- profile screen ----
+  "profile.title": { en: "Profile", bn: "প্রোফাইল" },
+  "profile.role.passenger": { en: "PASSENGER", bn: "যাত্রী" },
+  "profile.section.account": { en: "ACCOUNT", bn: "অ্যাকাউন্ট" },
+  "profile.field.fullName": { en: "Full name", bn: "পূর্ণ নাম" },
+  "profile.field.email": { en: "Email", bn: "ইমেইল" },
+  "profile.field.phone": { en: "Phone", bn: "ফোন" },
+  "profile.field.department": { en: "Department", bn: "বিভাগ" },
+  "profile.field.batch": { en: "Batch", bn: "ব্যাচ" },
+  "profile.field.pickup": { en: "Pickup point", bn: "পিকআপ স্থান" },
+  "profile.action.save": { en: "Save", bn: "সংরক্ষণ" },
+  "profile.action.cancel": { en: "Cancel", bn: "বাতিল" },
+  "profile.msg.saved": { en: "Profile updated.", bn: "প্রোফাইল আপডেট হয়েছে।" },
+  "profile.msg.saveFailed": {
+    en: "Could not update profile.",
+    bn: "প্রোফাইল আপডেট করা যায়নি।",
+  },
+
+  "profile.section.password": {
+    en: "CHANGE PASSWORD",
+    bn: "পাসওয়ার্ড পরিবর্তন",
+  },
+  "profile.field.currentPassword": {
+    en: "Current password",
+    bn: "বর্তমান পাসওয়ার্ড",
+  },
+  "profile.field.newPassword": { en: "New password", bn: "নতুন পাসওয়ার্ড" },
+  "profile.field.confirmNewPassword": {
+    en: "Confirm new password",
+    bn: "নতুন পাসওয়ার্ড নিশ্চিত করুন",
+  },
+  "profile.action.updatePassword": {
+    en: "Update password",
+    bn: "পাসওয়ার্ড আপডেট",
+  },
+  "profile.msg.passwordChanged": {
+    en: "Password changed.",
+    bn: "পাসওয়ার্ড পরিবর্তিত হয়েছে।",
+  },
+  "profile.msg.passwordMismatch": {
+    en: "New password and confirmation do not match.",
+    bn: "নতুন পাসওয়ার্ড ও নিশ্চিতকরণ মেলেনি।",
+  },
+  "profile.msg.passwordFailed": {
+    en: "Could not change password.",
+    bn: "পাসওয়ার্ড পরিবর্তন করা যায়নি।",
+  },
+
+  "profile.section.devices": { en: "DEVICES", bn: "ডিভাইস" },
+  "profile.thisDevice": { en: "This device", bn: "এই ডিভাইস" },
+  "profile.signOutOthers": {
+    en: "Sign out other devices",
+    bn: "অন্য ডিভাইস থেকে সাইন আউট",
+  },
+  "profile.signOut": { en: "Sign out", bn: "সাইন আউট" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

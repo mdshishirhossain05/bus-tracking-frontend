@@ -165,6 +165,13 @@ export function LiveScreen() {
             <TopActions onOpenMenu={() => setMenuOpen(true)} />
           </View>
         </SafeAreaView>
+
+        <HamburgerMenu
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          onNavigate={(screen) => navigate(screen)}
+          unreadCount={unreadCount}
+        />
       </View>
     );
   }

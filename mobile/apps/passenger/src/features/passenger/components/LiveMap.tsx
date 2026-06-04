@@ -26,6 +26,8 @@ interface LiveMapProps {
   passenger: PassengerLocation | null;
   following: boolean;
   stale: boolean;
+  hybrid?: boolean;
+  showTraffic?: boolean;
   onUserPan: () => void;
 }
 
@@ -36,6 +38,8 @@ export function LiveMap({
   passenger,
   following,
   stale,
+  hybrid = false,
+  showTraffic = false,
   onUserPan,
 }: LiveMapProps) {
   const initialRegion: Region = useMemo(() => {
@@ -113,7 +117,11 @@ export function LiveMap({
       ref={mapRef}
       style={StyleSheet.absoluteFill}
       provider={PROVIDER_GOOGLE}
-      customMapStyle={MAP_STYLE_DARK as unknown as MapStyleElement[]}
+      mapType={hybrid ? "hybrid" : "standard"}
+      showsTraffic={showTraffic}
+      customMapStyle={
+        hybrid ? [] : (MAP_STYLE_DARK as unknown as MapStyleElement[])
+      }
       initialRegion={initialRegion}
       showsCompass={false}
       showsMyLocationButton={false}

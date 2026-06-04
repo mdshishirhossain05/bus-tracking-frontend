@@ -22,10 +22,12 @@ import {
 import { colors, spacing, radius } from "@ubts/shared";
 import { useNotifications } from "@ubts/shared";
 import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLiveTrip";
+import { useMapPrefs } from "../features/passenger/hooks/useMapPrefs";
 import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
 import { OfflineBanner } from "../features/passenger/components/OfflineBanner";
+import { LayersFAB } from "../features/passenger/components/LayersFAB";
 import { NextBusBanner } from "../components/NextBusBanner";
 import { HamburgerMenu } from "../components/HamburgerMenu";
 import { PreTripBanner } from "../features/passenger/components/PreTripBanner";
@@ -83,6 +85,7 @@ export function LiveScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { navigate } = useNav();
   const { unreadCount } = useNotifications();
+  const { hybrid, setHybrid, traffic, setTraffic } = useMapPrefs();
 
   // A gentle haptic when the bus reaches a stop — a native-only "real" cue.
   useEffect(() => {
@@ -185,6 +188,8 @@ export function LiveScreen() {
         passenger={passengerLocation}
         following={following}
         stale={isStale || tripEnded}
+        hybrid={hybrid}
+        showTraffic={traffic}
         onUserPan={() => setFollowing(false)}
       />
 
@@ -212,6 +217,12 @@ export function LiveScreen() {
       </SafeAreaView>
 
       <View style={styles.fabWrap} pointerEvents="box-none">
+        <LayersFAB
+          hybrid={hybrid}
+          onHybridChange={setHybrid}
+          traffic={traffic}
+          onTrafficChange={setTraffic}
+        />
         <Pressable onPress={recenter}>
           <GlassSurface rounded="pill" style={styles.fab}>
             <Icon
@@ -277,6 +288,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: spacing.lg,
     bottom: "20%",
+    gap: spacing.sm,
+    alignItems: "flex-end",
   },
   fab: {
     width: 48,

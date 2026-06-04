@@ -77,6 +77,22 @@ export const STRINGS = {
     en: "GPS-only",
     bn: "শুধু জিপিএস",
   },
+
+  // ---- map layers ----
+  "map.layers.title": { en: "Map view", bn: "মানচিত্র দৃশ্য" },
+  "map.layers.hybrid": {
+    en: "Hybrid (satellite + labels)",
+    bn: "হাইব্রিড (স্যাটেলাইট + লেবেল)",
+  },
+  "map.layers.hybridHelp": {
+    en: "Useful for matching stops with real landmarks.",
+    bn: "প্রকৃত স্থানের সাথে স্টপ মেলানোর জন্য উপযোগী।",
+  },
+  "map.layers.traffic": { en: "Show traffic", bn: "ট্রাফিক দেখান" },
+  "map.layers.trafficHelp": {
+    en: "Highlights congestion on roads — handy for predicting delays.",
+    bn: "রাস্তায় যানজট দেখায় — দেরি অনুমান করতে সহায়ক।",
+  },
   "today.tab.today": { en: "Today", bn: "আজ" },
   "today.tab.tomorrow": { en: "Tomorrow", bn: "আগামীকাল" },
   "today.tab.all": { en: "All days", bn: "সব দিন" },

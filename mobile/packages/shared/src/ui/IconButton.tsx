@@ -54,9 +54,13 @@ export function IconButton({
         <BlurView
           intensity={28}
           tint="dark"
+          pointerEvents="none"
           style={[StyleSheet.absoluteFill, { borderRadius: r }]}
         />
-        <View style={[StyleSheet.absoluteFill, styles.tint, { borderRadius: r }]} />
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, styles.tint, { borderRadius: r }]}
+        />
         <Icon name={name} size={iconSize} color={color} />
       </View>
       {badge ? <Badge count={badge} /> : null}

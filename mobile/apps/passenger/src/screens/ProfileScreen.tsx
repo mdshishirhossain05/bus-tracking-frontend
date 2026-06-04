@@ -32,6 +32,7 @@ import {
 } from "@ubts/shared";
 import type { SessionInfo, UserProfile } from "@ubts/shared";
 import { useNav } from "../navigation/NavigationContext";
+import { PasswordField } from "../components/PasswordField";
 
 function Field({
   label,
@@ -380,23 +381,20 @@ export function ProfileScreen() {
         </Card>
 
         <Card icon="lock-closed-outline" title={t("profile.section.password")}>
-          <Field
+          <PasswordField
             label={t("profile.field.currentPassword")}
             value={currentPassword}
             onChangeText={setCurrentPassword}
-            secureTextEntry
           />
-          <Field
+          <PasswordField
             label={t("profile.field.newPassword")}
             value={newPassword}
             onChangeText={setNewPassword}
-            secureTextEntry
           />
-          <Field
+          <PasswordField
             label={t("profile.field.confirmNewPassword")}
             value={confirmNewPassword}
             onChangeText={setConfirmNewPassword}
-            secureTextEntry
           />
           <Button
             label={t("profile.action.updatePassword")}

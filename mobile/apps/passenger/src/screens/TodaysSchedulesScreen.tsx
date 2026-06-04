@@ -23,9 +23,9 @@ import {
   fonts,
   localizeNumber,
   useI18n,
-  type IconName,
+  type ScheduleDayType,
+  type ScheduleScope,
   type ScheduleTodayItem,
-  type ScheduleTodayStatus,
   type StatusBadgeTone,
   type StringKey,
 } from "@ubts/shared";
@@ -39,11 +39,38 @@ import { useNav } from "../navigation/NavigationContext";
 type Section = {
   key: string;
   titleKey: StringKey;
+  /** Optional literal title — used for day-of-week groupings. */
+  title?: string;
   items: ScheduleTodayItem[];
 };
 
+const TABS: { key: ScheduleScope; labelKey: StringKey }[] = [
+  { key: "today", labelKey: "today.tab.today" },
+  { key: "tomorrow", labelKey: "today.tab.tomorrow" },
+  { key: "all", labelKey: "today.tab.all" },
+];
+
+const DOW_LABEL_KEYS: Record<ScheduleDayType, StringKey> = {
+  SUNDAY: "today.dow.SUNDAY",
+  MONDAY: "today.dow.MONDAY",
+  TUESDAY: "today.dow.TUESDAY",
+  WEDNESDAY: "today.dow.WEDNESDAY",
+  THURSDAY: "today.dow.THURSDAY",
+  FRIDAY: "today.dow.FRIDAY",
+  SATURDAY: "today.dow.SATURDAY",
+};
+
+const DOW_ORDER: ScheduleDayType[] = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+];
+
 function formatTime12h(value: string): string {
-  // value is HH:mm:ss in Dhaka local time.
   const match = value.match(/^(\d{2}):(\d{2})/);
   if (!match) return value;
   const h = Number(match[1]);
@@ -59,11 +86,15 @@ function minutesUntil(departureAtIso: string): number {
   return Math.round((t - Date.now()) / 60_000);
 }
 
-function statusForItem(item: ScheduleTodayItem): {
+function statusForItem(
+  item: ScheduleTodayItem,
+  scope: ScheduleScope,
+): {
   tone: StatusBadgeTone;
   labelKey: StringKey;
   withDot: boolean;
 } | null {
+  if (scope !== "today") return null;
   if (!item.trip) {
     const minsUntil = minutesUntil(item.departureAtIso);
     if (minsUntil < -5) {
@@ -85,18 +116,20 @@ function statusForItem(item: ScheduleTodayItem): {
 
 function ScheduleRow({
   item,
+  scope,
   onTap,
   onToggleFavorite,
 }: {
   item: ScheduleTodayItem;
+  scope: ScheduleScope;
   onTap: () => void;
   onToggleFavorite: () => void;
 }) {
   const { t, locale } = useI18n();
-  const status = statusForItem(item);
+  const status = statusForItem(item, scope);
   const minsUntil = minutesUntil(item.departureAtIso);
   const showCountdown =
-    item.trip == null && minsUntil > -5 && minsUntil < 180;
+    scope === "today" && item.trip == null && minsUntil > -5 && minsUntil < 180;
   const countdownText =
     showCountdown && minsUntil <= 0
       ? t("today.now")
@@ -208,6 +241,7 @@ function ScheduleRow({
 export function TodaysSchedulesScreen() {
   const { goBack, navigate } = useNav();
   const { t } = useI18n();
+  const [scope, setScope] = useState<ScheduleScope>("today");
   const [items, setItems] = useState<ScheduleTodayItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -219,36 +253,35 @@ export function TodaysSchedulesScreen() {
       if (mode === "initial") setLoading(true);
       else setRefreshing(true);
       try {
-        const data = await getSchedulesToday();
+        const data = await getSchedulesToday(scope);
         setItems(data);
         setError(null);
       } catch (e: any) {
         setError(
-          e?.response?.data?.message ??
-            "Couldn't load today's schedules.",
+          e?.response?.data?.message ?? "Couldn't load schedules.",
         );
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [],
+    [scope],
   );
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  // Auto-refresh once per minute so the countdown labels stay accurate
-  // and status badges flip when pre-trip windows open / trips end.
+  // Auto-refresh once per minute on TODAY so countdowns + statuses stay
+  // accurate. Tomorrow / All don't need this — they don't have live data.
   useEffect(() => {
+    if (scope !== "today") return;
     const id = setInterval(() => void load("refresh"), 60_000);
     return () => clearInterval(id);
-  }, [load]);
+  }, [load, scope]);
 
   const toggleFavorite = useCallback(async (item: ScheduleTodayItem) => {
     void Haptics.selectionAsync();
-    // Optimistic flip.
     setItems((prev) =>
       prev.map((s) =>
         s.routeId === item.routeId
@@ -263,7 +296,6 @@ export function TodaysSchedulesScreen() {
         await addFavorite(item.routeId);
       }
     } catch {
-      // Rollback.
       setItems((prev) =>
         prev.map((s) =>
           s.routeId === item.routeId
@@ -286,6 +318,43 @@ export function TodaysSchedulesScreen() {
   }, [items, search]);
 
   const sections = useMemo<Section[]>(() => {
+    if (scope === "all") {
+      // Group by day-of-week, ordered Sun..Sat.
+      const groups = new Map<ScheduleDayType, ScheduleTodayItem[]>();
+      for (const s of filtered) {
+        const list = groups.get(s.dayType) ?? [];
+        list.push(s);
+        groups.set(s.dayType, list);
+      }
+      const result: Section[] = [];
+      for (const dow of DOW_ORDER) {
+        const list = groups.get(dow);
+        if (!list || list.length === 0) continue;
+        result.push({
+          key: `dow:${dow}`,
+          titleKey: DOW_LABEL_KEYS[dow],
+          items: list,
+        });
+      }
+      return result;
+    }
+
+    if (scope === "tomorrow") {
+      // Tomorrow has no trips — just one big sorted list under "Upcoming".
+      const upcoming = [...filtered].sort((a, b) =>
+        a.departureTime.localeCompare(b.departureTime),
+      );
+      if (upcoming.length === 0) return [];
+      return [
+        {
+          key: "tomorrow",
+          titleKey: "today.section.upcoming",
+          items: upcoming,
+        },
+      ];
+    }
+
+    // scope === "today" — original logic with live/pre-trip/upcoming/completed.
     const live: ScheduleTodayItem[] = [];
     const preTrip: ScheduleTodayItem[] = [];
     const upcoming: ScheduleTodayItem[] = [];
@@ -297,21 +366,16 @@ export function TodaysSchedulesScreen() {
       else if (status === "PRE_TRIP") preTrip.push(s);
       else if (status === "ENDED") completed.push(s);
       else {
-        // No trip yet → upcoming. Hide ones that departed more than 5 min
-        // ago and never opened a trip (likely no-show or cancelled day).
         const minsUntil = minutesUntil(s.departureAtIso);
         if (minsUntil >= -5) upcoming.push(s);
       }
     }
 
-    // Sort upcoming by time-to-departure (already mostly sorted by departureTime
-    // from the API but re-sort to be sure across favorites pinning).
     upcoming.sort(
       (a, b) =>
         minutesUntil(a.departureAtIso) - minutesUntil(b.departureAtIso),
     );
 
-    // Pin favourites to the top of upcoming.
     const upcomingFav = upcoming.filter((s) => s.isFavorite);
     const upcomingRest = upcoming.filter((s) => !s.isFavorite);
 
@@ -341,7 +405,24 @@ export function TodaysSchedulesScreen() {
       });
     }
     return result;
-  }, [filtered]);
+  }, [filtered, scope]);
+
+  const emptyTitle =
+    scope === "tomorrow"
+      ? t("today.empty.tomorrow.title")
+      : scope === "all"
+        ? t("today.empty.all.title")
+        : search
+          ? t("today.empty.searchTitle")
+          : t("today.empty.title");
+  const emptySubtitle =
+    scope === "tomorrow"
+      ? t("today.empty.tomorrow.subtitle")
+      : scope === "all"
+        ? t("today.empty.all.subtitle")
+        : search
+          ? t("today.empty.searchSubtitle")
+          : t("today.empty.subtitle");
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -355,6 +436,33 @@ export function TodaysSchedulesScreen() {
           {t("today.title")}
         </Text>
         <View style={styles.spacer} />
+      </View>
+
+      <View style={styles.tabs}>
+        {TABS.map((tab) => {
+          const active = scope === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => {
+                if (scope !== tab.key) {
+                  void Haptics.selectionAsync();
+                  setScope(tab.key);
+                }
+              }}
+              style={[styles.tab, active && styles.tabActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Text
+                variant="label"
+                color={active ? colors.primaryForeground : colors.foreground}
+              >
+                {t(tab.labelKey)}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={styles.searchWrap}>
@@ -406,16 +514,8 @@ export function TodaysSchedulesScreen() {
         ) : sections.length === 0 ? (
           <EmptyState
             icon="calendar-outline"
-            title={
-              search
-                ? t("today.empty.searchTitle")
-                : t("today.empty.title")
-            }
-            subtitle={
-              search
-                ? t("today.empty.searchSubtitle")
-                : t("today.empty.subtitle")
-            }
+            title={emptyTitle}
+            subtitle={emptySubtitle}
           />
         ) : (
           sections.map((section) => (
@@ -425,13 +525,14 @@ export function TodaysSchedulesScreen() {
                 color={colors.mutedForeground}
                 style={styles.sectionTitle}
               >
-                {t(section.titleKey)}
+                {section.title ?? t(section.titleKey)}
               </Text>
               <View style={styles.list}>
                 {section.items.map((item) => (
                   <ScheduleRow
                     key={item.scheduleId}
                     item={item}
+                    scope={scope}
                     onTap={() =>
                       navigate("routeDetail", {
                         routeId: item.routeId,
@@ -466,6 +567,25 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   spacer: { width: 44 },
+  tabs: {
+    flexDirection: "row",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: "center",
+    backgroundColor: colors.backgroundElevated,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  tabActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",

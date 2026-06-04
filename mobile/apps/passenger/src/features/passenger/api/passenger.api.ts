@@ -206,6 +206,22 @@ function normalizeSchedulePhase(
     : null;
 }
 
+const DAY_TYPES: ReadonlyArray<ScheduleTodayItem["dayType"]> = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+];
+
+function normalizeDayType(value: unknown): ScheduleTodayItem["dayType"] {
+  return DAY_TYPES.includes(value as any)
+    ? (value as ScheduleTodayItem["dayType"])
+    : "SUNDAY";
+}
+
 function normalizeScheduleItem(raw: any): ScheduleTodayItem | null {
   const scheduleId = asString(raw?.scheduleId);
   const routeId = asString(raw?.routeId);
@@ -221,6 +237,7 @@ function normalizeScheduleItem(raw: any): ScheduleTodayItem | null {
     driverName: asString(raw?.driverName),
     departureTime: asString(raw?.departureTime) ?? "",
     departureAtIso: asString(raw?.departureAtIso) ?? new Date().toISOString(),
+    dayType: normalizeDayType(raw?.dayType),
     notes: asString(raw?.notes),
     isFavorite: raw?.isFavorite === true,
     trip: rawTrip
@@ -237,8 +254,12 @@ function normalizeScheduleItem(raw: any): ScheduleTodayItem | null {
   };
 }
 
-export async function getSchedulesToday(): Promise<ScheduleTodayItem[]> {
-  const res = await api.get(API_ENDPOINTS.passenger.schedulesToday);
+export async function getSchedulesToday(
+  scope: "today" | "tomorrow" | "all" = "today",
+): Promise<ScheduleTodayItem[]> {
+  const res = await api.get(API_ENDPOINTS.passenger.schedulesToday, {
+    params: { day: scope },
+  });
   const data = unwrap<{ items: unknown[] }>(res.data);
   const raw = Array.isArray(data?.items) ? data.items : [];
   return raw

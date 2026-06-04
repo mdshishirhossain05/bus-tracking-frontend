@@ -231,6 +231,17 @@ export interface ScheduleTodayTripState {
   nextStopName: string | null;
 }
 
+export type ScheduleDayType =
+  | "SUNDAY"
+  | "MONDAY"
+  | "TUESDAY"
+  | "WEDNESDAY"
+  | "THURSDAY"
+  | "FRIDAY"
+  | "SATURDAY";
+
+export type ScheduleScope = "today" | "tomorrow" | "all";
+
 export interface ScheduleTodayItem {
   scheduleId: string;
   routeId: string;
@@ -241,8 +252,10 @@ export interface ScheduleTodayItem {
   driverName: string | null;
   /** HH:mm:ss in Dhaka local time. */
   departureTime: string;
-  /** UTC instant for today's departure (admin-entered local time on today's date). */
+  /** UTC instant for the relevant occurrence (today / tomorrow / next future). */
   departureAtIso: string;
+  /** Which day-of-week this schedule runs. */
+  dayType: ScheduleDayType;
   notes: string | null;
   isFavorite: boolean;
   trip: ScheduleTodayTripState | null;

@@ -24,6 +24,7 @@ import {
   useT,
   type StringKey,
 } from "@ubts/shared";
+import { PasswordField } from "../components/PasswordField";
 
 type Step = 1 | 2 | 3;
 
@@ -310,19 +311,17 @@ export function ForgotPasswordScreen({
               </Text>
 
               <View style={styles.form}>
-                <Field
+                <PasswordField
                   label={t("auth.forgot.newPassword")}
                   value={password}
                   onChangeText={setPassword}
                   placeholder={t("auth.field.passwordPlaceholder")}
-                  secureTextEntry
                 />
-                <Field
+                <PasswordField
                   label={t("auth.forgot.confirmPassword")}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder={t("auth.field.passwordPlaceholder")}
-                  secureTextEntry
                 />
 
                 <View style={styles.rules}>

@@ -77,6 +77,32 @@ export const STRINGS = {
     en: "GPS-only",
     bn: "শুধু জিপিএস",
   },
+  "today.tab.today": { en: "Today", bn: "আজ" },
+  "today.tab.tomorrow": { en: "Tomorrow", bn: "আগামীকাল" },
+  "today.tab.all": { en: "All days", bn: "সব দিন" },
+  "today.dow.SUNDAY": { en: "Sunday", bn: "রবিবার" },
+  "today.dow.MONDAY": { en: "Monday", bn: "সোমবার" },
+  "today.dow.TUESDAY": { en: "Tuesday", bn: "মঙ্গলবার" },
+  "today.dow.WEDNESDAY": { en: "Wednesday", bn: "বুধবার" },
+  "today.dow.THURSDAY": { en: "Thursday", bn: "বৃহস্পতিবার" },
+  "today.dow.FRIDAY": { en: "Friday", bn: "শুক্রবার" },
+  "today.dow.SATURDAY": { en: "Saturday", bn: "শনিবার" },
+  "today.empty.tomorrow.title": {
+    en: "No buses scheduled for tomorrow",
+    bn: "আগামীকালের জন্য কোনো বাস নেই",
+  },
+  "today.empty.tomorrow.subtitle": {
+    en: "Check back the day before — or look at the All days tab.",
+    bn: "একদিন আগে আবার দেখুন — অথবা সব দিন ট্যাবে দেখুন।",
+  },
+  "today.empty.all.title": {
+    en: "No schedules created yet",
+    bn: "এখনো কোনো সময়সূচী তৈরি হয়নি",
+  },
+  "today.empty.all.subtitle": {
+    en: "Ask your admin to add bus schedules in the web admin.",
+    bn: "অ্যাডমিনকে ওয়েবে বাসের সময়সূচী যোগ করতে বলুন।",
+  },
 
   // ---- walk-time / multi-bus / destination ----
   "walk.toStop": {

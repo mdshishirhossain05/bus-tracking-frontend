@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, useT } from "@ubts/shared";
 import { colors, fonts, radius, spacing } from "@ubts/shared";
 import { useAuth } from "@ubts/shared";
+import { PasswordField } from "../components/PasswordField";
 
 interface LoginScreenProps {
   onGoToRegister?: () => void;
@@ -70,12 +71,11 @@ export function LoginScreen({
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <Field
+            <PasswordField
               label={t("auth.field.password")}
               value={password}
               onChangeText={setPassword}
               placeholder={t("auth.field.passwordPlaceholder")}
-              secureTextEntry
             />
 
             {error && (

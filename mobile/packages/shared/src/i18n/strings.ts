@@ -249,6 +249,9 @@ export const STRINGS = {
     en: "Arrived at {stop}",
     bn: "{stop}-এ পৌঁছেছে",
   },
+  "stop.badge.passed": { en: "Passed", bn: "অতিক্রান্ত" },
+  "stop.badge.now": { en: "Next", bn: "পরবর্তী" },
+  "stop.badge.destination": { en: "Your stop", bn: "আপনার স্টপ" },
 
   // ---- occupancy ----
   "occupancy.howCrowded": { en: "HOW CROWDED?", bn: "কতটা ভিড়?" },

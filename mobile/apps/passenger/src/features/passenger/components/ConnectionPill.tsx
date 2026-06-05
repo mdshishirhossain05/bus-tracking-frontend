@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { GlassSurface } from "@ubts/shared";
 import { Text } from "@ubts/shared";
@@ -14,8 +14,47 @@ const STATUS: Record<ConnectionStatus, { label: string; color: string }> = {
   error: { label: "Connection error", color: colors.danger },
 };
 
-export function ConnectionPill({ status }: { status: ConnectionStatus }) {
-  const meta = STATUS[status];
+const FRESH_DATA_MS = 45_000;
+const NEGATIVE_DEBOUNCE_MS = 4000;
+
+/**
+ * The pill represents what the user can trust. When live data is fresh,
+ * we always show "Live" — the underlying socket may be reconnecting in
+ * the background but that's not the user's concern. Negative states are
+ * also debounced so a brief blip never flashes a scary "Error".
+ */
+export function ConnectionPill({
+  status,
+  lastLiveUpdatedAt,
+}: {
+  status: ConnectionStatus;
+  lastLiveUpdatedAt?: string | null;
+}) {
+  const dataAgeMs = lastLiveUpdatedAt
+    ? Date.now() - new Date(lastLiveUpdatedAt).getTime()
+    : Number.POSITIVE_INFINITY;
+  const dataFresh = dataAgeMs < FRESH_DATA_MS;
+
+  const isNegative =
+    status === "disconnected" ||
+    status === "error" ||
+    status === "stale" ||
+    status === "reconnecting";
+
+  const [debouncedStatus, setDebouncedStatus] = useState(status);
+  useEffect(() => {
+    if (!isNegative) {
+      setDebouncedStatus(status);
+      return;
+    }
+    const id = setTimeout(() => setDebouncedStatus(status), NEGATIVE_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [status, isNegative]);
+
+  const effective: ConnectionStatus =
+    dataFresh && isNegative ? "connected" : debouncedStatus;
+
+  const meta = STATUS[effective];
   return (
     <GlassSurface rounded="pill" style={styles.pill}>
       <View style={[styles.dot, { backgroundColor: meta.color }]} />

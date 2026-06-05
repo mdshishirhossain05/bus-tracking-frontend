@@ -52,7 +52,10 @@ export const STRINGS = {
   "today.section.preTrip": { en: "Departing soon", bn: "শীঘ্রই ছাড়বে" },
   "today.section.upcoming": { en: "Upcoming today", bn: "আজকের পরবর্তী" },
   "today.section.completed": { en: "Completed today", bn: "আজ শেষ হয়েছে" },
+  "today.section.notLive": { en: "Not live yet", bn: "এখনো শুরু হয়নি" },
   "today.section.favorites": { en: "Your favorites", bn: "আপনার পছন্দের" },
+  "today.badge.notLive": { en: "Not live yet", bn: "শুরু হয়নি" },
+  "today.badge.delayed": { en: "Departed, no trip yet", bn: "ছাড়ার সময় পেরিয়েছে" },
   "today.empty.title": {
     en: "No schedules for today",
     bn: "আজ কোনো সময়সূচী নেই",

@@ -193,7 +193,9 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
     ? "Finding your stop…"
     : journey
       ? journey.headline
-      : "No buses running";
+      : liveBuses.length > 0
+        ? `${liveBuses.length} bus${liveBuses.length > 1 ? "es" : ""} live`
+        : "No buses running";
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -223,6 +225,15 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
             </Text>
           ) : journey ? (
             <JourneyStatusView journey={journey} />
+          ) : liveBuses.length > 0 ? (
+            <>
+              <Text variant="title" color={colors.success}>
+                {liveBuses.length} bus{liveBuses.length > 1 ? "es" : ""} live
+              </Text>
+              <Text variant="body" color={colors.mutedForeground}>
+                Locating along the route — exact ETA appears shortly.
+              </Text>
+            </>
           ) : (
             <>
               <Text variant="title" color={colors.foreground}>

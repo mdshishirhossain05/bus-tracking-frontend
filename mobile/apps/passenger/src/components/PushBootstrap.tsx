@@ -6,7 +6,7 @@ import Constants from "expo-constants";
 import { registerPushToken, useNotifications } from "@ubts/shared";
 import { useNav } from "../navigation/NavigationContext";
 
-// Show a banner while the app is foregrounded too.
+// Show a heads-up banner while the app is foregrounded too.
 Notifications.setNotificationHandler({
   handleNotification: async () =>
     ({
@@ -27,9 +27,11 @@ function getProjectId(): string | undefined {
 
 /**
  * Registers this device's Expo push token with the backend and routes taps.
- * Entirely best-effort: if permission is denied, there's no EAS projectId, or
- * the device is an emulator, it silently no-ops and in-app notifications still
- * work via polling.
+ * The Android notification channel is created unconditionally — channel
+ * creation is a manifest-level setup that has to exist before any push
+ * arrives, including pushes sent to emulators in dev. Token registration
+ * still gates on a real device because Expo push doesn't issue tokens
+ * for the emulator.
  */
 export function PushBootstrap() {
   const { refresh } = useNotifications();
@@ -38,26 +40,55 @@ export function PushBootstrap() {
 
   useEffect(() => {
     let active = true;
-    (async () => {
-      try {
-        if (!Device.isDevice || registered.current) return;
 
-        if (Platform.OS === "android") {
+    (async () => {
+      // ---- Channel setup first, always. ----
+      // On Android, this MUST exist before any incoming push is processed,
+      // otherwise the system silently drops the notification with no UI
+      // surface. We create it on every launch (idempotent) so a token
+      // registration race can't beat us to it.
+      if (Platform.OS === "android") {
+        try {
           await Notifications.setNotificationChannelAsync("default", {
             name: "Bus alerts",
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
             lightColor: "#3b82f6",
+            sound: "default",
+            lockscreenVisibility:
+              Notifications.AndroidNotificationVisibility.PUBLIC,
+            enableLights: true,
+            enableVibrate: true,
           });
+        } catch {
+          // Channel creation failures are non-fatal — push may still work
+          // if a default channel was created previously.
         }
+      }
 
+      // ---- Permission request (always, even on emulators so the UX is
+      // consistent — emulator just won't deliver real pushes). ----
+      try {
         const current = await Notifications.getPermissionsAsync();
         let granted = current.granted;
         if (!granted && current.canAskAgain) {
-          granted = (await Notifications.requestPermissionsAsync()).granted;
+          const requested = await Notifications.requestPermissionsAsync({
+            android: {
+              allowAlert: true,
+              allowBadge: true,
+              allowSound: true,
+            } as any,
+          });
+          granted = requested.granted;
         }
         if (!granted) return;
+      } catch {
+        return;
+      }
 
+      // ---- Token fetch + register (real devices only). ----
+      try {
+        if (!Device.isDevice || registered.current) return;
         const projectId = getProjectId();
         const result = await Notifications.getExpoPushTokenAsync(
           projectId ? { projectId } : (undefined as any),
@@ -72,6 +103,7 @@ export function PushBootstrap() {
         // Push is optional — never block the app on it.
       }
     })();
+
     return () => {
       active = false;
     };

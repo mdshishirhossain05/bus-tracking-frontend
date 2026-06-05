@@ -195,10 +195,16 @@ export function LiveScreen() {
 
       <SafeAreaView style={styles.overlay} pointerEvents="box-none" edges={["top"]}>
         <View style={styles.topBar} pointerEvents="box-none">
-          <ConnectionPill status={connectionStatus} />
+          <ConnectionPill
+            status={connectionStatus}
+            lastLiveUpdatedAt={liveState?.updatedAt}
+          />
           <TopActions onOpenMenu={() => setMenuOpen(true)} />
         </View>
-        <OfflineBanner status={connectionStatus} />
+        <OfflineBanner
+          status={connectionStatus}
+          lastLiveUpdatedAt={liveState?.updatedAt}
+        />
         {/* Service alerts always trump everything else — admin's voice. */}
         <ServiceAlertBanner
           routeId={trips.find((t) => t.tripId === selectedTripId)?.routeId}

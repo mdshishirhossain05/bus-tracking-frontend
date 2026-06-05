@@ -538,9 +538,22 @@ export function ProfileScreen() {
             >
               <Icon name="hardware-chip-outline" size={18} color={colors.faintForeground} />
               <View style={styles.flex}>
-                <View style={styles.sessionTitle}>
-                  <Text variant="label" color={colors.foreground} numberOfLines={1}>
-                    {s.deviceLabel ?? s.userAgentRaw ?? "Device"}
+                <Text
+                  variant="label"
+                  color={colors.foreground}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {s.deviceLabel ?? s.userAgentRaw ?? "Device"}
+                </Text>
+                <View style={styles.sessionMeta}>
+                  <Text
+                    variant="caption"
+                    color={colors.faintForeground}
+                    numberOfLines={1}
+                    style={styles.flex}
+                  >
+                    {formatWhen(s.lastSeenAt ?? s.createdAt)}
                   </Text>
                   {s.current ? (
                     <View style={styles.thisChip}>
@@ -550,9 +563,6 @@ export function ProfileScreen() {
                     </View>
                   ) : null}
                 </View>
-                <Text variant="caption" color={colors.faintForeground}>
-                  {formatWhen(s.lastSeenAt ?? s.createdAt)}
-                </Text>
               </View>
               {!s.current ? (
                 <Pressable onPress={() => void onRevoke(s.id)} hitSlop={8}>
@@ -666,8 +676,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   sessionLast: { borderBottomWidth: 0 },
-  sessionTitle: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  sessionMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: 2,
+  },
   thisChip: {
+    flexShrink: 0,
     backgroundColor: "rgba(34, 197, 94, 0.14)",
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,

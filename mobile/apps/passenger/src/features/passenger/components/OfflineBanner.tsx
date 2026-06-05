@@ -3,31 +3,47 @@ import { StyleSheet, View } from "react-native";
 import { colors, radius, spacing, Icon, Text, useT } from "@ubts/shared";
 import type { ConnectionStatus } from "@ubts/shared";
 
-const STABLE_MS = 4000;
+const STABLE_MS = 6000;
+const FRESH_DATA_MS = 45_000;
 
 /**
- * Shows a prominent banner when the socket is disconnected/errored/stale
- * for more than STABLE_MS. We delay rendering on purpose so a brief blip
- * (driving through a tunnel, app waking up) doesn't flash the banner.
+ * Shows when the socket is disconnected/errored AND no live data has
+ * arrived recently. The socket flapping is normal in mobile networks —
+ * we only surface "offline" when the user actually loses ground truth.
  */
-export function OfflineBanner({ status }: { status: ConnectionStatus }) {
+export function OfflineBanner({
+  status,
+  lastLiveUpdatedAt,
+}: {
+  status: ConnectionStatus;
+  lastLiveUpdatedAt?: string | null;
+}) {
   const t = useT();
   const [show, setShow] = useState(false);
 
-  const offline =
+  const socketDown =
     status === "disconnected" ||
     status === "error" ||
     status === "stale" ||
     status === "reconnecting";
 
+  const dataAgeMs = lastLiveUpdatedAt
+    ? Date.now() - new Date(lastLiveUpdatedAt).getTime()
+    : Number.POSITIVE_INFINITY;
+  const dataFresh = dataAgeMs < FRESH_DATA_MS;
+
+  // If we have fresh live data, the socket-level status is misleading —
+  // polling or initial fetch is keeping the UI accurate.
+  const shouldShow = socketDown && !dataFresh;
+
   useEffect(() => {
-    if (!offline) {
+    if (!shouldShow) {
       setShow(false);
       return;
     }
     const id = setTimeout(() => setShow(true), STABLE_MS);
     return () => clearTimeout(id);
-  }, [offline]);
+  }, [shouldShow]);
 
   if (!show) return null;
 

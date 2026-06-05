@@ -3,6 +3,8 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from "axios";
+import { Platform } from "react-native";
+import * as Device from "expo-device";
 import { env } from "../../config/env";
 import {
   clearTokens,
@@ -14,7 +16,22 @@ import {
 type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 /** Marks this client as mobile so the backend returns tokens in the body. */
-const MOBILE_HEADERS = { "X-Client-Type": "mobile" };
+const MOBILE_HEADERS: Record<string, string> = { "X-Client-Type": "mobile" };
+
+// Device-identification headers — read once at module load. The backend
+// uses these to label sessions on the profile "Devices" list. Without
+// them the only signal is the okhttp user-agent string, which the
+// backend can't parse into anything useful.
+const deviceModel =
+  Device.deviceName?.trim() ||
+  [Device.brand, Device.modelName].filter(Boolean).join(" ").trim() ||
+  Device.modelName ||
+  "Mobile device";
+const deviceOs =
+  [Device.osName, Device.osVersion].filter(Boolean).join(" ").trim() ||
+  Platform.OS;
+MOBILE_HEADERS["X-Device-Model"] = deviceModel;
+MOBILE_HEADERS["X-Device-Os"] = deviceOs;
 
 export const api = axios.create({
   baseURL: env.apiBaseUrl,

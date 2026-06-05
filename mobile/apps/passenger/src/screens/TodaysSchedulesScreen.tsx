@@ -98,9 +98,11 @@ function statusForItem(
   if (!item.trip) {
     const minsUntil = minutesUntil(item.departureAtIso);
     if (minsUntil < -5) {
-      return { tone: "muted", labelKey: "today.passed", withDot: false };
+      // Past scheduled departure with no trip started — make it visible
+      // so the passenger isn't waiting in confusion.
+      return { tone: "delayed", labelKey: "today.badge.delayed", withDot: true };
     }
-    return null;
+    return { tone: "muted", labelKey: "today.badge.notLive", withDot: false };
   }
   switch (item.trip.status) {
     case "RUNNING":
@@ -354,10 +356,11 @@ export function TodaysSchedulesScreen() {
       ];
     }
 
-    // scope === "today" — original logic with live/pre-trip/upcoming/completed.
+    // scope === "today" — group by lifecycle so the user can scan the day.
     const live: ScheduleTodayItem[] = [];
     const preTrip: ScheduleTodayItem[] = [];
     const upcoming: ScheduleTodayItem[] = [];
+    const notLiveYet: ScheduleTodayItem[] = []; // past departure, no trip yet
     const completed: ScheduleTodayItem[] = [];
 
     for (const s of filtered) {
@@ -367,13 +370,20 @@ export function TodaysSchedulesScreen() {
       else if (status === "ENDED") completed.push(s);
       else {
         const minsUntil = minutesUntil(s.departureAtIso);
+        // Future / starting-soon → "Upcoming". Past with no trip → "Not live
+        // yet" so the passenger still sees the schedule and knows it's
+        // delayed (instead of it silently disappearing).
         if (minsUntil >= -5) upcoming.push(s);
+        else notLiveYet.push(s);
       }
     }
 
     upcoming.sort(
       (a, b) =>
         minutesUntil(a.departureAtIso) - minutesUntil(b.departureAtIso),
+    );
+    notLiveYet.sort((a, b) =>
+      a.departureTime.localeCompare(b.departureTime),
     );
 
     const upcomingFav = upcoming.filter((s) => s.isFavorite);
@@ -395,6 +405,13 @@ export function TodaysSchedulesScreen() {
         key: "upcoming",
         titleKey: "today.section.upcoming",
         items: [...upcomingFav, ...upcomingRest],
+      });
+    }
+    if (notLiveYet.length) {
+      result.push({
+        key: "notLiveYet",
+        titleKey: "today.section.notLive",
+        items: notLiveYet,
       });
     }
     if (completed.length) {

@@ -1,6 +1,14 @@
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Text, Icon, colors, spacing, radius, useI18n } from "@ubts/shared";
+import {
+  Text,
+  Icon,
+  StatusBadge,
+  colors,
+  spacing,
+  radius,
+  useI18n,
+} from "@ubts/shared";
 import type { RouteStop } from "@ubts/shared";
 
 interface StopTimelineProps {
@@ -15,7 +23,14 @@ interface StopTimelineProps {
 
 type Phase = "passed" | "current" | "upcoming";
 
-/** Vertical metro-line itinerary: passed stops dim, the next stop is accented. */
+/**
+ * Vertical metro-line itinerary for the live trip sheet.
+ * - Passed: green-filled node with a checkmark, name in muted green
+ * - Current (next stop the bus is heading to): primary-filled node,
+ *   name highlighted, "Next" badge on the right
+ * - Upcoming: empty node, normal name
+ * - Destination: warning-coloured node + "Your stop" badge takes over
+ */
 export function StopTimeline({
   stops,
   nextStopName,
@@ -47,6 +62,15 @@ export function StopTimeline({
                 : "upcoming";
         const isLast = index === stops.length - 1;
         const dest = isDestination?.(stop.id) ?? false;
+
+        const nameColor = dest
+          ? colors.warning
+          : phase === "current"
+            ? colors.primary
+            : phase === "passed"
+              ? colors.success
+              : colors.foreground;
+
         return (
           <View key={stop.id} style={styles.row}>
             <View style={styles.rail}>
@@ -57,7 +81,15 @@ export function StopTimeline({
                   phase === "current" && styles.nodeCurrent,
                   dest && styles.nodeDestination,
                 ]}
-              />
+              >
+                {phase === "passed" ? (
+                  <Icon
+                    name="checkmark"
+                    size={10}
+                    color={colors.primaryForeground}
+                  />
+                ) : null}
+              </View>
               {!isLast && (
                 <View
                   style={[
@@ -72,44 +104,43 @@ export function StopTimeline({
                 <View style={styles.flex}>
                   <View style={styles.nameRow}>
                     <Text
-                      variant={phase === "current" ? "label" : "body"}
-                      color={
-                        phase === "passed"
-                          ? colors.faintForeground
-                          : phase === "current"
-                            ? colors.primary
-                            : colors.foreground
+                      variant={
+                        phase === "current" || dest ? "label" : "body"
                       }
+                      color={nameColor}
                     >
                       {stop.name}
                     </Text>
-                    {dest ? (
-                      <View style={styles.destPill}>
-                        <Icon
-                          name="flag"
-                          size={10}
-                          color={colors.primaryForeground}
-                        />
-                        <Text variant="caption" color={colors.primaryForeground}>
-                          {t("destination.chip")}
-                        </Text>
-                      </View>
-                    ) : null}
                   </View>
-                  {phase === "current" && (
-                    <Text variant="caption" color={colors.mutedForeground}>
-                      Next stop
-                    </Text>
-                  )}
                 </View>
+
+                {/* Status / destination badges */}
+                {dest ? (
+                  <StatusBadge
+                    tone="delayed"
+                    label={t("stop.badge.destination")}
+                    withDot
+                  />
+                ) : phase === "current" ? (
+                  <StatusBadge
+                    tone="live"
+                    label={t("stop.badge.now")}
+                    withDot
+                  />
+                ) : phase === "passed" ? (
+                  <StatusBadge
+                    tone="success"
+                    label={t("stop.badge.passed")}
+                    withDot={false}
+                  />
+                ) : null}
+
+                {/* Destination toggle (flag) */}
                 {onToggleDestination && phase !== "passed" ? (
                   <Pressable
                     onPress={() => onToggleDestination(stop.id, stop.name)}
                     hitSlop={10}
-                    style={[
-                      styles.bell,
-                      dest && styles.destActive,
-                    ]}
+                    style={[styles.bell, dest && styles.destActive]}
                     accessibilityRole="button"
                     accessibilityState={{ selected: dest }}
                     accessibilityLabel={
@@ -119,10 +150,12 @@ export function StopTimeline({
                     <Icon
                       name={dest ? "flag" : "flag-outline"}
                       size={16}
-                      color={dest ? colors.primary : colors.mutedForeground}
+                      color={dest ? colors.warning : colors.mutedForeground}
                     />
                   </Pressable>
                 ) : null}
+
+                {/* Stop subscription toggle (bell) */}
                 {routeId && onToggleSubscription && phase !== "passed" ? (
                   <Pressable
                     onPress={() => onToggleSubscription(stop.id, stop.name)}
@@ -156,7 +189,7 @@ export function StopTimeline({
   );
 }
 
-const NODE = 14;
+const NODE = 18;
 
 const styles = StyleSheet.create({
   container: { paddingVertical: spacing.sm },
@@ -169,9 +202,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.mutedForeground,
     backgroundColor: colors.background,
-    marginTop: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    // Bumped from 2 → 5 so the dot centres on the first line of the
+    // stop name.
+    marginTop: 5,
   },
-  nodePassed: { borderColor: colors.faintForeground, opacity: 0.6 },
+  nodePassed: {
+    borderColor: colors.success,
+    backgroundColor: colors.success,
+  },
   nodeCurrent: {
     borderColor: colors.primary,
     backgroundColor: colors.primary,
@@ -186,27 +226,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     marginVertical: 2,
   },
-  connectorPassed: { backgroundColor: colors.faintForeground, opacity: 0.5 },
+  connectorPassed: { backgroundColor: colors.success },
   labelWrap: {
     flex: 1,
     paddingLeft: spacing.md,
     paddingBottom: spacing.md,
   },
-  labelRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
     flexWrap: "wrap",
-  },
-  destPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
   },
   flex: { flex: 1 },
   bell: {
@@ -221,6 +256,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
   },
   destActive: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: "rgba(245, 158, 11, 0.18)",
   },
 });

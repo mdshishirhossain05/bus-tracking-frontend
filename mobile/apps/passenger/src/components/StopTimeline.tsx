@@ -59,6 +59,7 @@ export function StopTimeline({ stops, busIndex, myIndex, etaMin }: Props) {
               <View
                 style={[
                   styles.connector,
+                  styles.connectorTop,
                   { backgroundColor: first ? "transparent" : lineAbove },
                 ]}
               />
@@ -77,6 +78,7 @@ export function StopTimeline({ stops, busIndex, myIndex, etaMin }: Props) {
               <View
                 style={[
                   styles.connector,
+                  styles.connectorBottom,
                   { backgroundColor: last ? "transparent" : lineBelow },
                 ]}
               />
@@ -103,7 +105,12 @@ const styles = StyleSheet.create({
   wrap: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   row: { flexDirection: "row", alignItems: "stretch", gap: spacing.md },
   rail: { width: 24, alignItems: "center" },
-  connector: { flex: 1, width: 2, minHeight: 10 },
+  // Fixed-height top connector keeps the dot near the top of each row so
+  // it lines up with the first line of the stop name (rather than the
+  // vertical centre of a multi-line body block).
+  connector: { width: 2, minHeight: 10 },
+  connectorTop: { height: 10 },
+  connectorBottom: { flex: 1 },
   dot: {
     width: 22,
     height: 22,
@@ -111,5 +118,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  body: { flex: 1, paddingVertical: spacing.sm, gap: 1 },
+  body: { flex: 1, paddingTop: 6, paddingBottom: spacing.sm, gap: 1 },
 });

@@ -169,7 +169,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.mutedForeground,
     backgroundColor: colors.background,
-    marginTop: 2,
+    // Bumped from 2 → 7 so the dot centres on the first line of the
+    // stop name instead of sitting slightly above it.
+    marginTop: 7,
   },
   nodePassed: { borderColor: colors.faintForeground, opacity: 0.6 },
   nodeCurrent: {

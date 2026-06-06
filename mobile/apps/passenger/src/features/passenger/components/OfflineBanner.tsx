@@ -3,20 +3,26 @@ import { StyleSheet, View } from "react-native";
 import { colors, radius, spacing, Icon, Text, useT } from "@ubts/shared";
 import type { ConnectionStatus } from "@ubts/shared";
 
-const STABLE_MS = 6000;
-const FRESH_DATA_MS = 45_000;
+const STABLE_MS = 8000;
+const FRESH_FETCH_MS = 30_000;
 
 /**
- * Shows when the socket is disconnected/errored AND no live data has
- * arrived recently. The socket flapping is normal in mobile networks —
- * we only surface "offline" when the user actually loses ground truth.
+ * Shows ONLY when:
+ *   - The socket is in a negative state, AND
+ *   - It's been more than 30s since ANY successful REST/socket update.
+ *
+ * The key fix: we no longer gate on liveState.updatedAt (which can stay
+ * null forever if no GPS packets have arrived even though everything is
+ * reachable). `lastFetchAt` is bumped on every successful poll, so as
+ * long as REST is working, the banner stays hidden — exactly the user
+ * experience we want.
  */
 export function OfflineBanner({
   status,
-  lastLiveUpdatedAt,
+  lastFetchAt,
 }: {
   status: ConnectionStatus;
-  lastLiveUpdatedAt?: string | null;
+  lastFetchAt?: string | null;
 }) {
   const t = useT();
   const [show, setShow] = useState(false);
@@ -27,14 +33,13 @@ export function OfflineBanner({
     status === "stale" ||
     status === "reconnecting";
 
-  const dataAgeMs = lastLiveUpdatedAt
-    ? Date.now() - new Date(lastLiveUpdatedAt).getTime()
+  const fetchAgeMs = lastFetchAt
+    ? Date.now() - new Date(lastFetchAt).getTime()
     : Number.POSITIVE_INFINITY;
-  const dataFresh = dataAgeMs < FRESH_DATA_MS;
+  const reachable = fetchAgeMs < FRESH_FETCH_MS;
 
-  // If we have fresh live data, the socket-level status is misleading —
-  // polling or initial fetch is keeping the UI accurate.
-  const shouldShow = socketDown && !dataFresh;
+  // If REST is responding, suppress the banner regardless of socket state.
+  const shouldShow = socketDown && !reachable;
 
   useEffect(() => {
     if (!shouldShow) {

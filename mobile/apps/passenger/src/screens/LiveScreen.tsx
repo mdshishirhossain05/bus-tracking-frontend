@@ -77,6 +77,7 @@ export function LiveScreen() {
     tripEnded,
     passengerLocation,
     preTripPhase,
+    lastFetchAt,
     retry,
   } = usePassengerLiveTrip();
 
@@ -197,13 +198,13 @@ export function LiveScreen() {
         <View style={styles.topBar} pointerEvents="box-none">
           <ConnectionPill
             status={connectionStatus}
-            lastLiveUpdatedAt={liveState?.updatedAt}
+            lastFetchAt={lastFetchAt}
           />
           <TopActions onOpenMenu={() => setMenuOpen(true)} />
         </View>
         <OfflineBanner
           status={connectionStatus}
-          lastLiveUpdatedAt={liveState?.updatedAt}
+          lastFetchAt={lastFetchAt}
         />
         {/* Service alerts always trump everything else — admin's voice. */}
         <ServiceAlertBanner

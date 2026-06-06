@@ -14,26 +14,26 @@ const STATUS: Record<ConnectionStatus, { label: string; color: string }> = {
   error: { label: "Connection error", color: colors.danger },
 };
 
-const FRESH_DATA_MS = 45_000;
-const NEGATIVE_DEBOUNCE_MS = 4000;
+const FRESH_FETCH_MS = 30_000;
+const NEGATIVE_DEBOUNCE_MS = 6000;
 
 /**
- * The pill represents what the user can trust. When live data is fresh,
- * we always show "Live" — the underlying socket may be reconnecting in
- * the background but that's not the user's concern. Negative states are
- * also debounced so a brief blip never flashes a scary "Error".
+ * Truth signal: while REST polling is succeeding, show "Live" — the
+ * underlying socket can be reconnecting in the background and that is
+ * not the user's concern. Negative states are also debounced 6s so a
+ * brief blip never flashes a scary "Connection error".
  */
 export function ConnectionPill({
   status,
-  lastLiveUpdatedAt,
+  lastFetchAt,
 }: {
   status: ConnectionStatus;
-  lastLiveUpdatedAt?: string | null;
+  lastFetchAt?: string | null;
 }) {
-  const dataAgeMs = lastLiveUpdatedAt
-    ? Date.now() - new Date(lastLiveUpdatedAt).getTime()
+  const fetchAgeMs = lastFetchAt
+    ? Date.now() - new Date(lastFetchAt).getTime()
     : Number.POSITIVE_INFINITY;
-  const dataFresh = dataAgeMs < FRESH_DATA_MS;
+  const reachable = fetchAgeMs < FRESH_FETCH_MS;
 
   const isNegative =
     status === "disconnected" ||
@@ -51,8 +51,10 @@ export function ConnectionPill({
     return () => clearTimeout(id);
   }, [status, isNegative]);
 
+  // While the REST layer is alive, present as "connected" — that's the
+  // truth from the user's perspective.
   const effective: ConnectionStatus =
-    dataFresh && isNegative ? "connected" : debouncedStatus;
+    reachable && isNegative ? "connected" : debouncedStatus;
 
   const meta = STATUS[effective];
   return (

@@ -114,6 +114,14 @@ export function usePassengerLiveTrip() {
   const [preTripPhase, setPreTripPhase] = useState<PreTripPhaseState | null>(
     null,
   );
+  /**
+   * Wall-clock of the most recent successful trip-data fetch (REST OR
+   * socket update). This is the real "are we online?" signal — if the
+   * REST API is responding, the user is functionally online regardless
+   * of whether the WebSocket has connected. ConnectionPill + OfflineBanner
+   * both gate on this so socket flapping never trips a false alarm.
+   */
+  const [lastFetchAt, setLastFetchAt] = useState<string | null>(null);
 
   const staleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const arrivalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -197,6 +205,9 @@ export function usePassengerLiveTrip() {
       setLiveSafe(state);
       setEta(tripEta);
       setTripEnded(false);
+      // Mark this round-trip as proof we're reachable, regardless of
+      // whether GPS data has actually arrived yet.
+      setLastFetchAt(new Date().toISOString());
 
       const resolvedRouteId = routeId ?? state?.routeId ?? null;
       if (resolvedRouteId) void loadRoute(resolvedRouteId);
@@ -316,6 +327,24 @@ export function usePassengerLiveTrip() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * REST polling fallback while a trip is selected. Without this, a
+   * dropped Socket.IO connection would leave the live screen frozen and
+   * the connection pill stuck on "Error" forever — exactly what the
+   * pilot users were hitting. Polling at 10s gives us a 1-2 update
+   * cadence even when the WebSocket is failing, AND keeps `lastFetchAt`
+   * fresh so the offline banner stays hidden when the REST surface is
+   * actually working.
+   */
+  useEffect(() => {
+    if (!selectedTripId) return;
+    const POLL_MS = 10_000;
+    const id = setInterval(() => {
+      void loadTripData(selectedTripId).catch(() => undefined);
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [selectedTripId, loadTripData]);
+
   // Auto-track route visits: once a passenger has dwelled on a specific
   // trip for the visit-floor window (60 s), record the visit so it shows
   // up in their history + stats. We end the visit on cleanup so the
@@ -387,6 +416,7 @@ export function usePassengerLiveTrip() {
       setTripEnded(false);
       setConnectionStatus("connected");
       setIsStale(false);
+      setLastFetchAt(new Date().toISOString());
       armStaleTimer();
     };
     const onEta = (payload: any) => {
@@ -540,6 +570,7 @@ export function usePassengerLiveTrip() {
     recentArrival,
     connectionStatus,
     isStale,
+    lastFetchAt,
     tripEnded,
     passengerLocation,
     preTripPhase,

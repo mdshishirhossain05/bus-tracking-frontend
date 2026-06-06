@@ -29,11 +29,16 @@ function timeAgo(iso: string): string {
 function iconForType(type: string): IconName {
   switch (type) {
     case "STOP_ARRIVAL":
+    case "STOP_APPROACH":
       return "bus";
     case "TRIP_STARTED":
       return "play";
     case "TRIP_ENDED":
       return "flag";
+    case "SCHEDULE_ANNOUNCEMENT":
+      return "calendar";
+    case "SERVICE_ALERT":
+      return "megaphone";
     default:
       return "notifications";
   }

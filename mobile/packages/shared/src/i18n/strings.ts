@@ -239,6 +239,33 @@ export const STRINGS = {
   },
   "live.findingBus": { en: "Finding your bus…", bn: "আপনার বাস খোঁজা হচ্ছে…" },
 
+  // ---- new home view (trip cards) ----
+  "home.title": { en: "Active trips", bn: "চলমান ট্রিপ" },
+  "home.subtitle.one": {
+    en: "1 bus is on route right now",
+    bn: "এখন ১টি বাস চলছে",
+  },
+  "home.subtitle.many": {
+    en: "{n} buses are on route right now",
+    bn: "এখন {n}টি বাস চলছে",
+  },
+  "home.liveTrack": { en: "Live Track", bn: "লাইভ ট্র্যাক" },
+  "home.allTrips": { en: "All trips", bn: "সব ট্রিপ" },
+  "home.backToTrips": { en: "Back to trips", bn: "ট্রিপ তালিকায় ফিরুন" },
+  "home.switchTrip": { en: "Switch trip", bn: "অন্য ট্রিপ" },
+
+  // ---- notification permission primer ----
+  "notifPrimer.title": {
+    en: "Never miss your bus.",
+    bn: "আর কখনো বাস মিস করবেন না।",
+  },
+  "notifPrimer.body": {
+    en: "Turn on notifications and we'll alert you a few minutes before the bus reaches your stop — even when the app is closed.",
+    bn: "নোটিফিকেশন চালু করুন — বাস আপনার স্টপে পৌঁছানোর কয়েক মিনিট আগেই আপনাকে জানিয়ে দেব, এমনকি অ্যাপ বন্ধ থাকলেও।",
+  },
+  "notifPrimer.allow": { en: "Allow notifications", bn: "নোটিফিকেশন অনুমতি দিন" },
+  "notifPrimer.later": { en: "Maybe later", bn: "পরে দেখব" },
+
   // ---- trip badges ----
   "badge.live": { en: "LIVE", bn: "লাইভ" },
   "badge.preTrip": { en: "PRE-TRIP", bn: "যাত্রা-পূর্ব" },

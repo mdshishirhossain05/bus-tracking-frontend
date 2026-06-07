@@ -160,6 +160,47 @@ export const STRINGS = {
     bn: "আপনি {stop}-এ পৌঁছেছেন",
   },
 
+  // ---- stale data / source-side issues ----
+  // Shown when the bus's position hasn't updated for a while, even
+  // though the trip is still RUNNING in the system. Tells the
+  // passenger whether to trust the marker or wait for fresh data.
+  "stale.mild.title": {
+    en: "Live updates paused",
+    bn: "লাইভ আপডেট বিরতি",
+  },
+  "stale.mild.body": {
+    en: "Last position was {n} ago. Showing the most recent location.",
+    bn: "সর্বশেষ অবস্থান {n} আগের। সর্বশেষ অবস্থান দেখানো হচ্ছে।",
+  },
+  "stale.serious.title": {
+    en: "Bus may be offline",
+    bn: "বাস সম্ভবত অফলাইনে",
+  },
+  "stale.serious.body": {
+    en: "No update for {n}. The driver's phone or the bus GPS may have lost signal.",
+    bn: "{n} ধরে কোনো আপডেট নেই। ড্রাইভারের ফোন বা বাসের জিপিএস সংকেত হারাতে পারে।",
+  },
+  "stale.severe.title": {
+    en: "Bus location unavailable",
+    bn: "বাসের অবস্থান অজানা",
+  },
+  "stale.severe.body": {
+    en: "No update for {n}. The trip may have ended without a proper signal — try refreshing or check today's schedules.",
+    bn: "{n} ধরে কোনো আপডেট নেই। যাত্রা সঠিক সংকেত ছাড়াই শেষ হয়ে থাকতে পারে — রিফ্রেশ করুন বা আজকের সময়সূচী দেখুন।",
+  },
+  "stale.source.phone": {
+    en: "Driver's phone (last seen {n} ago)",
+    bn: "ড্রাইভারের ফোন (সর্বশেষ {n} আগে)",
+  },
+  "stale.source.device": {
+    en: "Bus GPS device (last seen {n} ago)",
+    bn: "বাসের জিপিএস ডিভাইস (সর্বশেষ {n} আগে)",
+  },
+  "stale.justNow": { en: "just now", bn: "এইমাত্র" },
+  "stale.seconds": { en: "{n} sec", bn: "{n} সেকেন্ড" },
+  "stale.minutes": { en: "{n} min", bn: "{n} মিনিট" },
+  "stale.hours": { en: "{n} hr", bn: "{n} ঘণ্টা" },
+
   // ---- onboarding ----
   "onboarding.slide1.title": {
     en: "Real-time bus tracking",

@@ -27,6 +27,7 @@ import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
 import { OfflineBanner } from "../features/passenger/components/OfflineBanner";
+import { StaleDataBanner } from "../features/passenger/components/StaleDataBanner";
 import { LayersFAB } from "../features/passenger/components/LayersFAB";
 import { NextBusBanner } from "../components/NextBusBanner";
 import { HamburgerMenu } from "../components/HamburgerMenu";
@@ -206,6 +207,10 @@ export function LiveScreen() {
           status={connectionStatus}
           lastFetchAt={lastFetchAt}
         />
+        {/* Stale-data banner: trip is RUNNING but bus position hasn't
+            updated in a while. Tiered amber → red messaging tells the
+            user how old the data is and where to look. */}
+        <StaleDataBanner liveState={liveState} />
         {/* Service alerts always trump everything else — admin's voice. */}
         <ServiceAlertBanner
           routeId={trips.find((t) => t.tripId === selectedTripId)?.routeId}

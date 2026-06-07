@@ -90,17 +90,32 @@ export function PushBootstrap() {
       try {
         if (!Device.isDevice || registered.current) return;
         const projectId = getProjectId();
-        const result = await Notifications.getExpoPushTokenAsync(
-          projectId ? { projectId } : (undefined as any),
-        );
-        if (result?.data && active) {
-          await registerPushToken(result.data, Platform.OS).catch(
-            () => undefined,
+        if (!projectId) {
+          // Without an EAS projectId, getExpoPushTokenAsync issues a
+          // dev token that Expo's push service refuses — push silently
+          // never arrives. Surface this in the console so the build
+          // can be diagnosed instead of failing mute.
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[PushBootstrap] No EAS projectId set in app.config.js. " +
+              "Run `eas init` in mobile/apps/passenger to wire it up, " +
+              "or push notifications will not be delivered.",
           );
+          return;
+        }
+        const result = await Notifications.getExpoPushTokenAsync({ projectId });
+        if (result?.data && active) {
+          // eslint-disable-next-line no-console
+          console.log("[PushBootstrap] Registered push token:", result.data);
+          await registerPushToken(result.data, Platform.OS).catch((err) => {
+            // eslint-disable-next-line no-console
+            console.warn("[PushBootstrap] Token registration failed:", err);
+          });
           registered.current = true;
         }
-      } catch {
-        // Push is optional — never block the app on it.
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[PushBootstrap] Push setup failed:", err);
       }
     })();
 

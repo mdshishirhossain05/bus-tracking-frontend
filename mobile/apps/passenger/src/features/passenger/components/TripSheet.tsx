@@ -211,6 +211,43 @@ export function TripSheet({
           ) : undefined
         }
       >
+        {/* Multi-trip selector at the top — visible the moment more than one
+            bus / route is live, so passengers can jump between them without
+            scrolling. */}
+        {trips.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tripsTop}
+            contentContainerStyle={styles.tripsTopContent}
+          >
+            {trips.map((trip) => {
+              const active = trip.tripId === selectedTripId;
+              return (
+                <Pressable
+                  key={trip.tripId}
+                  onPress={() => onSelectTrip(trip.tripId)}
+                  style={[styles.chipTop, active && styles.chipTopActive]}
+                >
+                  <View
+                    style={[
+                      styles.chipTopDot,
+                      active && styles.chipTopDotActive,
+                    ]}
+                  />
+                  <Text
+                    variant="label"
+                    color={active ? colors.primaryForeground : colors.foreground}
+                    numberOfLines={1}
+                  >
+                    {trip.busLabel ?? trip.routeName ?? "Bus"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
         <View style={styles.headerRow}>
           <Text variant="label" color={colors.mutedForeground}>
             {route?.routeName ?? selectedTrip?.routeName ?? t("tripSheet.liveTrip")}
@@ -504,6 +541,34 @@ const styles = StyleSheet.create({
   },
   trips: { marginTop: spacing.lg },
   tripsContent: { gap: spacing.sm, paddingRight: spacing.xl },
+  tripsTop: { marginBottom: spacing.md, marginHorizontal: -spacing.lg },
+  tripsTopContent: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  chipTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.backgroundElevated,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    maxWidth: 180,
+  },
+  chipTopActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipTopDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.mutedForeground,
+  },
+  chipTopDotActive: { backgroundColor: colors.primaryForeground },
   chip: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,

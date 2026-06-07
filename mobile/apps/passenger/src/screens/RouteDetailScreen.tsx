@@ -107,7 +107,6 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
   const mapRef = useRef<MapView | null>(null);
   const [presentation, setPresentation] = useState<RoutePresentation | null>(null);
   const [buses, setBuses] = useState<RouteLiveBus[]>([]);
-  const [fitted, setFitted] = useState(false);
   const [myStopId, setMyStopId] = useState<string | null>(null);
   const [autoSet, setAutoSet] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -155,24 +154,37 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
     setAutoSet(true);
   }, [stops, coords, ready, autoSet]);
 
-  useEffect(() => {
-    if (fitted || !presentation || !mapRef.current) return;
-    const line = presentation.polyline.map(([latitude, longitude]) => ({
-      latitude,
-      longitude,
-    }));
-    if (line.length >= 2) {
-      mapRef.current.fitToCoordinates(line, {
-        edgePadding: { top: 60, right: 60, bottom: 80, left: 60 },
-        animated: true,
-      });
-      setFitted(true);
-    }
-  }, [presentation, fitted]);
-
   const myStop = stops.find((s) => s.id === myStopId) ?? null;
   const myIndex = myStopId ? stops.findIndex((s) => s.id === myStopId) : -1;
   const liveBuses = buses.filter((b) => b.latitude != null && b.longitude != null);
+
+  // Fit the camera so the route polyline AND every live bus on the
+  // route are framed together. Re-fits whenever buses appear or move
+  // significantly — passengers always see the whole journey shape and
+  // every active vehicle on it.
+  useEffect(() => {
+    if (!presentation || !mapRef.current) return;
+    const coords: { latitude: number; longitude: number }[] = [];
+    coords.push(
+      ...presentation.polyline.map(([latitude, longitude]) => ({
+        latitude,
+        longitude,
+      })),
+    );
+    for (const bus of liveBuses) {
+      if (bus.latitude != null && bus.longitude != null) {
+        coords.push({
+          latitude: bus.latitude as number,
+          longitude: bus.longitude as number,
+        });
+      }
+    }
+    if (coords.length < 2) return;
+    mapRef.current.fitToCoordinates(coords, {
+      edgePadding: { top: 80, right: 70, bottom: 100, left: 70 },
+      animated: true,
+    });
+  }, [presentation, liveBuses]);
   const best = useMemo(
     () => pickBestBus(stops, buses, myStopId),
     [stops, buses, myStopId],

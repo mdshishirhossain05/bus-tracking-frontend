@@ -18,12 +18,9 @@ import type {
 import { BusMarker } from "./BusMarker";
 
 // Default region delta — small enough that the bus and ~1-2 stops fit
-// in view. Lower = more zoomed in.
-const DELTA = 0.010;
-// Pitch + altitude for the active follow camera. Lower altitude = more
-// zoomed-in, more "in your face" view of the bus.
-const FOLLOW_ALTITUDE = 1200; // meters
-const FOLLOW_ZOOM = 16;       // Google Maps zoom level
+// in view. Lower = more zoomed in. Only used as the very-first frame
+// before we fit to route + bus.
+const DELTA = 0.015;
 
 interface LiveMapProps {
   mapRef: RefObject<MapView | null>;
@@ -61,37 +58,41 @@ export function LiveMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep the bus glued to the centre of the viewport whenever we're
-  // in "follow" mode. We use animateCamera with an explicit zoom so the
-  // view doesn't drift outward when the user has zoomed manually before.
+  // Fit the camera to show the route line AND the live bus marker
+  // together — like a Google Maps directions view. This is what the
+  // passenger actually wants while live-tracking: see both where the
+  // route goes AND where the bus currently is. Refits on every live
+  // update (so the framing keeps following the bus along the route),
+  // but stops the moment the user pans manually (`following = false`).
   useEffect(() => {
-    if (!following || !live) return;
-    mapRef.current?.animateCamera(
-      {
-        center: { latitude: live.latitude, longitude: live.longitude },
-        zoom: FOLLOW_ZOOM,
-        altitude: FOLLOW_ALTITUDE,
-        pitch: 0,
-        heading: 0,
-      },
-      { duration: 700 },
-    );
-  }, [following, live, mapRef]);
-
-  // When the route loads (no bus yet), fit the polyline into view so
-  // the passenger can see the whole journey before the bus appears.
-  useEffect(() => {
-    if (live || !route || !mapRef.current) return;
-    const coords = route.polyline.map(([latitude, longitude]) => ({
-      latitude,
-      longitude,
-    }));
-    if (coords.length < 2) return;
+    if (!following || !mapRef.current) return;
+    const coords: { latitude: number; longitude: number }[] = [];
+    if (route?.polyline) {
+      coords.push(
+        ...route.polyline.map(([latitude, longitude]) => ({
+          latitude,
+          longitude,
+        })),
+      );
+    }
+    if (live) {
+      coords.push({ latitude: live.latitude, longitude: live.longitude });
+    }
+    if (coords.length < 2) {
+      // Only one or zero points — animate camera to it instead of fitting
+      if (coords.length === 1) {
+        mapRef.current.animateCamera(
+          { center: coords[0]!, zoom: 15 },
+          { duration: 700 },
+        );
+      }
+      return;
+    }
     mapRef.current.fitToCoordinates(coords, {
-      edgePadding: { top: 120, right: 80, bottom: 320, left: 80 },
+      edgePadding: { top: 140, right: 70, bottom: 320, left: 70 },
       animated: true,
     });
-  }, [live, route, mapRef]);
+  }, [following, live, route, mapRef]);
 
   const polyline = useMemo(
     () =>

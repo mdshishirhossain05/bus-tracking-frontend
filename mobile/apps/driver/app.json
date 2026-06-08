@@ -18,6 +18,12 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5e893523-fa42-4fc2-a58c-133f0aa1a484"
+      }
+    },
+    "owner": "mdshishirhossain05"
   }
 }

@@ -54,13 +54,4 @@ module.exports = ({ config }) => ({
     ],
     "./plugins/withArm64Only",
   ],
-  extra: {
-    ...(config.extra ?? {}),
-    eas: {
-      ...(config.extra?.eas ?? {}),
-      // Required for Notifications.getExpoPushTokenAsync to issue a real
-      // production push token. Without this, push silently fails.
-      projectId: "499ce835-0a79-4f86-8590-85b31d52163e",
-    },
-  },
 });

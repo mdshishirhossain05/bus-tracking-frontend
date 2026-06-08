@@ -17,7 +17,10 @@ import type {
 } from "@ubts/shared";
 import { BusMarker } from "./BusMarker";
 
-const DELTA = 0.022;
+// Default region delta — small enough that the bus and ~1-2 stops fit
+// in view. Lower = more zoomed in. Only used as the very-first frame
+// before we fit to route + bus.
+const DELTA = 0.015;
 
 interface LiveMapProps {
   mapRef: RefObject<MapView | null>;
@@ -52,17 +55,44 @@ export function LiveMap({
       latitudeDelta: DELTA,
       longitudeDelta: DELTA,
     };
-    // Only the first resolved center matters for the initial frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fit the camera to show the route line AND the live bus marker
+  // together — like a Google Maps directions view. This is what the
+  // passenger actually wants while live-tracking: see both where the
+  // route goes AND where the bus currently is. Refits on every live
+  // update (so the framing keeps following the bus along the route),
+  // but stops the moment the user pans manually (`following = false`).
   useEffect(() => {
-    if (!following || !live) return;
-    mapRef.current?.animateCamera(
-      { center: { latitude: live.latitude, longitude: live.longitude } },
-      { duration: 900 },
-    );
-  }, [following, live, mapRef]);
+    if (!following || !mapRef.current) return;
+    const coords: { latitude: number; longitude: number }[] = [];
+    if (route?.polyline) {
+      coords.push(
+        ...route.polyline.map(([latitude, longitude]) => ({
+          latitude,
+          longitude,
+        })),
+      );
+    }
+    if (live) {
+      coords.push({ latitude: live.latitude, longitude: live.longitude });
+    }
+    if (coords.length < 2) {
+      // Only one or zero points — animate camera to it instead of fitting
+      if (coords.length === 1) {
+        mapRef.current.animateCamera(
+          { center: coords[0]!, zoom: 15 },
+          { duration: 700 },
+        );
+      }
+      return;
+    }
+    mapRef.current.fitToCoordinates(coords, {
+      edgePadding: { top: 140, right: 70, bottom: 320, left: 70 },
+      animated: true,
+    });
+  }, [following, live, route, mapRef]);
 
   const polyline = useMemo(
     () =>
@@ -128,13 +158,16 @@ export function LiveMap({
       toolbarEnabled={false}
       onPanDrag={onUserPan}
     >
-      {visiblePolyline.length > 1 && (
+      {/* Full route polyline — always drawn behind so the route is
+          visible even before the draw-in animation completes. */}
+      {polyline.length > 1 && (
         <Polyline
-          coordinates={visiblePolyline}
+          coordinates={polyline}
           strokeColor={colors.primary}
-          strokeWidth={4}
+          strokeWidth={5}
           lineCap="round"
           lineJoin="round"
+          geodesic
         />
       )}
 

@@ -27,7 +27,9 @@ import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
 import { OfflineBanner } from "../features/passenger/components/OfflineBanner";
+import { StaleDataBanner } from "../features/passenger/components/StaleDataBanner";
 import { LayersFAB } from "../features/passenger/components/LayersFAB";
+import { TripCard } from "../features/passenger/components/TripCard";
 import { NextBusBanner } from "../components/NextBusBanner";
 import { HamburgerMenu } from "../components/HamburgerMenu";
 import { PreTripBanner } from "../features/passenger/components/PreTripBanner";
@@ -84,6 +86,11 @@ export function LiveScreen() {
   const mapRef = useRef<MapView | null>(null);
   const [following, setFollowing] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Default view is the trip-cards "home". User taps Live Track on a
+  // specific card → switches to the map tracking view. Back button on
+  // the tracking view returns to home so the user can pick a different
+  // trip without scrolling chips.
+  const [view, setView] = useState<"home" | "tracking">("home");
   const { navigate } = useNav();
   const { unreadCount } = useNotifications();
   const { hybrid, setHybrid, traffic, setTraffic } = useMapPrefs();
@@ -180,6 +187,66 @@ export function LiveScreen() {
     );
   }
 
+  // -------------------- HOME VIEW (trip cards) --------------------
+  if (view === "home") {
+    const subtitleText =
+      trips.length === 1
+        ? t("home.subtitle.one")
+        : t("home.subtitle.many", { n: trips.length });
+    return (
+      <SafeAreaView style={styles.root} edges={["top"]}>
+        <View style={styles.homeTopBar}>
+          <View style={styles.flex}>
+            <Text variant="caption" color={colors.mutedForeground}>
+              {t("home.title")}
+            </Text>
+            <Text variant="subtitle" color={colors.foreground}>
+              {subtitleText}
+            </Text>
+          </View>
+          <TopActions onOpenMenu={() => setMenuOpen(true)} />
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.homeScroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={retry}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          {trips.map((trip) => {
+            const isActive = trip.tripId === selectedTripId;
+            return (
+              <TripCard
+                key={trip.tripId}
+                trip={trip}
+                etaMinutes={isActive ? eta?.etaMinutes ?? null : null}
+                nextStopName={isActive ? eta?.nextStopName ?? null : null}
+                onTrack={() => {
+                  void Haptics.selectionAsync();
+                  selectTrip(trip.tripId);
+                  setFollowing(true);
+                  setView("tracking");
+                }}
+              />
+            );
+          })}
+        </ScrollView>
+
+        <HamburgerMenu
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          onNavigate={(screen) => navigate(screen)}
+          unreadCount={unreadCount}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // -------------------- TRACKING VIEW (map + sheet) --------------------
   return (
     <View style={styles.root}>
       <LiveMap
@@ -196,16 +263,37 @@ export function LiveScreen() {
 
       <SafeAreaView style={styles.overlay} pointerEvents="box-none" edges={["top"]}>
         <View style={styles.topBar} pointerEvents="box-none">
+          <Pressable
+            onPress={() => {
+              void Haptics.selectionAsync();
+              setView("home");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("home.backToTrips")}
+          >
+            <GlassSurface rounded="pill" style={styles.backPill}>
+              <Icon name="chevron-back" size={16} color={colors.foreground} />
+              <Text variant="caption" color={colors.foreground}>
+                {trips.length > 1 ? t("home.switchTrip") : t("home.allTrips")}
+              </Text>
+            </GlassSurface>
+          </Pressable>
+          <TopActions onOpenMenu={() => setMenuOpen(true)} />
+        </View>
+        <View style={styles.pillRow} pointerEvents="box-none">
           <ConnectionPill
             status={connectionStatus}
             lastFetchAt={lastFetchAt}
           />
-          <TopActions onOpenMenu={() => setMenuOpen(true)} />
         </View>
         <OfflineBanner
           status={connectionStatus}
           lastFetchAt={lastFetchAt}
         />
+        {/* Stale-data banner: trip is RUNNING but bus position hasn't
+            updated in a while. Tiered amber → red messaging tells the
+            user how old the data is and where to look. */}
+        <StaleDataBanner liveState={liveState} />
         {/* Service alerts always trump everything else — admin's voice. */}
         <ServiceAlertBanner
           routeId={trips.find((t) => t.tripId === selectedTripId)?.routeId}
@@ -291,6 +379,32 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   actions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  flex: { flex: 1, gap: 2 },
+  homeTopBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  homeScroll: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  backPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 4,
+  },
+  pillRow: {
+    flexDirection: "row",
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+  },
   fabWrap: {
     position: "absolute",
     right: spacing.lg,

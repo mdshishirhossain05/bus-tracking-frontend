@@ -11,6 +11,7 @@ import { HistoryScreen } from "../screens/HistoryScreen";
 import { TodaysSchedulesScreen } from "../screens/TodaysSchedulesScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { PushBootstrap } from "../components/PushBootstrap";
+import { NotificationPrimer } from "../components/NotificationPrimer";
 
 function renderScreen(entry: ScreenEntry) {
   switch (entry.name) {
@@ -43,6 +44,7 @@ export function MainNavigator() {
   return (
     <View style={styles.root}>
       <PushBootstrap />
+      <NotificationPrimer />
       <LiveScreen />
       {stack.map((entry) => (
         <View key={entry.key} style={styles.overlay}>

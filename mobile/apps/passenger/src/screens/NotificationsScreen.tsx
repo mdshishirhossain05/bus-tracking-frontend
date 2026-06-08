@@ -35,6 +35,10 @@ function iconForType(type: string): IconName {
       return "play";
     case "TRIP_ENDED":
       return "flag";
+    case "TRIP_DELAYED":
+      return "time";
+    case "TRIP_CANCELLED":
+      return "close-circle";
     case "SCHEDULE_ANNOUNCEMENT":
       return "calendar";
     case "SERVICE_ALERT":

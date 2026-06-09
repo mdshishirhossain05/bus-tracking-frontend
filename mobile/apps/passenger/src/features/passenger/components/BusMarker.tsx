@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { AnimatedRegion, MarkerAnimated } from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -18,12 +19,18 @@ interface BusMarkerProps {
   stale?: boolean;
 }
 
-const GLIDE_MS = 1100;
+const GLIDE_MS = 1500;
 
 /**
- * The bus glides between fixes (animated coordinate) instead of teleporting,
- * rotates to its heading, and carries a soft "live" pulse — the detail that
- * sells the real-time feel.
+ * Navigation-app-grade bus marker:
+ *   - Big enough to anchor the eye at zoom 17 with a tilted camera
+ *   - Glides between GPS fixes (animated coordinate, ~1.5s) so the
+ *     motion reads as continuous instead of teleporting
+ *   - Rotates to its heading — combined with the camera's heading-lock,
+ *     the bus appears to point "forward" while the world turns underneath
+ *   - Strong shadow + white border + outer pulse for visibility on top
+ *     of dark and satellite map styles
+ *   - Bus glyph inside the body for "this is a vehicle" recognition
  */
 export function BusMarker({
   latitude,
@@ -46,9 +53,6 @@ export function BusMarker({
 
   useEffect(() => {
     coordinate
-      // react-native-maps' AnimatedRegion.timing types intersect RN's
-      // TimingAnimationConfig (which wants `toValue`); the real API takes the
-      // target coordinate directly, so the cast is the documented workaround.
       .timing({
         latitude,
         longitude,
@@ -63,41 +67,50 @@ export function BusMarker({
   const pulse = useSharedValue(0);
   useEffect(() => {
     pulse.value = withRepeat(
-      withTiming(1, { duration: 1800, easing: Easing.out(Easing.ease) }),
+      withTiming(1, { duration: 2200, easing: Easing.out(Easing.ease) }),
       -1,
       false,
     );
   }, [pulse]);
 
   const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + pulse.value * 1.6 }],
-    opacity: stale ? 0 : 0.45 * (1 - pulse.value),
+    transform: [{ scale: 1 + pulse.value * 1.5 }],
+    opacity: stale ? 0 : 0.55 * (1 - pulse.value),
   }));
+
+  // Only rotate when heading is meaningful. Otherwise keep upright so the
+  // bus glyph stays readable when the vehicle is stationary.
+  const rotation = heading != null && heading >= 0 && heading <= 360 ? heading : 0;
 
   return (
     <MarkerAnimated
       coordinate={coordinate as unknown as { latitude: number; longitude: number }}
       anchor={{ x: 0.5, y: 0.5 }}
       flat
-      rotation={heading ?? 0}
+      rotation={rotation}
       tracksViewChanges={false}
     >
       <View style={styles.container}>
         <Animated.View style={[styles.pulse, pulseStyle]} />
         <View style={[styles.body, stale && styles.bodyStale]}>
-          <View style={styles.heading} />
+          <View style={styles.iconWrap}>
+            <Ionicons name="bus" size={20} color="white" />
+          </View>
         </View>
+        {/* Tiny direction triangle at the top — backup heading hint
+            when the bus glyph itself isn't enough at distance. */}
+        <View style={[styles.notch, stale && styles.notchStale]} />
       </View>
     </MarkerAnimated>
   );
 }
 
-const SIZE = 26;
+const SIZE = 42;
 
 const styles = StyleSheet.create({
   container: {
-    width: SIZE * 3,
-    height: SIZE * 3,
+    width: SIZE * 2.8,
+    height: SIZE * 2.8,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -113,26 +126,38 @@ const styles = StyleSheet.create({
     height: SIZE,
     borderRadius: SIZE / 2,
     backgroundColor: colors.primary,
-    borderWidth: 3,
-    borderColor: "#dbeafe",
+    borderWidth: 4,
+    borderColor: "#ffffff",
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "center",
+    // Strong shadow for prominence on dark + satellite map styles.
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.55,
+    shadowRadius: 8,
+    elevation: 10,
   },
   bodyStale: {
     backgroundColor: colors.faintForeground,
     borderColor: colors.muted,
   },
-  // A notch at the top points in the direction of travel (marker is rotated).
-  heading: {
+  iconWrap: {
+    width: SIZE,
+    height: SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notch: {
     position: "absolute",
-    top: -7,
+    top: (SIZE * 2.8 - SIZE) / 2 - 9,
     width: 0,
     height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderBottomWidth: 8,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderBottomWidth: 10,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
-    borderBottomColor: "#dbeafe",
+    borderBottomColor: "#ffffff",
   },
+  notchStale: { borderBottomColor: colors.muted },
 });

@@ -105,6 +105,9 @@ export function LiveScreen() {
   const recenter = useCallback(() => {
     void Haptics.selectionAsync();
     setFollowing(true);
+    // Re-engage navigation mode: tight zoom, tilt, heading-locked.
+    // The LiveMap useEffect on `following` will also fire — animating
+    // here too gives instant feedback before the next render tick.
     if (liveState) {
       mapRef.current?.animateCamera(
         {
@@ -112,6 +115,14 @@ export function LiveScreen() {
             latitude: liveState.latitude,
             longitude: liveState.longitude,
           },
+          pitch: 50,
+          heading:
+            liveState.heading != null &&
+            liveState.heading >= 0 &&
+            liveState.heading <= 360
+              ? liveState.heading
+              : 0,
+          zoom: 17,
         },
         { duration: 600 },
       );

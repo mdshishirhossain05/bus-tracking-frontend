@@ -111,6 +111,42 @@ export function LiveMap({
     [route],
   );
 
+  // Trail / breadcrumb — track the last ~12 GPS fixes the bus reported
+  // and render them as a fading polyline behind the bus marker. This is
+  // what sells the "live motion" feel: even between updates, the trail
+  // shows where the bus just came from. Resets when the selected trip
+  // (and therefore the route) changes.
+  const TRAIL_MAX = 12;
+  const [trail, setTrail] = useState<
+    { latitude: number; longitude: number }[]
+  >([]);
+  const lastRouteId = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastRouteId.current !== (route?.routeId ?? null)) {
+      lastRouteId.current = route?.routeId ?? null;
+      setTrail([]);
+    }
+  }, [route?.routeId]);
+  useEffect(() => {
+    if (!live) return;
+    setTrail((prev) => {
+      const last = prev[prev.length - 1];
+      // Don't add identical-coordinate updates — that'd just waste a slot.
+      if (
+        last &&
+        last.latitude === live.latitude &&
+        last.longitude === live.longitude
+      ) {
+        return prev;
+      }
+      const next = [
+        ...prev,
+        { latitude: live.latitude, longitude: live.longitude },
+      ];
+      return next.length > TRAIL_MAX ? next.slice(-TRAIL_MAX) : next;
+    });
+  }, [live]);
+
   // Progressive draw-in for the route polyline. When the route id changes
   // we run a short animation that scales the rendered prefix from 1 point
   // to the full path so the route "draws itself" in instead of popping in
@@ -176,16 +212,42 @@ export function LiveMap({
       rotateEnabled={true}
       onPanDrag={onUserPan}
     >
-      {/* Full route polyline — always drawn behind so the route is
-          visible even before the draw-in animation completes. */}
+      {/* Route polyline — premium two-layer rendering for prominence.
+          Bottom: a dark/semi-transparent outline that gives the line
+          a "lift" effect on light AND dark map styles. Top: the brand
+          primary colour. The result reads like a real navigation route. */}
       {polyline.length > 1 && (
+        <>
+          <Polyline
+            coordinates={polyline}
+            strokeColor="rgba(0, 0, 0, 0.55)"
+            strokeWidth={9}
+            lineCap="round"
+            lineJoin="round"
+            geodesic
+          />
+          <Polyline
+            coordinates={polyline}
+            strokeColor={colors.primary}
+            strokeWidth={5}
+            lineCap="round"
+            lineJoin="round"
+            geodesic
+          />
+        </>
+      )}
+
+      {/* Vehicle trail — fading polyline behind the bus showing the last
+          ~12 positions. Adds the "this is actually moving" feel between
+          GPS fixes. Drawn AFTER the route so it sits on top of it but
+          BEFORE the bus marker so the marker is the focal point. */}
+      {trail.length > 1 && (
         <Polyline
-          coordinates={polyline}
-          strokeColor={colors.primary}
-          strokeWidth={5}
+          coordinates={trail}
+          strokeColor="rgba(255, 255, 255, 0.85)"
+          strokeWidth={4}
           lineCap="round"
           lineJoin="round"
-          geodesic
         />
       )}
 

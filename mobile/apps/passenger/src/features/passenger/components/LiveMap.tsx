@@ -58,40 +58,48 @@ export function LiveMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fit the camera to show the route line AND the live bus marker
-  // together — like a Google Maps directions view. This is what the
-  // passenger actually wants while live-tracking: see both where the
-  // route goes AND where the bus currently is. Refits on every live
-  // update (so the framing keeps following the bus along the route),
-  // but stops the moment the user pans manually (`following = false`).
+  // Navigation-style camera:
+  //   • While we have a live bus position → animate the camera tight on
+  //     the bus with a 50° tilt, zoom 17 (street-level — you can see
+  //     street names, intersections, building outlines), and the camera's
+  //     heading locked to the bus's heading. The world rotates under the
+  //     bus exactly like Google Maps Navigation or Uber.
+  //   • While there's no bus yet → fit the route polyline into view so
+  //     the passenger can see the whole journey before the live feed
+  //     arrives.
+  // User pan kills `following`, so the bus can move off-screen and the
+  // user can explore. Tapping the recenter FAB re-engages navigation.
   useEffect(() => {
     if (!following || !mapRef.current) return;
-    const coords: { latitude: number; longitude: number }[] = [];
-    if (route?.polyline) {
-      coords.push(
-        ...route.polyline.map(([latitude, longitude]) => ({
-          latitude,
-          longitude,
-        })),
-      );
-    }
+
     if (live) {
-      coords.push({ latitude: live.latitude, longitude: live.longitude });
-    }
-    if (coords.length < 2) {
-      // Only one or zero points — animate camera to it instead of fitting
-      if (coords.length === 1) {
-        mapRef.current.animateCamera(
-          { center: coords[0]!, zoom: 15 },
-          { duration: 700 },
-        );
-      }
+      mapRef.current.animateCamera(
+        {
+          center: { latitude: live.latitude, longitude: live.longitude },
+          pitch: 50,
+          heading:
+            live.heading != null && live.heading >= 0 && live.heading <= 360
+              ? live.heading
+              : 0,
+          zoom: 17,
+        },
+        { duration: 800 },
+      );
       return;
     }
-    mapRef.current.fitToCoordinates(coords, {
-      edgePadding: { top: 140, right: 70, bottom: 320, left: 70 },
-      animated: true,
-    });
+
+    // No bus yet — fit the route into view so the passenger sees the
+    // journey shape immediately.
+    if (route?.polyline && route.polyline.length >= 2) {
+      const coords = route.polyline.map(([latitude, longitude]) => ({
+        latitude,
+        longitude,
+      }));
+      mapRef.current.fitToCoordinates(coords, {
+        edgePadding: { top: 140, right: 70, bottom: 320, left: 70 },
+        animated: true,
+      });
+    }
   }, [following, live, route, mapRef]);
 
   const polyline = useMemo(
@@ -102,6 +110,42 @@ export function LiveMap({
       })) ?? [],
     [route],
   );
+
+  // Trail / breadcrumb — track the last ~12 GPS fixes the bus reported
+  // and render them as a fading polyline behind the bus marker. This is
+  // what sells the "live motion" feel: even between updates, the trail
+  // shows where the bus just came from. Resets when the selected trip
+  // (and therefore the route) changes.
+  const TRAIL_MAX = 12;
+  const [trail, setTrail] = useState<
+    { latitude: number; longitude: number }[]
+  >([]);
+  const lastRouteId = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastRouteId.current !== (route?.routeId ?? null)) {
+      lastRouteId.current = route?.routeId ?? null;
+      setTrail([]);
+    }
+  }, [route?.routeId]);
+  useEffect(() => {
+    if (!live) return;
+    setTrail((prev) => {
+      const last = prev[prev.length - 1];
+      // Don't add identical-coordinate updates — that'd just waste a slot.
+      if (
+        last &&
+        last.latitude === live.latitude &&
+        last.longitude === live.longitude
+      ) {
+        return prev;
+      }
+      const next = [
+        ...prev,
+        { latitude: live.latitude, longitude: live.longitude },
+      ];
+      return next.length > TRAIL_MAX ? next.slice(-TRAIL_MAX) : next;
+    });
+  }, [live]);
 
   // Progressive draw-in for the route polyline. When the route id changes
   // we run a short animation that scales the rendered prefix from 1 point
@@ -156,18 +200,54 @@ export function LiveMap({
       showsCompass={false}
       showsMyLocationButton={false}
       toolbarEnabled={false}
+      // 3D building outlines visible at zoom 17 with the 50° tilt —
+      // dramatically improves the "I'm really tracking through a city"
+      // feel of navigation mode.
+      showsBuildings={true}
+      showsIndoors={false}
+      showsPointsOfInterests={true}
+      // Let the user pinch to tilt or twist to rotate manually if they
+      // want — they can always tap the recenter FAB to snap back.
+      pitchEnabled={true}
+      rotateEnabled={true}
       onPanDrag={onUserPan}
     >
-      {/* Full route polyline — always drawn behind so the route is
-          visible even before the draw-in animation completes. */}
+      {/* Route polyline — premium two-layer rendering for prominence.
+          Bottom: a dark/semi-transparent outline that gives the line
+          a "lift" effect on light AND dark map styles. Top: the brand
+          primary colour. The result reads like a real navigation route. */}
       {polyline.length > 1 && (
+        <>
+          <Polyline
+            coordinates={polyline}
+            strokeColor="rgba(0, 0, 0, 0.55)"
+            strokeWidth={9}
+            lineCap="round"
+            lineJoin="round"
+            geodesic
+          />
+          <Polyline
+            coordinates={polyline}
+            strokeColor={colors.primary}
+            strokeWidth={5}
+            lineCap="round"
+            lineJoin="round"
+            geodesic
+          />
+        </>
+      )}
+
+      {/* Vehicle trail — fading polyline behind the bus showing the last
+          ~12 positions. Adds the "this is actually moving" feel between
+          GPS fixes. Drawn AFTER the route so it sits on top of it but
+          BEFORE the bus marker so the marker is the focal point. */}
+      {trail.length > 1 && (
         <Polyline
-          coordinates={polyline}
-          strokeColor={colors.primary}
-          strokeWidth={5}
+          coordinates={trail}
+          strokeColor="rgba(255, 255, 255, 0.85)"
+          strokeWidth={4}
           lineCap="round"
           lineJoin="round"
-          geodesic
         />
       )}
 

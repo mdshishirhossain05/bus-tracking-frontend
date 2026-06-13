@@ -4,10 +4,8 @@ import MapView, {
   Marker,
   Polyline,
   PROVIDER_GOOGLE,
-  type MapStyleElement,
   type Region,
 } from "react-native-maps";
-import { MAP_STYLE_DARK } from "@ubts/shared";
 import { colors, useReduceMotion } from "@ubts/shared";
 import { env } from "@ubts/shared";
 import type {
@@ -17,10 +15,10 @@ import type {
 } from "@ubts/shared";
 import { BusMarker } from "./BusMarker";
 
-// Default region delta — small enough that the bus and ~1-2 stops fit
-// in view. Lower = more zoomed in. Only used as the very-first frame
-// before we fit to route + bus.
-const DELTA = 0.015;
+// Default region delta — wide enough that the bus, the route, and a few
+// stops are visible together. We deliberately keep this looser than a
+// navigation-app first-person view so motion is easy to see.
+const DELTA = 0.025;
 
 interface LiveMapProps {
   mapRef: RefObject<MapView | null>;
@@ -58,17 +56,18 @@ export function LiveMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Navigation-style camera:
-  //   • While we have a live bus position → animate the camera tight on
-  //     the bus with a 50° tilt, zoom 17 (street-level — you can see
-  //     street names, intersections, building outlines), and the camera's
-  //     heading locked to the bus's heading. The world rotates under the
-  //     bus exactly like Google Maps Navigation or Uber.
+  // Camera behaviour:
+  //   • While we have a live bus position → keep the camera centred on
+  //     the bus with a top-down (0° pitch), north-up view at zoom 15.
+  //     This is the **standard Google Maps look** — the world doesn't
+  //     spin under the bus, so the bus marker visibly moves across the
+  //     map as new fixes arrive. The passenger sees the same map UI they
+  //     already know from Google Maps, just with a live bus on top.
   //   • While there's no bus yet → fit the route polyline into view so
-  //     the passenger can see the whole journey before the live feed
+  //     the passenger sees the whole journey before the live feed
   //     arrives.
-  // User pan kills `following`, so the bus can move off-screen and the
-  // user can explore. Tapping the recenter FAB re-engages navigation.
+  // User pan kills `following`, so they can explore the map freely.
+  // Tapping the recenter FAB re-engages bus following.
   useEffect(() => {
     if (!following || !mapRef.current) return;
 
@@ -76,12 +75,9 @@ export function LiveMap({
       mapRef.current.animateCamera(
         {
           center: { latitude: live.latitude, longitude: live.longitude },
-          pitch: 50,
-          heading:
-            live.heading != null && live.heading >= 0 && live.heading <= 360
-              ? live.heading
-              : 0,
-          zoom: 17,
+          pitch: 0,
+          heading: 0,
+          zoom: 15,
         },
         { duration: 800 },
       );
@@ -191,35 +187,30 @@ export function LiveMap({
       ref={mapRef}
       style={StyleSheet.absoluteFill}
       provider={PROVIDER_GOOGLE}
+      // Standard Google Maps look — roads, labels, POIs, building outlines
+      // in the colours every passenger already recognises. Hybrid view
+      // remains opt-in via the layers FAB for satellite imagery.
       mapType={hybrid ? "hybrid" : "standard"}
       showsTraffic={showTraffic}
-      customMapStyle={
-        hybrid ? [] : (MAP_STYLE_DARK as unknown as MapStyleElement[])
-      }
       initialRegion={initialRegion}
       showsCompass={false}
       showsMyLocationButton={false}
       toolbarEnabled={false}
-      // 3D building outlines visible at zoom 17 with the 50° tilt —
-      // dramatically improves the "I'm really tracking through a city"
-      // feel of navigation mode.
-      showsBuildings={true}
+      showsBuildings
       showsIndoors={false}
-      showsPointsOfInterests={true}
-      // Let the user pinch to tilt or twist to rotate manually if they
-      // want — they can always tap the recenter FAB to snap back.
-      pitchEnabled={true}
-      rotateEnabled={true}
+      showsPointsOfInterest
+      pitchEnabled
+      rotateEnabled
       onPanDrag={onUserPan}
     >
       {/* Route polyline — premium two-layer rendering for prominence.
           Bottom: a dark/semi-transparent outline that gives the line
           a "lift" effect on light AND dark map styles. Top: the brand
           primary colour. The result reads like a real navigation route. */}
-      {polyline.length > 1 && (
+      {visiblePolyline.length > 1 && (
         <>
           <Polyline
-            coordinates={polyline}
+            coordinates={visiblePolyline}
             strokeColor="rgba(0, 0, 0, 0.55)"
             strokeWidth={9}
             lineCap="round"
@@ -227,7 +218,7 @@ export function LiveMap({
             geodesic
           />
           <Polyline
-            coordinates={polyline}
+            coordinates={visiblePolyline}
             strokeColor={colors.primary}
             strokeWidth={5}
             lineCap="round"
@@ -244,7 +235,7 @@ export function LiveMap({
       {trail.length > 1 && (
         <Polyline
           coordinates={trail}
-          strokeColor="rgba(255, 255, 255, 0.85)"
+          strokeColor="rgba(37, 99, 235, 0.65)"
           strokeWidth={4}
           lineCap="round"
           lineJoin="round"
@@ -295,18 +286,18 @@ export function LiveMap({
 
 const styles = StyleSheet.create({
   stop: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.backgroundElevated,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#ffffff",
     borderWidth: 2,
     borderColor: colors.mutedForeground,
   },
   stopTerminal: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderColor: colors.foreground,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderColor: "#ffffff",
     backgroundColor: colors.primary,
   },
   passengerRing: {
@@ -326,3 +317,4 @@ const styles = StyleSheet.create({
     borderColor: "#dcfce7",
   },
 });
+

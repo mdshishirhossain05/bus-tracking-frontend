@@ -138,6 +138,37 @@ export function TripSheet({
   const isPreTrip = selectedTrip?.status === "PRE_TRIP";
   const isEnded = tripEnded || selectedTrip?.status === "ENDED";
 
+  // "Bus here" detection for the stop timeline.
+  // The bus is dwelling at a stop when it is (a) currently stationary
+  // per backend's filter, OR moving at walking-pace, AND (b) within a
+  // generous geofence radius of that stop. We pick the *closest* stop
+  // inside the radius so the badge tracks the right one even when the
+  // bus is between two nearby stops.
+  const STOP_DWELL_RADIUS_M = 60; // matches backend ARRIVAL_RADIUS_METERS (~80m) with a buffer
+  const STOP_DWELL_SPEED_KMH = 4; // walking pace; anything below counts as dwelling
+  const currentStopId = useMemo<string | null>(() => {
+    if (!isRunning) return null;
+    if (!live || !route?.stops?.length) return null;
+    const speed = live.displaySpeedKmh ?? live.speed ?? null;
+    const dwelling =
+      live.isStationary === true ||
+      (typeof speed === "number" && speed <= STOP_DWELL_SPEED_KMH);
+    if (!dwelling) return null;
+    let best: { id: string; dist: number } | null = null;
+    for (const stop of route.stops) {
+      const dist = haversineMeters(
+        live.latitude,
+        live.longitude,
+        stop.latitude,
+        stop.longitude,
+      );
+      if (dist <= STOP_DWELL_RADIUS_M && (!best || dist < best.dist)) {
+        best = { id: stop.id, dist };
+      }
+    }
+    return best?.id ?? null;
+  }, [isRunning, live, route?.stops]);
+
   const etaLabel = tripEnded
     ? t("tripSheet.ended")
     : eta?.finalStopReached
@@ -420,6 +451,7 @@ export function TripSheet({
               // progression would otherwise tell a story that doesn't match
               // reality (the bus hasn't passed any stops yet).
               nextStopName={isRunning ? eta?.nextStopName : null}
+              currentStopId={currentStopId}
               routeId={routeIdForSubs}
               isSubscribed={(stopId) =>
                 routeIdForSubs

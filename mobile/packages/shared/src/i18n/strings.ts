@@ -319,6 +319,7 @@ export const STRINGS = {
   },
   "stop.badge.passed": { en: "Passed", bn: "অতিক্রান্ত" },
   "stop.badge.now": { en: "Next", bn: "পরবর্তী" },
+  "stop.badge.here": { en: "Bus here", bn: "বাস এখানে" },
   "stop.badge.destination": { en: "Your stop", bn: "আপনার স্টপ" },
 
   // ---- occupancy ----

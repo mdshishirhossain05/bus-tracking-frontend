@@ -93,7 +93,8 @@ export function LiveScreen() {
   const [view, setView] = useState<"home" | "tracking">("home");
   const { navigate } = useNav();
   const { unreadCount } = useNotifications();
-  const { hybrid, setHybrid, traffic, setTraffic } = useMapPrefs();
+  const { hybrid, setHybrid, traffic, setTraffic, darkMap, setDarkMap } =
+    useMapPrefs();
 
   // A gentle haptic when the bus reaches a stop — a native-only "real" cue.
   useEffect(() => {
@@ -269,6 +270,7 @@ export function LiveScreen() {
         stale={isStale || tripEnded}
         hybrid={hybrid}
         showTraffic={traffic}
+        darkMap={darkMap}
         onUserPan={() => setFollowing(false)}
       />
 
@@ -328,6 +330,8 @@ export function LiveScreen() {
           onHybridChange={setHybrid}
           traffic={traffic}
           onTrafficChange={setTraffic}
+          darkMap={darkMap}
+          onDarkMapChange={setDarkMap}
         />
         <Pressable onPress={recenter}>
           <GlassSurface rounded="pill" style={styles.fab}>

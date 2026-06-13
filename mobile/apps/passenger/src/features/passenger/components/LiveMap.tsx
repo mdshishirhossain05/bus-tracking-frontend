@@ -4,8 +4,10 @@ import MapView, {
   Marker,
   Polyline,
   PROVIDER_GOOGLE,
+  type MapStyleElement,
   type Region,
 } from "react-native-maps";
+import { MAP_STYLE_DARK } from "@ubts/shared";
 import { colors, useReduceMotion } from "@ubts/shared";
 import { env } from "@ubts/shared";
 import type {
@@ -29,6 +31,8 @@ interface LiveMapProps {
   stale: boolean;
   hybrid?: boolean;
   showTraffic?: boolean;
+  /** Opt-in dark Google Maps style. Default is the standard bright look. */
+  darkMap?: boolean;
   onUserPan: () => void;
 }
 
@@ -41,6 +45,7 @@ export function LiveMap({
   stale,
   hybrid = false,
   showTraffic = false,
+  darkMap = false,
   onUserPan,
 }: LiveMapProps) {
   const initialRegion: Region = useMemo(() => {
@@ -187,11 +192,18 @@ export function LiveMap({
       ref={mapRef}
       style={StyleSheet.absoluteFill}
       provider={PROVIDER_GOOGLE}
-      // Standard Google Maps look — roads, labels, POIs, building outlines
-      // in the colours every passenger already recognises. Hybrid view
-      // remains opt-in via the layers FAB for satellite imagery.
+      // Default: the standard bright Google Maps look every passenger
+      // already knows. Hybrid (satellite imagery) and a dark Google
+      // Maps style are both opt-in via the layers FAB. Note that
+      // satellite imagery in hybrid mode overrides custom map styles,
+      // so we only apply the dark style when hybrid is off.
       mapType={hybrid ? "hybrid" : "standard"}
       showsTraffic={showTraffic}
+      customMapStyle={
+        !hybrid && darkMap
+          ? (MAP_STYLE_DARK as unknown as MapStyleElement[])
+          : undefined
+      }
       initialRegion={initialRegion}
       showsCompass={false}
       showsMyLocationButton={false}
@@ -231,11 +243,16 @@ export function LiveMap({
       {/* Vehicle trail — fading polyline behind the bus showing the last
           ~12 positions. Adds the "this is actually moving" feel between
           GPS fixes. Drawn AFTER the route so it sits on top of it but
-          BEFORE the bus marker so the marker is the focal point. */}
+          BEFORE the bus marker so the marker is the focal point. White
+          on the dark map style, brand-blue on the bright standard map. */}
       {trail.length > 1 && (
         <Polyline
           coordinates={trail}
-          strokeColor="rgba(37, 99, 235, 0.65)"
+          strokeColor={
+            !hybrid && darkMap
+              ? "rgba(255, 255, 255, 0.85)"
+              : "rgba(37, 99, 235, 0.65)"
+          }
           strokeWidth={4}
           lineCap="round"
           lineJoin="round"
@@ -245,6 +262,7 @@ export function LiveMap({
       {route?.stops.map((stop) => {
         const terminal =
           stop.id === route.origin?.id || stop.id === route.destination?.id;
+        const darkBasemap = !hybrid && darkMap;
         return (
           <Marker
             key={stop.id}
@@ -252,7 +270,13 @@ export function LiveMap({
             anchor={{ x: 0.5, y: 0.5 }}
             tracksViewChanges={false}
           >
-            <View style={[styles.stop, terminal && styles.stopTerminal]} />
+            <View
+              style={[
+                styles.stop,
+                darkBasemap && styles.stopOnDark,
+                terminal && styles.stopTerminal,
+              ]}
+            />
           </Marker>
         );
       })}
@@ -292,6 +316,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderWidth: 2,
     borderColor: colors.mutedForeground,
+  },
+  // Slightly invert the contrast on the dark Google Maps style so the
+  // stop dot still pops against a near-black basemap.
+  stopOnDark: {
+    backgroundColor: colors.backgroundElevated,
+    borderColor: colors.foreground,
   },
   stopTerminal: {
     width: 16,

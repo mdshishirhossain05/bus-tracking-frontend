@@ -96,6 +96,11 @@ export const STRINGS = {
     en: "Highlights congestion on roads — handy for predicting delays.",
     bn: "রাস্তায় যানজট দেখায় — দেরি অনুমান করতে সহায়ক।",
   },
+  "map.layers.dark": { en: "Dark map", bn: "ডার্ক মানচিত্র" },
+  "map.layers.darkHelp": {
+    en: "Switch to a dark Google Maps style — easier on the eyes at night.",
+    bn: "ডার্ক গুগল মানচিত্র শৈলীতে পরিবর্তন করুন — রাতে চোখের জন্য আরামদায়ক।",
+  },
   "today.tab.today": { en: "Today", bn: "আজ" },
   "today.tab.tomorrow": { en: "Tomorrow", bn: "আগামীকাল" },
   "today.tab.all": { en: "All days", bn: "সব দিন" },

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Animated as RNAnimated, Easing as RNEasing, StyleSheet, View } from "react-native";
 import { AnimatedRegion, MarkerAnimated } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
@@ -20,21 +20,29 @@ interface BusMarkerProps {
 }
 
 const GLIDE_MS = 1500;
+const ROTATE_MS = 600;
 
 /**
- * Bus marker for the live map.
- *   - Glides between GPS fixes via AnimatedRegion (~1.5s) so motion
- *     reads as continuous instead of teleporting between fixes.
- *   - `tracksViewChanges` is held TRUE during the glide and toggled
- *     back to FALSE once the marker settles. Holding it false the
- *     whole time (perf optimisation) is what was hiding movement on
- *     some Android builds — the marker's rendered bitmap was cached
- *     and Google Maps never repainted it as the coordinate animated.
- *   - The bus rotates to its heading. The camera stays north-up (set
- *     in LiveMap) so this rotation is genuinely visible — the bus icon
- *     points forward and the map keeps a familiar orientation.
- *   - Strong shadow + white border + soft pulse for visibility against
- *     the standard Google Maps look.
+ * Google-Maps-grade directional bus marker.
+ *
+ *   1. Position glides between GPS fixes via AnimatedRegion (~1.5s) so the
+ *      bus visibly moves across the map instead of teleporting between
+ *      fixes.
+ *   2. Heading is interpolated separately via an Animated.Value (~600ms,
+ *      shortest-arc) so the marker SMOOTHLY rotates to its new direction
+ *      instead of snapping — same feel as Google Maps Navigation when
+ *      the road turns.
+ *   3. Visual: a chunky white-bordered circle with a brand-coloured bus
+ *      glyph in the middle and a LARGE forward-pointing chevron sitting
+ *      on top. Because `flat=true` is set, the whole marker rotates with
+ *      the map's coordinate space — and because the camera (in LiveMap)
+ *      stays north-up, that rotation is what the rider sees as
+ *      "direction the bus is going". The chevron is the dominant cue.
+ *   4. A soft pulse halo behind the marker keeps it discoverable on
+ *      busy maps without competing with the chevron for attention.
+ *   5. `tracksViewChanges` is held TRUE during the glide and toggled off
+ *      ~400 ms after it settles — otherwise Google Maps caches the
+ *      marker's bitmap and motion looks frozen on Android.
  */
 export function BusMarker({
   latitude,
@@ -42,6 +50,7 @@ export function BusMarker({
   heading,
   stale = false,
 }: BusMarkerProps) {
+  // ── Position: AnimatedRegion glide ───────────────────────────────
   const coordinate = useMemo(
     () =>
       new AnimatedRegion({
@@ -50,15 +59,10 @@ export function BusMarker({
         latitudeDelta: 0,
         longitudeDelta: 0,
       }),
-    // Construct once; subsequent fixes drive `timing()` below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
-  // `tracksViewChanges` toggle. Google Maps caches the marker's rendered
-  // bitmap when this is false. We need it TRUE while we animate so the
-  // marker actually repaints each frame, then flip it back to FALSE once
-  // the glide settles to keep the map cheap when the bus is stationary.
   const [tracking, setTracking] = useState(true);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -76,14 +80,42 @@ export function BusMarker({
       .start();
 
     if (settleTimer.current) clearTimeout(settleTimer.current);
-    // Settle a touch after the glide ends to absorb back-to-back fixes
-    // without churning tracksViewChanges.
     settleTimer.current = setTimeout(() => setTracking(false), GLIDE_MS + 400);
     return () => {
       if (settleTimer.current) clearTimeout(settleTimer.current);
     };
   }, [latitude, longitude, coordinate]);
 
+  // ── Heading: smooth, shortest-arc rotation ───────────────────────
+  // The raw heading from the server can jump (e.g. 350° → 10°). Naively
+  // animating that goes the long way round. Track the last applied
+  // heading and step the AnimatedValue along the SHORTER arc, so the
+  // bus appears to make a small ±20° turn instead of a 340° spin.
+  const targetHeading =
+    heading != null && heading >= 0 && heading <= 360 ? heading : 0;
+  const rotationAnim = useRef(new RNAnimated.Value(targetHeading)).current;
+  const lastHeading = useRef<number>(targetHeading);
+
+  useEffect(() => {
+    const prev = lastHeading.current;
+    let next = targetHeading;
+    const diff = ((next - prev + 540) % 360) - 180; // signed, [-180, 180)
+    // Drive the AnimatedValue past 360 in either direction if needed.
+    const adjusted = prev + diff;
+    RNAnimated.timing(rotationAnim, {
+      toValue: adjusted,
+      duration: ROTATE_MS,
+      easing: RNEasing.out(RNEasing.cubic),
+      useNativeDriver: false,
+    }).start(() => {
+      lastHeading.current = ((adjusted % 360) + 360) % 360;
+      // Snap the AnimatedValue back into [0, 360) range without
+      // re-animating, so future deltas are computed from a clean base.
+      rotationAnim.setValue(lastHeading.current);
+    });
+  }, [targetHeading, rotationAnim]);
+
+  // ── Pulse halo ───────────────────────────────────────────────────
   const pulse = useSharedValue(0);
   useEffect(() => {
     pulse.value = withRepeat(
@@ -94,53 +126,76 @@ export function BusMarker({
   }, [pulse]);
 
   const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + pulse.value * 1.5 }],
-    opacity: stale ? 0 : 0.55 * (1 - pulse.value),
+    transform: [{ scale: 1 + pulse.value * 1.4 }],
+    opacity: stale ? 0 : 0.45 * (1 - pulse.value),
   }));
-
-  // Only rotate when heading is meaningful. Otherwise keep upright so the
-  // bus glyph stays readable when the vehicle is stationary.
-  const rotation = heading != null && heading >= 0 && heading <= 360 ? heading : 0;
 
   return (
     <MarkerAnimated
       coordinate={coordinate as unknown as { latitude: number; longitude: number }}
       anchor={{ x: 0.5, y: 0.5 }}
       flat
-      rotation={rotation}
+      // RNAnimated.Value is accepted by Marker's `rotation` prop at
+      // runtime; the type signature is plain number so we cast.
+      rotation={rotationAnim as unknown as number}
       tracksViewChanges={tracking}
     >
       <View style={styles.container}>
         <Animated.View style={[styles.pulse, pulseStyle]} />
+
+        {/* FORWARD CHEVRON — the dominant direction cue, sits ahead
+            of the bus body and points in the heading direction once
+            the whole marker rotates. Bigger + brand-coloured + white
+            stroke so it pops against any basemap. */}
+        <View
+          style={[
+            styles.chevronStroke,
+            stale && styles.chevronStrokeStale,
+          ]}
+        />
+        <View
+          style={[
+            styles.chevronFill,
+            stale && styles.chevronFillStale,
+          ]}
+        />
+
+        {/* BUS BODY — circular badge with the bus icon. The "this is
+            a bus, not just a moving dot" cue. */}
         <View style={[styles.body, stale && styles.bodyStale]}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="bus" size={20} color="white" />
-          </View>
+          <Ionicons name="bus" size={22} color="white" />
         </View>
-        {/* Tiny direction triangle at the top — backup heading hint
-            when the bus glyph itself isn't enough at distance. */}
-        <View style={[styles.notch, stale && styles.notchStale]} />
       </View>
     </MarkerAnimated>
   );
 }
 
-const SIZE = 42;
+const SIZE = 48;
+const CONTAINER = SIZE * 3;
+const CHEVRON_W = 30;
+const CHEVRON_H = 24;
+const CHEVRON_GAP = 8; // gap between bus body and chevron base
+const CHEVRON_STROKE = 3; // white outline thickness for the chevron
+
+const bodyTop = (CONTAINER - SIZE) / 2;
+const chevronFillTop = bodyTop - CHEVRON_GAP - CHEVRON_H;
+const chevronStrokeTop = chevronFillTop - CHEVRON_STROKE;
 
 const styles = StyleSheet.create({
   container: {
-    width: SIZE * 2.8,
-    height: SIZE * 2.8,
+    width: CONTAINER,
+    height: CONTAINER,
     alignItems: "center",
     justifyContent: "center",
   },
   pulse: {
     position: "absolute",
-    width: SIZE,
-    height: SIZE,
-    borderRadius: SIZE / 2,
+    width: SIZE * 1.1,
+    height: SIZE * 1.1,
+    borderRadius: SIZE,
     backgroundColor: colors.primary,
   },
+  // Bus body — round badge with brand fill, white border, deep shadow.
   body: {
     width: SIZE,
     height: SIZE,
@@ -150,7 +205,6 @@ const styles = StyleSheet.create({
     borderColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
-    // Strong shadow for prominence on the standard Google Maps look.
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.55,
@@ -161,23 +215,41 @@ const styles = StyleSheet.create({
     backgroundColor: colors.faintForeground,
     borderColor: colors.muted,
   },
-  iconWrap: {
-    width: SIZE,
-    height: SIZE,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  notch: {
+  // Forward chevron — large filled triangle pointing UP in marker
+  // local space. Because `flat=true` rotates the whole marker, this
+  // visually points "forward" relative to the bus's heading.
+  //
+  // We draw it as TWO stacked triangles: a slightly larger white
+  // "stroke" triangle behind and a primary-coloured fill triangle
+  // in front, giving the chevron a crisp outline on any basemap.
+  chevronStroke: {
     position: "absolute",
-    top: (SIZE * 2.8 - SIZE) / 2 - 9,
+    top: chevronStrokeTop,
     width: 0,
     height: 0,
-    borderLeftWidth: 7,
-    borderRightWidth: 7,
-    borderBottomWidth: 10,
+    borderLeftWidth: CHEVRON_W / 2 + CHEVRON_STROKE,
+    borderRightWidth: CHEVRON_W / 2 + CHEVRON_STROKE,
+    borderBottomWidth: CHEVRON_H + CHEVRON_STROKE,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
     borderBottomColor: "#ffffff",
   },
-  notchStale: { borderBottomColor: colors.muted },
+  chevronStrokeStale: {
+    borderBottomColor: colors.muted,
+  },
+  chevronFill: {
+    position: "absolute",
+    top: chevronFillTop,
+    width: 0,
+    height: 0,
+    borderLeftWidth: CHEVRON_W / 2,
+    borderRightWidth: CHEVRON_W / 2,
+    borderBottomWidth: CHEVRON_H,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderBottomColor: colors.primary,
+  },
+  chevronFillStale: {
+    borderBottomColor: colors.faintForeground,
+  },
 });

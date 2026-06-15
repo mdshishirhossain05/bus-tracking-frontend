@@ -33,6 +33,10 @@ interface LiveMapProps {
   showTraffic?: boolean;
   /** Opt-in dark Google Maps style. Default is the standard bright look. */
   darkMap?: boolean;
+  /** Short identifier for the selected bus (e.g. "BUS-1042"). Shown as a
+   *  pill under the bus marker so riders can recognise their bus when
+   *  multiple buses are on the same screen. */
+  busLabel?: string | null;
   onUserPan: () => void;
 }
 
@@ -46,6 +50,7 @@ export function LiveMap({
   hybrid = false,
   showTraffic = false,
   darkMap = false,
+  busLabel = null,
   onUserPan,
 }: LiveMapProps) {
   const initialRegion: Region = useMemo(() => {
@@ -301,6 +306,13 @@ export function LiveMap({
           latitude={live.latitude}
           longitude={live.longitude}
           heading={live.heading}
+          speedKmh={
+            live.displaySpeedKmh ??
+            live.filteredSpeedKmh ??
+            live.speed ??
+            null
+          }
+          label={busLabel}
           stale={stale}
         />
       )}

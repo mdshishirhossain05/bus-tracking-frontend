@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated as RNAnimated, Easing as RNEasing, StyleSheet, View } from "react-native";
+import { Animated as RNAnimated, Easing as RNEasing, StyleSheet, Text, View } from "react-native";
 import { AnimatedRegion, MarkerAnimated } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
@@ -15,12 +15,31 @@ interface BusMarkerProps {
   latitude: number;
   longitude: number;
   heading?: number | null;
+  /** Current ground speed in km/h; used to scale glide duration. */
+  speedKmh?: number | null;
+  /** Short identifier shown in a pill under the marker (e.g. "BUS-1042"). */
+  label?: string | null;
   /** Dimmed when the feed has gone stale, so a frozen bus reads as "stale". */
   stale?: boolean;
 }
 
-const GLIDE_MS = 1500;
+// Glide scales with the bus's reported ground speed so a fast bus
+// catches up quickly (snappy ~1s glide) and a stopped/idling bus moves
+// gently (~2.5s) instead of churning at a fixed metronome. Same trick
+// Google Maps / Uber use to keep motion feeling natural.
+const GLIDE_MIN_MS = 900;
+const GLIDE_MAX_MS = 2500;
+const GLIDE_FALLBACK_MS = 1500;
 const ROTATE_MS = 600;
+
+function glideDurationForSpeed(speed: number | null | undefined): number {
+  if (speed == null || !Number.isFinite(speed)) return GLIDE_FALLBACK_MS;
+  // 5 km/h or less → max duration (slow/dwelling). 40+ km/h → min
+  // duration (highway pace). Linear between the two.
+  const clamped = Math.max(5, Math.min(40, speed));
+  const t = (clamped - 5) / 35; // 0..1
+  return GLIDE_MAX_MS - t * (GLIDE_MAX_MS - GLIDE_MIN_MS);
+}
 
 /**
  * Google-Maps-grade directional bus marker.
@@ -48,8 +67,11 @@ export function BusMarker({
   latitude,
   longitude,
   heading,
+  speedKmh = null,
+  label = null,
   stale = false,
 }: BusMarkerProps) {
+  const glideMs = glideDurationForSpeed(speedKmh);
   // ── Position: AnimatedRegion glide ───────────────────────────────
   const coordinate = useMemo(
     () =>
@@ -74,17 +96,17 @@ export function BusMarker({
         longitude,
         latitudeDelta: 0,
         longitudeDelta: 0,
-        duration: GLIDE_MS,
+        duration: glideMs,
         useNativeDriver: false,
       } as never)
       .start();
 
     if (settleTimer.current) clearTimeout(settleTimer.current);
-    settleTimer.current = setTimeout(() => setTracking(false), GLIDE_MS + 400);
+    settleTimer.current = setTimeout(() => setTracking(false), glideMs + 400);
     return () => {
       if (settleTimer.current) clearTimeout(settleTimer.current);
     };
-  }, [latitude, longitude, coordinate]);
+  }, [latitude, longitude, coordinate, glideMs]);
 
   // ── Heading: smooth, shortest-arc rotation ───────────────────────
   // The raw heading from the server can jump (e.g. 350° → 10°). Naively
@@ -131,42 +153,67 @@ export function BusMarker({
   }));
 
   return (
-    <MarkerAnimated
-      coordinate={coordinate as unknown as { latitude: number; longitude: number }}
-      anchor={{ x: 0.5, y: 0.5 }}
-      flat
-      // RNAnimated.Value is accepted by Marker's `rotation` prop at
-      // runtime; the type signature is plain number so we cast.
-      rotation={rotationAnim as unknown as number}
-      tracksViewChanges={tracking}
-    >
-      <View style={styles.container}>
-        <Animated.View style={[styles.pulse, pulseStyle]} />
+    <>
+      {/* BUS BODY MARKER — flat (rotates with map heading via the
+          `rotation` prop) so the chevron always points "forward". */}
+      <MarkerAnimated
+        coordinate={coordinate as unknown as { latitude: number; longitude: number }}
+        anchor={{ x: 0.5, y: 0.5 }}
+        flat
+        // RNAnimated.Value is accepted by Marker's `rotation` prop at
+        // runtime; the type signature is plain number so we cast.
+        rotation={rotationAnim as unknown as number}
+        tracksViewChanges={tracking}
+      >
+        <View style={styles.container}>
+          <Animated.View style={[styles.pulse, pulseStyle]} />
 
-        {/* FORWARD CHEVRON — the dominant direction cue, sits ahead
-            of the bus body and points in the heading direction once
-            the whole marker rotates. Bigger + brand-coloured + white
-            stroke so it pops against any basemap. */}
-        <View
-          style={[
-            styles.chevronStroke,
-            stale && styles.chevronStrokeStale,
-          ]}
-        />
-        <View
-          style={[
-            styles.chevronFill,
-            stale && styles.chevronFillStale,
-          ]}
-        />
+          {/* FORWARD CHEVRON — the dominant direction cue, sits ahead
+              of the bus body and points in the heading direction once
+              the whole marker rotates. Bigger + brand-coloured + white
+              stroke so it pops against any basemap. */}
+          <View
+            style={[
+              styles.chevronStroke,
+              stale && styles.chevronStrokeStale,
+            ]}
+          />
+          <View
+            style={[
+              styles.chevronFill,
+              stale && styles.chevronFillStale,
+            ]}
+          />
 
-        {/* BUS BODY — circular badge with the bus icon. The "this is
-            a bus, not just a moving dot" cue. */}
-        <View style={[styles.body, stale && styles.bodyStale]}>
-          <Ionicons name="bus" size={22} color="white" />
+          {/* BUS BODY — circular badge with the bus icon. The "this is
+              a bus, not just a moving dot" cue. */}
+          <View style={[styles.body, stale && styles.bodyStale]}>
+            <Ionicons name="bus" size={22} color="white" />
+          </View>
         </View>
-      </View>
-    </MarkerAnimated>
+      </MarkerAnimated>
+
+      {/* LABEL PILL MARKER — non-flat (stays screen-upright regardless
+          of map / bus rotation) so the route/bus identifier is always
+          readable. Shares the same animated coordinate so it glides
+          with the bus body. Anchored at the top so the visible pill
+          hangs just below the bus marker. */}
+      {label ? (
+        <MarkerAnimated
+          coordinate={coordinate as unknown as { latitude: number; longitude: number }}
+          anchor={{ x: 0.5, y: 0 }}
+          tracksViewChanges={tracking}
+        >
+          <View style={styles.labelOffset}>
+            <View style={[styles.labelPill, stale && styles.labelPillStale]}>
+              <Text style={styles.labelText} numberOfLines={1}>
+                {label}
+              </Text>
+            </View>
+          </View>
+        </MarkerAnimated>
+      ) : null}
+    </>
   );
 }
 
@@ -251,5 +298,35 @@ const styles = StyleSheet.create({
   },
   chevronFillStale: {
     borderBottomColor: colors.faintForeground,
+  },
+  // Label pill anchor uses y=0 (top edge at the coordinate), so the
+  // visible pill renders BELOW the coordinate. Add padding-top equal to
+  // the bus body's lower extent + a small gap so the pill sits clearly
+  // beneath the bus icon instead of overlapping it.
+  labelOffset: {
+    paddingTop: SIZE / 2 + 14,
+    alignItems: "center",
+  },
+  labelPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(15, 23, 42, 0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.18)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.30,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  labelPillStale: {
+    backgroundColor: "rgba(100, 116, 139, 0.85)",
+  },
+  labelText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#ffffff",
+    letterSpacing: 0.3,
   },
 });

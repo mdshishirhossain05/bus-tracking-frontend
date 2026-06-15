@@ -271,6 +271,11 @@ export function LiveScreen() {
         hybrid={hybrid}
         showTraffic={traffic}
         darkMap={darkMap}
+        busLabel={
+          trips.find((t) => t.tripId === selectedTripId)?.busLabel ??
+          trips.find((t) => t.tripId === selectedTripId)?.routeName ??
+          null
+        }
         onUserPan={() => setFollowing(false)}
       />
 

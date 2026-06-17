@@ -85,8 +85,8 @@ export async function startStreaming(tripId: string): Promise<void> {
     showsBackgroundLocationIndicator: true,
     activityType: Location.LocationActivityType.AutomotiveNavigation,
     foregroundService: {
-      notificationTitle: "Sharing bus location",
-      notificationBody: "Passengers can see this bus moving live.",
+      notificationTitle: "Sharing live bus location",
+      notificationBody: "Tap to open the driver app and end this trip.",
       notificationColor: "#3b82f6",
     },
   });

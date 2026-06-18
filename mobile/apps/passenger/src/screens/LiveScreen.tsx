@@ -26,6 +26,7 @@ import { useMapPrefs } from "../features/passenger/hooks/useMapPrefs";
 import { LiveMap } from "../features/passenger/components/LiveMap";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
+import { LiveStatusHud } from "../features/passenger/components/LiveStatusHud";
 import { OfflineBanner } from "../features/passenger/components/OfflineBanner";
 import { StaleDataBanner } from "../features/passenger/components/StaleDataBanner";
 import { LayersFAB } from "../features/passenger/components/LayersFAB";
@@ -304,6 +305,18 @@ export function LiveScreen() {
             lastFetchAt={lastFetchAt}
           />
         </View>
+        {/* On-map live status — next stop, ETA, and speed visible without
+            opening the bottom sheet. This is the surface passengers watch. */}
+        <LiveStatusHud
+          live={liveState}
+          eta={eta}
+          isRunning={
+            !tripEnded &&
+            !preTripPhase &&
+            trips.find((tr) => tr.tripId === selectedTripId)?.status ===
+              "RUNNING"
+          }
+        />
         <OfflineBanner
           status={connectionStatus}
           lastFetchAt={lastFetchAt}

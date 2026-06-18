@@ -27,6 +27,14 @@ export const STRINGS = {
   "common.m": { en: "m", bn: "মি" },
   "common.kmh": { en: "km/h", bn: "কিমি/ঘ" },
   "common.signOut": { en: "Sign out", bn: "সাইন আউট" },
+
+  // ---- on-map live status HUD ----
+  "hud.nextStop": { en: "Next stop", bn: "পরবর্তী স্টপ" },
+  "hud.arrivingIn": { en: "Arriving in", bn: "পৌঁছাবে" },
+  "hud.enRoute": { en: "On the way", bn: "পথে আছে" },
+  "hud.live": { en: "Live", bn: "লাইভ" },
+  "hud.tracking": { en: "Tracking bus…", bn: "বাস ট্র্যাক হচ্ছে…" },
+  "hud.stopped": { en: "Stopped", bn: "থেমেছে" },
   "common.map": { en: "Map", bn: "মানচিত্র" },
   "common.stops": { en: "Stops", bn: "স্টপ" },
   "common.search": { en: "Search", bn: "অনুসন্ধান" },

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { Animated, Easing, StyleSheet, View } from "react-native";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import MapView, {
   Marker,
   Polyline,
@@ -37,6 +37,10 @@ interface LiveMapProps {
    *  pill under the bus marker so riders can recognise their bus when
    *  multiple buses are on the same screen. */
   busLabel?: string | null;
+  /** Name of the stop the bus is currently heading to. That stop's marker
+   *  is rendered larger, in brand colour, with a label callout — so the
+   *  rider sees the next stop on the MAP, not only in the sheet. */
+  nextStopName?: string | null;
   onUserPan: () => void;
 }
 
@@ -51,6 +55,7 @@ export function LiveMap({
   showTraffic = false,
   darkMap = false,
   busLabel = null,
+  nextStopName = null,
   onUserPan,
 }: LiveMapProps) {
   const initialRegion: Region = useMemo(() => {
@@ -268,6 +273,36 @@ export function LiveMap({
         const terminal =
           stop.id === route.origin?.id || stop.id === route.destination?.id;
         const darkBasemap = !hybrid && darkMap;
+        const isNext =
+          !!nextStopName &&
+          stop.name.trim().toLowerCase() === nextStopName.trim().toLowerCase();
+
+        // The NEXT stop gets a larger, brand-coloured pin with a label
+        // callout so the rider can see — on the map itself — exactly which
+        // stop the bus is heading to next. tracksViewChanges stays true
+        // for this one marker so the label re-renders when the next stop
+        // changes; the rest stay cached (false) for performance.
+        if (isNext) {
+          return (
+            <Marker
+              key={stop.id}
+              coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
+              anchor={{ x: 0.5, y: 1 }}
+              tracksViewChanges
+              zIndex={50}
+            >
+              <View style={styles.nextStopWrap}>
+                <View style={styles.nextStopLabel}>
+                  <Text style={styles.nextStopLabelText} numberOfLines={1}>
+                    {stop.name}
+                  </Text>
+                </View>
+                <View style={styles.nextStopPin} />
+              </View>
+            </Marker>
+          );
+        }
+
         return (
           <Marker
             key={stop.id}
@@ -341,6 +376,42 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderColor: "#ffffff",
     backgroundColor: colors.primary,
+  },
+  // Next-stop pin: a labelled, brand-coloured teardrop the rider sees
+  // on the map itself, marking exactly where the bus is heading next.
+  nextStopWrap: {
+    alignItems: "center",
+  },
+  nextStopLabel: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    maxWidth: 180,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  nextStopLabelText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  nextStopPin: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    borderWidth: 3,
+    borderColor: "#ffffff",
+    marginTop: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+    elevation: 6,
   },
   passengerRing: {
     width: 22,

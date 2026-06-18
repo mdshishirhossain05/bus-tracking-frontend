@@ -277,6 +277,13 @@ export function LiveScreen() {
           trips.find((t) => t.tripId === selectedTripId)?.routeName ??
           null
         }
+        nextStopName={
+          !tripEnded &&
+          !preTripPhase &&
+          trips.find((tr) => tr.tripId === selectedTripId)?.status === "RUNNING"
+            ? eta?.nextStopName ?? null
+            : null
+        }
         onUserPan={() => setFollowing(false)}
       />
 

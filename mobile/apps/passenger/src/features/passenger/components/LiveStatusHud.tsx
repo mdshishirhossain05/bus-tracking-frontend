@@ -57,6 +57,16 @@ export function LiveStatusHud({ live, eta, isRunning }: LiveStatusHudProps) {
   const etaMinutes =
     eta?.etaMinutes != null && eta.etaMinutes >= 0 ? eta.etaMinutes : null;
 
+  // Distance to the next stop — shown next to the ETA so the rider gets
+  // both "when" (minutes) and "how far" (metres / km) at a glance.
+  const distM = eta?.nextStopDistanceMeters ?? null;
+  const distLabel =
+    distM != null && distM >= 0
+      ? distM >= 1000
+        ? `${localizeNumber((distM / 1000).toFixed(1), locale)} ${t("common.km")}`
+        : `${localizeNumber(Math.round(distM), locale)} ${t("common.m")}`
+      : null;
+
   // Headline: "Arriving" + ETA, or "Arrived" at the final stop.
   const headline = finalReached
     ? t("tripSheet.arrived")
@@ -98,6 +108,12 @@ export function LiveStatusHud({ live, eta, isRunning }: LiveStatusHudProps) {
               <Text variant="label" color={colors.primary} tabular>
                 {" "}
                 {localizeNumber(etaMinutes, locale)} {t("common.min")}
+              </Text>
+            ) : null}
+            {!finalReached && distLabel ? (
+              <Text variant="caption" color={colors.mutedForeground} tabular>
+                {"  ·  "}
+                {distLabel}
               </Text>
             ) : null}
           </View>

@@ -17,13 +17,15 @@ import {
   Skeleton,
   SkeletonGroup,
   EmptyState,
-  useT,
+  useI18n,
+  localizeNumber,
 } from "@ubts/shared";
 import { colors, spacing, radius } from "@ubts/shared";
 import { useNotifications } from "@ubts/shared";
 import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLiveTrip";
 import { useMapPrefs } from "../features/passenger/hooks/useMapPrefs";
 import { useDestinationStop } from "../features/passenger/hooks/useDestinationStop";
+import { useBackgroundTrackingNotification } from "../features/passenger/hooks/useBackgroundTrackingNotification";
 import { LiveMap } from "../features/passenger/components/LiveMap";
 import type { BusMarkerStatus } from "../features/passenger/components/BusMarker";
 import { TripSheet } from "../features/passenger/components/TripSheet";
@@ -65,7 +67,7 @@ function TopActions({ onOpenMenu }: { onOpenMenu: () => void }) {
 }
 
 export function LiveScreen() {
-  const t = useT();
+  const { t, locale } = useI18n();
   const {
     loading,
     refreshing,
@@ -146,6 +148,41 @@ export function LiveScreen() {
       stationary,
     };
   }, [isRunning, liveState, eta, destinationStopName]);
+
+  // Live-tracking notification content — keeps the bus status visible in the
+  // notification bar (foreground service) while the rider is away from the app.
+  const trackingNotif = useMemo(() => {
+    const title =
+      selectedTrip?.routeName ?? selectedTrip?.busLabel ?? t("busNotif.title");
+    if (!busStatus) return { title, body: t("hud.tracking") };
+    if (busStatus.finalReached) return { title, body: t("tripSheet.arrived") };
+
+    const parts: string[] = [];
+    if (busStatus.nextStopName) {
+      const prefix = busStatus.isYourStop
+        ? t("busNotif.yourStop")
+        : t("busNotif.next");
+      parts.push(`${prefix}: ${busStatus.nextStopName}`);
+    }
+    if (busStatus.etaMinutes != null && busStatus.etaMinutes >= 0) {
+      parts.push(
+        `${localizeNumber(busStatus.etaMinutes, locale)} ${t("common.min")}`,
+      );
+    } else if (busStatus.stationary) {
+      parts.push(t("hud.stopped"));
+    }
+    return { title, body: parts.join("  ·  ") || t("hud.tracking") };
+  }, [selectedTrip, busStatus, t, locale]);
+
+  // Drive the background foreground-service notification. Active only while the
+  // rider is on the tracking view watching a RUNNING trip — so the service is
+  // always started from the foreground (Android requirement) and torn down when
+  // they leave or the trip ends.
+  useBackgroundTrackingNotification({
+    enabled: view === "tracking" && !!isRunning,
+    title: trackingNotif.title,
+    body: trackingNotif.body,
+  });
 
   // A gentle haptic when the bus reaches a stop — a native-only "real" cue.
   useEffect(() => {

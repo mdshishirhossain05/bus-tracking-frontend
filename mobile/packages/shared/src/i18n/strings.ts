@@ -39,6 +39,11 @@ export const STRINGS = {
   // ---- on-map bus status callout ----
   "busCallout.nextStop": { en: "NEXT STOP", bn: "পরবর্তী স্টপ" },
   "busCallout.yourStop": { en: "YOUR STOP", bn: "আপনার স্টপ" },
+
+  // ---- background live-tracking notification ----
+  "busNotif.title": { en: "Live bus tracking", bn: "লাইভ বাস ট্র্যাকিং" },
+  "busNotif.next": { en: "Next", bn: "পরবর্তী" },
+  "busNotif.yourStop": { en: "Your stop", bn: "আপনার স্টপ" },
   "common.map": { en: "Map", bn: "মানচিত্র" },
   "common.stops": { en: "Stops", bn: "স্টপ" },
   "common.search": { en: "Search", bn: "অনুসন্ধান" },

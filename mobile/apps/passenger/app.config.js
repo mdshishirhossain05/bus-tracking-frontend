@@ -1,5 +1,7 @@
 const LOCATION_USAGE =
   "Your location is used to show nearby stops and your position on the live route map.";
+const BACKGROUND_LOCATION_USAGE =
+  "While you are tracking a trip, UniBus Live keeps the bus status in your notifications even when the app is in the background, so you can keep an eye on your bus without staying in the app.";
 
 /**
  * Dynamic config so the Google Maps key and permission strings come from env.
@@ -18,6 +20,9 @@ module.exports = ({ config }) => ({
     infoPlist: {
       ...(config.ios?.infoPlist ?? {}),
       NSLocationWhenInUseUsageDescription: LOCATION_USAGE,
+      NSLocationAlwaysAndWhenInUseUsageDescription: BACKGROUND_LOCATION_USAGE,
+      // Keep the trip socket + live notification alive while backgrounded.
+      UIBackgroundModes: ["location"],
     },
     config: {
       ...(config.ios?.config ?? {}),
@@ -27,7 +32,17 @@ module.exports = ({ config }) => ({
   android: {
     ...config.android,
     package: "edu.unibus.live",
-    permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
+    // ACCESS_BACKGROUND_LOCATION + the two FOREGROUND_SERVICE permissions are
+    // what let the passenger app run a keep-alive location foreground service,
+    // so the live-tracking notification stays on screen (and the trip socket
+    // keeps streaming) after the rider leaves the app during a trip.
+    permissions: [
+      "ACCESS_FINE_LOCATION",
+      "ACCESS_COARSE_LOCATION",
+      "ACCESS_BACKGROUND_LOCATION",
+      "FOREGROUND_SERVICE",
+      "FOREGROUND_SERVICE_LOCATION",
+    ],
     config: {
       ...(config.android?.config ?? {}),
       googleMaps: {
@@ -37,7 +52,15 @@ module.exports = ({ config }) => ({
   },
   plugins: [
     ...(config.plugins ?? []),
-    ["expo-location", { locationWhenInUsePermission: LOCATION_USAGE }],
+    [
+      "expo-location",
+      {
+        locationWhenInUsePermission: LOCATION_USAGE,
+        locationAlwaysAndWhenInUsePermission: BACKGROUND_LOCATION_USAGE,
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
+      },
+    ],
     "expo-notifications",
     [
       "expo-build-properties",

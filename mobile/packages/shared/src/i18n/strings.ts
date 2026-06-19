@@ -35,6 +35,10 @@ export const STRINGS = {
   "hud.live": { en: "Live", bn: "লাইভ" },
   "hud.tracking": { en: "Tracking bus…", bn: "বাস ট্র্যাক হচ্ছে…" },
   "hud.stopped": { en: "Stopped", bn: "থেমেছে" },
+
+  // ---- on-map bus status callout ----
+  "busCallout.nextStop": { en: "NEXT STOP", bn: "পরবর্তী স্টপ" },
+  "busCallout.yourStop": { en: "YOUR STOP", bn: "আপনার স্টপ" },
   "common.map": { en: "Map", bn: "মানচিত্র" },
   "common.stops": { en: "Stops", bn: "স্টপ" },
   "common.search": { en: "Search", bn: "অনুসন্ধান" },

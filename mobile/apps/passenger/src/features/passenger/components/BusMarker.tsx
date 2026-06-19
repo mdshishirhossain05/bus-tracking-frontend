@@ -9,7 +9,26 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { colors } from "@ubts/shared";
+import { colors, localizeNumber, useI18n } from "@ubts/shared";
+
+/**
+ * Compact live status rendered in a callout attached to the bus marker.
+ * Everything the rider needs — next stop, ETA, speed — travels WITH the
+ * bus on the map, so the status reads as "this bus's state" rather than a
+ * detached HUD. When the bus's next stop is the rider's chosen stop we
+ * switch to a highlighted "Your stop" treatment.
+ */
+export interface BusMarkerStatus {
+  nextStopName: string | null;
+  etaMinutes: number | null;
+  distanceMeters: number | null;
+  /** True when the next stop is the rider's chosen destination stop. */
+  isYourStop: boolean;
+  /** Final stop reached — show "Arrived" instead of an ETA. */
+  finalReached: boolean;
+  /** Bus is stopped/idling. */
+  stationary: boolean;
+}
 
 interface BusMarkerProps {
   latitude: number;
@@ -17,10 +36,12 @@ interface BusMarkerProps {
   heading?: number | null;
   /** Current ground speed in km/h; used to scale glide duration. */
   speedKmh?: number | null;
-  /** Short identifier shown in a pill under the marker (e.g. "BUS-1042"). */
+  /** Short identifier shown in the callout header (e.g. "BUS-1042"). */
   label?: string | null;
   /** Dimmed when the feed has gone stale, so a frozen bus reads as "stale". */
   stale?: boolean;
+  /** Live status shown in the callout above the bus. Null hides the callout. */
+  status?: BusMarkerStatus | null;
 }
 
 // Glide scales with the bus's reported ground speed so a fast bus
@@ -57,11 +78,13 @@ function glideDurationForSpeed(speed: number | null | undefined): number {
  *      the map's coordinate space — and because the camera (in LiveMap)
  *      stays north-up, that rotation is what the rider sees as
  *      "direction the bus is going". The chevron is the dominant cue.
- *   4. A soft pulse halo behind the marker keeps it discoverable on
- *      busy maps without competing with the chevron for attention.
+ *   4. A live STATUS CALLOUT (next stop · ETA · speed) hangs above the bus
+ *      and glides with it, so the rider reads the bus's state right on the
+ *      vehicle. It is a non-flat marker so the text stays upright.
  *   5. `tracksViewChanges` is held TRUE during the glide and toggled off
  *      ~400 ms after it settles — otherwise Google Maps caches the
- *      marker's bitmap and motion looks frozen on Android.
+ *      marker's bitmap and motion looks frozen on Android. It is also
+ *      pulsed whenever the callout text changes so the new ETA renders.
  */
 export function BusMarker({
   latitude,
@@ -70,7 +93,9 @@ export function BusMarker({
   speedKmh = null,
   label = null,
   stale = false,
+  status = null,
 }: BusMarkerProps) {
+  const { t, locale } = useI18n();
   const glideMs = glideDurationForSpeed(speedKmh);
   // ── Position: AnimatedRegion glide ───────────────────────────────
   const coordinate = useMemo(
@@ -152,6 +177,54 @@ export function BusMarker({
     opacity: stale ? 0 : 0.45 * (1 - pulse.value),
   }));
 
+  // ── Callout content + bitmap refresh ─────────────────────────────
+  // Build the human-readable status strings up front so we can key the
+  // tracksViewChanges pulse on the rendered text. Without this, an ETA
+  // change that arrives WITHOUT a position change would not repaint the
+  // cached marker bitmap on Android — the callout would show a stale ETA.
+  const distanceLabel = useMemo(() => {
+    const d = status?.distanceMeters;
+    if (d == null || d < 0) return null;
+    return d >= 1000
+      ? `${localizeNumber((d / 1000).toFixed(1), locale)} ${t("common.km")}`
+      : `${localizeNumber(Math.round(d), locale)} ${t("common.m")}`;
+  }, [status?.distanceMeters, locale, t]);
+
+  const etaLabel = useMemo(() => {
+    if (!status) return null;
+    if (status.finalReached) return t("tripSheet.arrived");
+    if (status.etaMinutes != null && status.etaMinutes >= 0) {
+      return `${localizeNumber(status.etaMinutes, locale)} ${t("common.min")}`;
+    }
+    return null;
+  }, [status, locale, t]);
+
+  const speedLabel = useMemo(() => {
+    if (status?.stationary) return t("hud.stopped");
+    if (speedKmh != null && speedKmh >= 0) {
+      return `${localizeNumber(Math.round(speedKmh), locale)} ${t("common.kmh")}`;
+    }
+    return null;
+  }, [status?.stationary, speedKmh, locale, t]);
+
+  // A key that changes whenever any visible callout text changes.
+  const contentKey = `${label ?? ""}|${status?.nextStopName ?? ""}|${
+    status?.isYourStop ? "Y" : "N"
+  }|${etaLabel ?? ""}|${distanceLabel ?? ""}|${speedLabel ?? ""}`;
+  const calloutPulse = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    // Pulse the callout marker's bitmap so new text paints even if the
+    // bus didn't move on this update tick.
+    setTracking(true);
+    if (calloutPulse.current) clearTimeout(calloutPulse.current);
+    calloutPulse.current = setTimeout(() => setTracking(false), 500);
+    return () => {
+      if (calloutPulse.current) clearTimeout(calloutPulse.current);
+    };
+  }, [contentKey]);
+
+  const showCallout = !!status && !!status.nextStopName;
+
   return (
     <>
       {/* BUS BODY MARKER — flat (rotates with map heading via the
@@ -164,6 +237,7 @@ export function BusMarker({
         // runtime; the type signature is plain number so we cast.
         rotation={rotationAnim as unknown as number}
         tracksViewChanges={tracking}
+        zIndex={60}
       >
         <View style={styles.container}>
           <Animated.View style={[styles.pulse, pulseStyle]} />
@@ -193,23 +267,69 @@ export function BusMarker({
         </View>
       </MarkerAnimated>
 
-      {/* LABEL PILL MARKER — non-flat (stays screen-upright regardless
-          of map / bus rotation) so the route/bus identifier is always
-          readable. Shares the same animated coordinate so it glides
-          with the bus body. Anchored at the top so the visible pill
-          hangs just below the bus marker. */}
-      {label ? (
+      {/* STATUS CALLOUT MARKER — non-flat (stays screen-upright regardless
+          of map / bus rotation) so the text is always readable. Shares the
+          same animated coordinate so it glides with the bus body. Anchored
+          at its bottom so the card floats just above the bus marker. */}
+      {showCallout && status ? (
         <MarkerAnimated
           coordinate={coordinate as unknown as { latitude: number; longitude: number }}
-          anchor={{ x: 0.5, y: 0 }}
+          anchor={{ x: 0.5, y: 1 }}
+          centerOffset={{ x: 0, y: -(SIZE / 2) - 10 }}
           tracksViewChanges={tracking}
+          zIndex={70}
         >
-          <View style={styles.labelOffset}>
-            <View style={[styles.labelPill, stale && styles.labelPillStale]}>
-              <Text style={styles.labelText} numberOfLines={1}>
-                {label}
+          <View style={styles.calloutWrap}>
+            <View
+              style={[
+                styles.callout,
+                status.isYourStop && styles.calloutYourStop,
+                stale && styles.calloutStale,
+              ]}
+            >
+              {label ? (
+                <View style={styles.calloutHeaderRow}>
+                  <Ionicons name="bus" size={11} color="rgba(255,255,255,0.85)" />
+                  <Text style={styles.calloutLabel} numberOfLines={1}>
+                    {label}
+                  </Text>
+                </View>
+              ) : null}
+
+              <Text style={styles.calloutStopLabel} numberOfLines={1}>
+                {status.isYourStop ? t("busCallout.yourStop") : t("busCallout.nextStop")}
               </Text>
+              <Text style={styles.calloutStopName} numberOfLines={1}>
+                {status.nextStopName}
+              </Text>
+
+              <View style={styles.calloutMetaRow}>
+                {etaLabel ? (
+                  <View style={styles.calloutMetaItem}>
+                    <Ionicons name="time-outline" size={12} color="#ffffff" />
+                    <Text style={styles.calloutMetaText}>{etaLabel}</Text>
+                  </View>
+                ) : null}
+                {speedLabel ? (
+                  <View style={styles.calloutMetaItem}>
+                    <Ionicons
+                      name={status.stationary ? "pause" : "speedometer-outline"}
+                      size={12}
+                      color="#ffffff"
+                    />
+                    <Text style={styles.calloutMetaText}>{speedLabel}</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
+            {/* Little downward tail pointing at the bus. */}
+            <View
+              style={[
+                styles.calloutTail,
+                status.isYourStop && styles.calloutTailYourStop,
+                stale && styles.calloutTailStale,
+              ]}
+            />
           </View>
         </MarkerAnimated>
       ) : null}
@@ -227,6 +347,9 @@ const CHEVRON_STROKE = 3; // white outline thickness for the chevron
 const bodyTop = (CONTAINER - SIZE) / 2;
 const chevronFillTop = bodyTop - CHEVRON_GAP - CHEVRON_H;
 const chevronStrokeTop = chevronFillTop - CHEVRON_STROKE;
+
+const CALLOUT_BG = "rgba(15, 23, 42, 0.94)";
+const CALLOUT_YOURSTOP_BG = colors.primary;
 
 const styles = StyleSheet.create({
   container: {
@@ -299,34 +422,89 @@ const styles = StyleSheet.create({
   chevronFillStale: {
     borderBottomColor: colors.faintForeground,
   },
-  // Label pill anchor uses y=0 (top edge at the coordinate), so the
-  // visible pill renders BELOW the coordinate. Add padding-top equal to
-  // the bus body's lower extent + a small gap so the pill sits clearly
-  // beneath the bus icon instead of overlapping it.
-  labelOffset: {
-    paddingTop: SIZE / 2 + 14,
+  // Status callout — floats above the bus, screen-upright.
+  calloutWrap: {
     alignItems: "center",
+    maxWidth: 240,
   },
-  labelPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: "rgba(15, 23, 42, 0.92)",
+  callout: {
+    minWidth: 150,
+    maxWidth: 240,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 14,
+    backgroundColor: CALLOUT_BG,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.18)",
+    borderColor: "rgba(255, 255, 255, 0.16)",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.30,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 7,
+    elevation: 8,
   },
-  labelPillStale: {
-    backgroundColor: "rgba(100, 116, 139, 0.85)",
+  calloutYourStop: {
+    backgroundColor: CALLOUT_YOURSTOP_BG,
+    borderColor: "rgba(255, 255, 255, 0.35)",
   },
-  labelText: {
-    fontSize: 11,
+  calloutStale: {
+    backgroundColor: "rgba(100, 116, 139, 0.92)",
+  },
+  calloutHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 3,
+  },
+  calloutLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "rgba(255, 255, 255, 0.85)",
+    letterSpacing: 0.4,
+  },
+  calloutStopLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "rgba(255, 255, 255, 0.65)",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  calloutStopName: {
+    fontSize: 14,
     fontWeight: "700",
     color: "#ffffff",
-    letterSpacing: 0.3,
+    marginTop: 1,
+  },
+  calloutMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 5,
+  },
+  calloutMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  calloutMetaText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#ffffff",
+  },
+  calloutTail: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderTopWidth: 8,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderTopColor: CALLOUT_BG,
+    marginTop: -1,
+  },
+  calloutTailYourStop: {
+    borderTopColor: CALLOUT_YOURSTOP_BG,
+  },
+  calloutTailStale: {
+    borderTopColor: "rgba(100, 116, 139, 0.92)",
   },
 });

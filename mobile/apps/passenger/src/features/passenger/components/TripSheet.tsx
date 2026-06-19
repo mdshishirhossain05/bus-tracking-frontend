@@ -24,7 +24,7 @@ import { DestinationBanner } from "./DestinationBanner";
 import { useStopSubscriptions } from "../hooks/useStopSubscriptions";
 import { useTripOccupancy } from "../hooks/useTripOccupancy";
 import { useRouteLiveBuses } from "../hooks/useRouteLiveBuses";
-import { useDestinationStop } from "../hooks/useDestinationStop";
+import type { useDestinationStop } from "../hooks/useDestinationStop";
 import { haversineMeters } from "@ubts/shared";
 import type {
   ActiveTrip,
@@ -47,6 +47,9 @@ interface TripSheetProps {
   passengerLocation?: PassengerLocation | null;
   refreshing?: boolean;
   onRefresh?: () => void;
+  /** Shared destination-stop state, lifted to LiveScreen so the map and
+   *  the sheet agree on which stop is "your stop". */
+  destination: ReturnType<typeof useDestinationStop>;
 }
 
 function GlassBackground({ style }: BottomSheetBackgroundProps) {
@@ -70,6 +73,7 @@ export function TripSheet({
   passengerLocation,
   refreshing = false,
   onRefresh,
+  destination,
 }: TripSheetProps) {
   const { t, locale } = useI18n();
   const snapPoints = useMemo(() => ["17%", "52%", "90%"], []);
@@ -87,11 +91,6 @@ export function TripSheet({
   const liveBuses = useRouteLiveBuses(
     selectedTrip?.routeId ?? route?.routeId ?? null,
   );
-  const destination = useDestinationStop({
-    tripId: selectedTripId || null,
-    eta,
-    routeStops: route?.stops,
-  });
 
   // Passenger's nearest stop on the selected route + walking distance.
   // Computed locally from the route geometry + passenger location so

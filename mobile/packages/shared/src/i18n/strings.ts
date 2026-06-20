@@ -39,6 +39,32 @@ export const STRINGS = {
   // ---- on-map bus status callout ----
   "busCallout.nextStop": { en: "NEXT STOP", bn: "পরবর্তী স্টপ" },
   "busCallout.yourStop": { en: "YOUR STOP", bn: "আপনার স্টপ" },
+  // Passive callout — shown when the bus has a live position but the trip
+  // isn't running (parked / pre-trip / ended / stale feed).
+  "busCallout.passive.preTrip": {
+    en: "Getting ready",
+    bn: "প্রস্তুত হচ্ছে",
+  },
+  "busCallout.passive.preTripSub": {
+    en: "Trip hasn't started yet",
+    bn: "যাত্রা এখনো শুরু হয়নি",
+  },
+  "busCallout.passive.parked": { en: "Parked", bn: "দাঁড়িয়ে আছে" },
+  "busCallout.passive.parkedSub": {
+    en: "Waiting to depart",
+    bn: "ছাড়ার অপেক্ষায়",
+  },
+  "busCallout.passive.idle": { en: "Stopped", bn: "থেমে আছে" },
+  "busCallout.passive.ended": { en: "Trip ended", bn: "যাত্রা শেষ" },
+  "busCallout.passive.stale": { en: "Last position", bn: "সর্বশেষ অবস্থান" },
+  "busCallout.passive.lastSeenNow": {
+    en: "Last seen just now",
+    bn: "এইমাত্র দেখা গেছে",
+  },
+  "busCallout.passive.lastSeenMin": {
+    en: "Last seen {n} min ago",
+    bn: "{n} মিনিট আগে দেখা গেছে",
+  },
 
   // ---- background live-tracking notification ----
   "busNotif.title": { en: "Live bus tracking", bn: "লাইভ বাস ট্র্যাকিং" },

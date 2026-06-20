@@ -122,10 +122,14 @@ export function LiveScreen() {
     );
   }, [destination.destinationStopId, route?.stops]);
 
-  // The live status shown in the callout attached to the bus marker. Only
-  // present while the trip is genuinely RUNNING with a live fix.
+  // Status shown in the callout attached to the bus marker. While the trip
+  // is RUNNING this is the full live status (next stop · ETA · speed, with
+  // the "your stop" treatment). When the trip ISN'T running but we still
+  // have a fix (parked, pre-trip, ended, or a stale feed), we show a
+  // PASSIVE callout instead — so the rider can always see where the bus is
+  // and what it's doing, even before the trip starts.
   const busStatus = useMemo<BusMarkerStatus | null>(() => {
-    if (!isRunning || !liveState) return null;
+    if (!liveState) return null;
     const rawSpeed =
       liveState.displaySpeedKmh ??
       liveState.filteredSpeedKmh ??
@@ -133,21 +137,76 @@ export function LiveScreen() {
       null;
     const stationary =
       liveState.isStationary === true || (rawSpeed != null && rawSpeed < 3);
-    const nextStopName = eta?.nextStopName ?? null;
-    const isYourStop =
-      !!destinationStopName &&
-      !!nextStopName &&
-      nextStopName.trim().toLowerCase() ===
-        destinationStopName.trim().toLowerCase();
+
+    if (isRunning) {
+      const nextStopName = eta?.nextStopName ?? null;
+      const isYourStop =
+        !!destinationStopName &&
+        !!nextStopName &&
+        nextStopName.trim().toLowerCase() ===
+          destinationStopName.trim().toLowerCase();
+      return {
+        nextStopName,
+        etaMinutes: eta?.etaMinutes ?? null,
+        distanceMeters: eta?.nextStopDistanceMeters ?? null,
+        isYourStop,
+        finalReached: eta?.finalStopReached === true,
+        stationary,
+      };
+    }
+
+    // ── Passive (not running, but we have a position) ──────────────────
+    let passiveHeadline: string;
+    let passiveSubline: string | null = null;
+    if (tripEnded) {
+      passiveHeadline = t("busCallout.passive.ended");
+    } else if (preTripPhase) {
+      passiveHeadline = t("busCallout.passive.preTrip");
+      passiveSubline = t("busCallout.passive.preTripSub");
+    } else if (isStale) {
+      // Feed has gone quiet — tell the rider how old the last fix is so a
+      // frozen marker doesn't read as a live one.
+      const updatedMs = liveState.updatedAt
+        ? new Date(liveState.updatedAt).getTime()
+        : NaN;
+      const mins = Number.isNaN(updatedMs)
+        ? null
+        : Math.max(0, Math.round((Date.now() - updatedMs) / 60_000));
+      passiveHeadline = t("busCallout.passive.stale");
+      passiveSubline =
+        mins == null || mins <= 0
+          ? t("busCallout.passive.lastSeenNow")
+          : t("busCallout.passive.lastSeenMin", {
+              n: localizeNumber(mins, locale),
+            });
+    } else {
+      passiveHeadline = stationary
+        ? t("busCallout.passive.parked")
+        : t("busCallout.passive.idle");
+      passiveSubline = stationary ? t("busCallout.passive.parkedSub") : null;
+    }
+
     return {
-      nextStopName,
-      etaMinutes: eta?.etaMinutes ?? null,
-      distanceMeters: eta?.nextStopDistanceMeters ?? null,
-      isYourStop,
-      finalReached: eta?.finalStopReached === true,
+      nextStopName: null,
+      etaMinutes: null,
+      distanceMeters: null,
+      isYourStop: false,
+      finalReached: false,
       stationary,
+      passiveHeadline,
+      passiveSubline,
     };
-  }, [isRunning, liveState, eta, destinationStopName]);
+  }, [
+    isRunning,
+    liveState,
+    eta,
+    destinationStopName,
+    preTripPhase,
+    tripEnded,
+    isStale,
+    t,
+    locale,
+  ]);
 
   // Live-tracking notification content — keeps the bus status visible in the
   // notification bar (foreground service) while the rider is away from the app.

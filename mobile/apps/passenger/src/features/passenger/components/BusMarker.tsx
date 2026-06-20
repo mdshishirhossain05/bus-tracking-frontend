@@ -339,14 +339,28 @@ export function BusMarker({
 
               {showLiveCallout ? (
                 <>
+                  {/* Label is ALWAYS "NEXT STOP" — riders want to read the
+                      bus's actual next stop. When that next stop also
+                      happens to be the rider's chosen destination, a small
+                      "(your stop)" chip sits next to the name AND the whole
+                      card stays in the brand-blue treatment, so both signals
+                      are present without losing the underlying truth. */}
                   <Text style={styles.calloutStopLabel} numberOfLines={1}>
-                    {status.isYourStop
-                      ? t("busCallout.yourStop")
-                      : t("busCallout.nextStop")}
+                    {t("busCallout.nextStop")}
                   </Text>
-                  <Text style={styles.calloutStopName} numberOfLines={1}>
-                    {status.nextStopName}
-                  </Text>
+                  <View style={styles.calloutStopRow}>
+                    <Text
+                      style={styles.calloutStopName}
+                      numberOfLines={1}
+                    >
+                      {status.nextStopName}
+                    </Text>
+                    {status.isYourStop ? (
+                      <Text style={styles.calloutYourStopTag} numberOfLines={1}>
+                        ({t("busCallout.yourStopTag")})
+                      </Text>
+                    ) : null}
+                  </View>
 
                   <View style={styles.calloutMetaRow}>
                     {etaLabel ? (
@@ -526,11 +540,24 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
   },
+  calloutStopRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 1,
+  },
   calloutStopName: {
     fontSize: 14,
     fontWeight: "700",
     color: "#ffffff",
-    marginTop: 1,
+    flexShrink: 1,
+  },
+  calloutYourStopTag: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(255, 255, 255, 0.85)",
+    letterSpacing: 0.2,
   },
   calloutMetaRow: {
     flexDirection: "row",

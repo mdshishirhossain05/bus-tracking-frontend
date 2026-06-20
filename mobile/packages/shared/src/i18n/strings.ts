@@ -38,6 +38,11 @@ export const STRINGS = {
 
   // ---- on-map bus status callout ----
   "busCallout.nextStop": { en: "NEXT STOP", bn: "পরবর্তী স্টপ" },
+  // Inline chip appended to the next-stop name when the bus's actual
+  // next stop happens to be the rider's chosen destination — so the
+  // callout still tells you the real next stop, and ALSO that it's
+  // yours. Example: "NEXT STOP: Library (your stop)".
+  "busCallout.yourStopTag": { en: "your stop", bn: "আপনার স্টপ" },
   "busCallout.yourStop": { en: "YOUR STOP", bn: "আপনার স্টপ" },
   // Passive callout — shown when the bus has a live position but the trip
   // isn't running (parked / pre-trip / ended / stale feed).

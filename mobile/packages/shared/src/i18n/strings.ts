@@ -93,10 +93,14 @@ export const STRINGS = {
   },
   "today.section.live": { en: "Live now", bn: "এখন চলছে" },
   "today.section.preTrip": { en: "Departing soon", bn: "শীঘ্রই ছাড়বে" },
-  "today.section.upcoming": { en: "Upcoming today", bn: "আজকের পরবর্তী" },
+  // Splits the old "Upcoming today" pile so a trip departing in 5 min
+  // isn't sitting next to one departing in 8 hours — gives a clear
+  // current vs upcoming separation.
+  "today.section.upNext": { en: "Up next · within 30 min", bn: "৩০ মিনিটের মধ্যে" },
+  "today.section.upcoming": { en: "Later today", bn: "আজ পরে" },
   "today.section.tomorrow": { en: "Tomorrow's schedule", bn: "আগামীকালের সময়সূচী" },
   "today.section.completed": { en: "Completed today", bn: "আজ শেষ হয়েছে" },
-  "today.section.notLive": { en: "Not live yet", bn: "এখনো শুরু হয়নি" },
+  "today.section.notLive": { en: "Missed · no trip started", bn: "মিসড · ট্রিপ শুরু হয়নি" },
   "today.section.favorites": { en: "Your favorites", bn: "আপনার পছন্দের" },
   "today.badge.notLive": { en: "Not live yet", bn: "শুরু হয়নি" },
   "today.badge.delayed": { en: "Departed, no trip yet", bn: "ছাড়ার সময় পেরিয়েছে" },
@@ -196,6 +200,12 @@ export const STRINGS = {
   "destination.set": { en: "Set destination", bn: "গন্তব্য নির্ধারণ" },
   "destination.clear": { en: "Clear destination", bn: "গন্তব্য মুছুন" },
   "destination.chip": { en: "Your stop", bn: "আপনার স্টপ" },
+  // Inline CTA shown in the timeline when no destination is chosen yet,
+  // so first-time riders know they can opt in to a get-off alert.
+  "destination.pickPrompt": {
+    en: "Tap a flag next to a stop to set your get-off alert",
+    bn: "নামার সতর্কতা পেতে স্টপের পাশের পতাকায় ট্যাপ করুন",
+  },
   "destination.approachingTitle": {
     en: "Get off at the next stop",
     bn: "পরের স্টপে নেমে যান",

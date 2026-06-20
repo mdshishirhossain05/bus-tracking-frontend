@@ -443,6 +443,18 @@ export function TripSheet({
             <Text variant="label" color={colors.mutedForeground} style={styles.timelineTitle}>
               {t("tripSheet.route")}
             </Text>
+            {/* First-time hint: a rider can flag any stop as theirs to get a
+                get-off alert. The flag icons in the list are easy to miss,
+                so we surface a one-line prompt until they've picked one.
+                Auto-disappears once a destination is set. */}
+            {!destination.destinationStopId ? (
+              <View style={styles.pickPrompt}>
+                <Icon name="flag-outline" size={14} color={colors.warning} />
+                <Text variant="caption" color={colors.mutedForeground}>
+                  {t("destination.pickPrompt")}
+                </Text>
+              </View>
+            ) : null}
             <StopTimeline
               stops={route.stops}
               // Suppress the "next stop" highlight + passed-stops fade while
@@ -611,4 +623,14 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   timeline: { marginTop: spacing.xl },
   timelineTitle: { marginBottom: spacing.xs },
+  pickPrompt: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.xs,
+    backgroundColor: "rgba(245, 158, 11, 0.10)",
+    borderRadius: radius.sm,
+  },
 });

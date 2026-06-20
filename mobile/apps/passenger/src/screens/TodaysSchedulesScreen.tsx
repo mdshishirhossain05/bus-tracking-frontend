@@ -357,12 +357,18 @@ export function TodaysSchedulesScreen() {
     }
 
     // scope === "today" — group by lifecycle so the user can scan the day.
+    // The "no trip yet" buckets are split into "Up next" (within 30 min)
+    // and "Later today" so the rider can see at a glance which schedules
+    // are imminent vs hours away — instead of every schedule piling into
+    // one "Upcoming today" section.
     const live: ScheduleTodayItem[] = [];
     const preTrip: ScheduleTodayItem[] = [];
-    const upcoming: ScheduleTodayItem[] = [];
-    const notLiveYet: ScheduleTodayItem[] = []; // past departure, no trip yet
+    const upNext: ScheduleTodayItem[] = []; // departure within next ~30 min
+    const upcoming: ScheduleTodayItem[] = []; // later today
+    const notLiveYet: ScheduleTodayItem[] = []; // past departure, no trip
     const completed: ScheduleTodayItem[] = [];
 
+    const UP_NEXT_WINDOW_MIN = 30;
     for (const s of filtered) {
       const status = s.trip?.status;
       if (status === "RUNNING") live.push(s);
@@ -370,13 +376,16 @@ export function TodaysSchedulesScreen() {
       else if (status === "ENDED") completed.push(s);
       else {
         const minsUntil = minutesUntil(s.departureAtIso);
-        // Future / starting-soon → "Upcoming". Past with no trip → "Not live
-        // yet" so the passenger still sees the schedule and knows it's
-        // delayed (instead of it silently disappearing).
-        if (minsUntil >= -5) upcoming.push(s);
-        else notLiveYet.push(s);
+        if (minsUntil < -5) notLiveYet.push(s);
+        else if (minsUntil <= UP_NEXT_WINDOW_MIN) upNext.push(s);
+        else upcoming.push(s);
       }
     }
+
+    upNext.sort(
+      (a, b) =>
+        minutesUntil(a.departureAtIso) - minutesUntil(b.departureAtIso),
+    );
 
     upcoming.sort(
       (a, b) =>
@@ -398,6 +407,17 @@ export function TodaysSchedulesScreen() {
         key: "preTrip",
         titleKey: "today.section.preTrip",
         items: preTrip,
+      });
+    }
+    if (upNext.length) {
+      // Favorites first inside the section, so a rider's regular run
+      // bubbles to the top whenever it enters the imminent window.
+      const upNextFav = upNext.filter((s) => s.isFavorite);
+      const upNextRest = upNext.filter((s) => !s.isFavorite);
+      result.push({
+        key: "upNext",
+        titleKey: "today.section.upNext",
+        items: [...upNextFav, ...upNextRest],
       });
     }
     if (upcomingFav.length || upcomingRest.length) {

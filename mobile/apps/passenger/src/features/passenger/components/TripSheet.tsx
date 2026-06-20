@@ -24,7 +24,7 @@ import { DestinationBanner } from "./DestinationBanner";
 import { useStopSubscriptions } from "../hooks/useStopSubscriptions";
 import { useTripOccupancy } from "../hooks/useTripOccupancy";
 import { useRouteLiveBuses } from "../hooks/useRouteLiveBuses";
-import { useDestinationStop } from "../hooks/useDestinationStop";
+import type { useDestinationStop } from "../hooks/useDestinationStop";
 import { haversineMeters } from "@ubts/shared";
 import type {
   ActiveTrip,
@@ -47,6 +47,9 @@ interface TripSheetProps {
   passengerLocation?: PassengerLocation | null;
   refreshing?: boolean;
   onRefresh?: () => void;
+  /** Shared destination-stop state, lifted to LiveScreen so the map and
+   *  the sheet agree on which stop is "your stop". */
+  destination: ReturnType<typeof useDestinationStop>;
 }
 
 function GlassBackground({ style }: BottomSheetBackgroundProps) {
@@ -70,6 +73,7 @@ export function TripSheet({
   passengerLocation,
   refreshing = false,
   onRefresh,
+  destination,
 }: TripSheetProps) {
   const { t, locale } = useI18n();
   const snapPoints = useMemo(() => ["17%", "52%", "90%"], []);
@@ -87,11 +91,6 @@ export function TripSheet({
   const liveBuses = useRouteLiveBuses(
     selectedTrip?.routeId ?? route?.routeId ?? null,
   );
-  const destination = useDestinationStop({
-    tripId: selectedTripId || null,
-    eta,
-    routeStops: route?.stops,
-  });
 
   // Passenger's nearest stop on the selected route + walking distance.
   // Computed locally from the route geometry + passenger location so
@@ -137,6 +136,37 @@ export function TripSheet({
   const isRunning = selectedTrip?.status === "RUNNING" && !tripEnded;
   const isPreTrip = selectedTrip?.status === "PRE_TRIP";
   const isEnded = tripEnded || selectedTrip?.status === "ENDED";
+
+  // "Bus here" detection for the stop timeline.
+  // The bus is dwelling at a stop when it is (a) currently stationary
+  // per backend's filter, OR moving at walking-pace, AND (b) within a
+  // generous geofence radius of that stop. We pick the *closest* stop
+  // inside the radius so the badge tracks the right one even when the
+  // bus is between two nearby stops.
+  const STOP_DWELL_RADIUS_M = 60; // matches backend ARRIVAL_RADIUS_METERS (~80m) with a buffer
+  const STOP_DWELL_SPEED_KMH = 4; // walking pace; anything below counts as dwelling
+  const currentStopId = useMemo<string | null>(() => {
+    if (!isRunning) return null;
+    if (!live || !route?.stops?.length) return null;
+    const speed = live.displaySpeedKmh ?? live.speed ?? null;
+    const dwelling =
+      live.isStationary === true ||
+      (typeof speed === "number" && speed <= STOP_DWELL_SPEED_KMH);
+    if (!dwelling) return null;
+    let best: { id: string; dist: number } | null = null;
+    for (const stop of route.stops) {
+      const dist = haversineMeters(
+        live.latitude,
+        live.longitude,
+        stop.latitude,
+        stop.longitude,
+      );
+      if (dist <= STOP_DWELL_RADIUS_M && (!best || dist < best.dist)) {
+        best = { id: stop.id, dist };
+      }
+    }
+    return best?.id ?? null;
+  }, [isRunning, live, route?.stops]);
 
   const etaLabel = tripEnded
     ? t("tripSheet.ended")
@@ -413,6 +443,18 @@ export function TripSheet({
             <Text variant="label" color={colors.mutedForeground} style={styles.timelineTitle}>
               {t("tripSheet.route")}
             </Text>
+            {/* First-time hint: a rider can flag any stop as theirs to get a
+                get-off alert. The flag icons in the list are easy to miss,
+                so we surface a one-line prompt until they've picked one.
+                Auto-disappears once a destination is set. */}
+            {!destination.destinationStopId ? (
+              <View style={styles.pickPrompt}>
+                <Icon name="flag-outline" size={14} color={colors.warning} />
+                <Text variant="caption" color={colors.mutedForeground}>
+                  {t("destination.pickPrompt")}
+                </Text>
+              </View>
+            ) : null}
             <StopTimeline
               stops={route.stops}
               // Suppress the "next stop" highlight + passed-stops fade while
@@ -420,6 +462,7 @@ export function TripSheet({
               // progression would otherwise tell a story that doesn't match
               // reality (the bus hasn't passed any stops yet).
               nextStopName={isRunning ? eta?.nextStopName : null}
+              currentStopId={currentStopId}
               routeId={routeIdForSubs}
               isSubscribed={(stopId) =>
                 routeIdForSubs
@@ -580,4 +623,14 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   timeline: { marginTop: spacing.xl },
   timelineTitle: { marginBottom: spacing.xs },
+  pickPrompt: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.xs,
+    backgroundColor: "rgba(245, 158, 11, 0.10)",
+    borderRadius: radius.sm,
+  },
 });

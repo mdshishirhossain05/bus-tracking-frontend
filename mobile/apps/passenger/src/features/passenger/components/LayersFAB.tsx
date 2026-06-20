@@ -17,19 +17,27 @@ interface LayersFABProps {
   onHybridChange: (value: boolean) => void;
   traffic: boolean;
   onTrafficChange: (value: boolean) => void;
+  darkMap: boolean;
+  onDarkMapChange: (value: boolean) => void;
 }
 
 /**
- * Floating button that opens a bottom sheet with two map view toggles:
- * hybrid view (satellite + labels) and Google's traffic overlay.
+ * Floating button that opens a bottom sheet with three map view toggles:
+ *   - hybrid view (satellite imagery + labels)
+ *   - Google's live traffic overlay
+ *   - dark Google Maps style (default is the standard bright look)
  *
- * Both preferences come from useMapPrefs so they persist across launches.
+ * All preferences come from useMapPrefs so they persist across launches.
+ * The FAB itself tints to primary when any layer is active so passengers
+ * can see at a glance that they have a non-default map setup on.
  */
 export function LayersFAB({
   hybrid,
   onHybridChange,
   traffic,
   onTrafficChange,
+  darkMap,
+  onDarkMapChange,
 }: LayersFABProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -42,6 +50,12 @@ export function LayersFAB({
     void Haptics.selectionAsync();
     onTrafficChange(value);
   };
+  const onToggleDarkMap = (value: boolean) => {
+    void Haptics.selectionAsync();
+    onDarkMapChange(value);
+  };
+
+  const anyActive = hybrid || traffic || darkMap;
 
   return (
     <>
@@ -54,7 +68,7 @@ export function LayersFAB({
           <Icon
             name="layers-outline"
             size={20}
-            color={hybrid || traffic ? colors.primary : colors.foreground}
+            color={anyActive ? colors.primary : colors.foreground}
           />
         </GlassSurface>
       </Pressable>
@@ -106,6 +120,25 @@ export function LayersFAB({
                     trackColor={{ false: colors.muted, true: colors.primary }}
                     thumbColor={colors.foreground}
                     accessibilityLabel={t("map.layers.traffic")}
+                  />
+                </View>
+
+                <View style={styles.row}>
+                  <View style={styles.rowText}>
+                    <Text variant="label" color={colors.foreground}>
+                      {t("map.layers.dark")}
+                    </Text>
+                    <Text variant="caption" color={colors.mutedForeground}>
+                      {t("map.layers.darkHelp")}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={darkMap}
+                    onValueChange={onToggleDarkMap}
+                    trackColor={{ false: colors.muted, true: colors.primary }}
+                    thumbColor={colors.foreground}
+                    accessibilityLabel={t("map.layers.dark")}
+                    disabled={hybrid}
                   />
                 </View>
               </View>

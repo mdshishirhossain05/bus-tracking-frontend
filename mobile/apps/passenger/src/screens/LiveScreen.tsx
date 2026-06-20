@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -17,15 +17,20 @@ import {
   Skeleton,
   SkeletonGroup,
   EmptyState,
-  useT,
+  useI18n,
+  localizeNumber,
 } from "@ubts/shared";
 import { colors, spacing, radius } from "@ubts/shared";
 import { useNotifications } from "@ubts/shared";
 import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLiveTrip";
 import { useMapPrefs } from "../features/passenger/hooks/useMapPrefs";
+import { useDestinationStop } from "../features/passenger/hooks/useDestinationStop";
+import { useBackgroundTrackingNotification } from "../features/passenger/hooks/useBackgroundTrackingNotification";
 import { LiveMap } from "../features/passenger/components/LiveMap";
+import type { BusMarkerStatus } from "../features/passenger/components/BusMarker";
 import { TripSheet } from "../features/passenger/components/TripSheet";
 import { ConnectionPill } from "../features/passenger/components/ConnectionPill";
+import { LiveStatusHud } from "../features/passenger/components/LiveStatusHud";
 import { OfflineBanner } from "../features/passenger/components/OfflineBanner";
 import { StaleDataBanner } from "../features/passenger/components/StaleDataBanner";
 import { LayersFAB } from "../features/passenger/components/LayersFAB";
@@ -62,7 +67,7 @@ function TopActions({ onOpenMenu }: { onOpenMenu: () => void }) {
 }
 
 export function LiveScreen() {
-  const t = useT();
+  const { t, locale } = useI18n();
   const {
     loading,
     refreshing,
@@ -93,7 +98,150 @@ export function LiveScreen() {
   const [view, setView] = useState<"home" | "tracking">("home");
   const { navigate } = useNav();
   const { unreadCount } = useNotifications();
-  const { hybrid, setHybrid, traffic, setTraffic } = useMapPrefs();
+  const { hybrid, setHybrid, traffic, setTraffic, darkMap, setDarkMap } =
+    useMapPrefs();
+
+  // Shared destination-stop state — lifted here so both the map (next-stop
+  // pin + bus callout "your stop" treatment) and the bottom sheet (stop
+  // picker + get-off banner) read the same selection.
+  const destination = useDestinationStop({
+    tripId: selectedTripId || null,
+    eta,
+    routeStops: route?.stops,
+  });
+
+  const selectedTrip = trips.find((tr) => tr.tripId === selectedTripId) ?? null;
+  const isRunning =
+    !tripEnded && !preTripPhase && selectedTrip?.status === "RUNNING";
+
+  const destinationStopName = useMemo(() => {
+    if (!destination.destinationStopId || !route?.stops) return null;
+    return (
+      route.stops.find((s) => s.id === destination.destinationStopId)?.name ??
+      null
+    );
+  }, [destination.destinationStopId, route?.stops]);
+
+  // Status shown in the callout attached to the bus marker. While the trip
+  // is RUNNING this is the full live status (next stop · ETA · speed, with
+  // the "your stop" treatment). When the trip ISN'T running but we still
+  // have a fix (parked, pre-trip, ended, or a stale feed), we show a
+  // PASSIVE callout instead — so the rider can always see where the bus is
+  // and what it's doing, even before the trip starts.
+  const busStatus = useMemo<BusMarkerStatus | null>(() => {
+    if (!liveState) return null;
+    const rawSpeed =
+      liveState.displaySpeedKmh ??
+      liveState.filteredSpeedKmh ??
+      liveState.speed ??
+      null;
+    const stationary =
+      liveState.isStationary === true || (rawSpeed != null && rawSpeed < 3);
+
+    if (isRunning) {
+      const nextStopName = eta?.nextStopName ?? null;
+      const isYourStop =
+        !!destinationStopName &&
+        !!nextStopName &&
+        nextStopName.trim().toLowerCase() ===
+          destinationStopName.trim().toLowerCase();
+      return {
+        nextStopName,
+        etaMinutes: eta?.etaMinutes ?? null,
+        distanceMeters: eta?.nextStopDistanceMeters ?? null,
+        isYourStop,
+        finalReached: eta?.finalStopReached === true,
+        stationary,
+      };
+    }
+
+    // ── Passive (not running, but we have a position) ──────────────────
+    let passiveHeadline: string;
+    let passiveSubline: string | null = null;
+    if (tripEnded) {
+      passiveHeadline = t("busCallout.passive.ended");
+    } else if (preTripPhase) {
+      passiveHeadline = t("busCallout.passive.preTrip");
+      passiveSubline = t("busCallout.passive.preTripSub");
+    } else if (isStale) {
+      // Feed has gone quiet — tell the rider how old the last fix is so a
+      // frozen marker doesn't read as a live one.
+      const updatedMs = liveState.updatedAt
+        ? new Date(liveState.updatedAt).getTime()
+        : NaN;
+      const mins = Number.isNaN(updatedMs)
+        ? null
+        : Math.max(0, Math.round((Date.now() - updatedMs) / 60_000));
+      passiveHeadline = t("busCallout.passive.stale");
+      passiveSubline =
+        mins == null || mins <= 0
+          ? t("busCallout.passive.lastSeenNow")
+          : t("busCallout.passive.lastSeenMin", {
+              n: localizeNumber(mins, locale),
+            });
+    } else {
+      passiveHeadline = stationary
+        ? t("busCallout.passive.parked")
+        : t("busCallout.passive.idle");
+      passiveSubline = stationary ? t("busCallout.passive.parkedSub") : null;
+    }
+
+    return {
+      nextStopName: null,
+      etaMinutes: null,
+      distanceMeters: null,
+      isYourStop: false,
+      finalReached: false,
+      stationary,
+      passiveHeadline,
+      passiveSubline,
+    };
+  }, [
+    isRunning,
+    liveState,
+    eta,
+    destinationStopName,
+    preTripPhase,
+    tripEnded,
+    isStale,
+    t,
+    locale,
+  ]);
+
+  // Live-tracking notification content — keeps the bus status visible in the
+  // notification bar (foreground service) while the rider is away from the app.
+  const trackingNotif = useMemo(() => {
+    const title =
+      selectedTrip?.routeName ?? selectedTrip?.busLabel ?? t("busNotif.title");
+    if (!busStatus) return { title, body: t("hud.tracking") };
+    if (busStatus.finalReached) return { title, body: t("tripSheet.arrived") };
+
+    const parts: string[] = [];
+    if (busStatus.nextStopName) {
+      const prefix = busStatus.isYourStop
+        ? t("busNotif.yourStop")
+        : t("busNotif.next");
+      parts.push(`${prefix}: ${busStatus.nextStopName}`);
+    }
+    if (busStatus.etaMinutes != null && busStatus.etaMinutes >= 0) {
+      parts.push(
+        `${localizeNumber(busStatus.etaMinutes, locale)} ${t("common.min")}`,
+      );
+    } else if (busStatus.stationary) {
+      parts.push(t("hud.stopped"));
+    }
+    return { title, body: parts.join("  ·  ") || t("hud.tracking") };
+  }, [selectedTrip, busStatus, t, locale]);
+
+  // Drive the background foreground-service notification. Active only while the
+  // rider is on the tracking view watching a RUNNING trip — so the service is
+  // always started from the foreground (Android requirement) and torn down when
+  // they leave or the trip ends.
+  useBackgroundTrackingNotification({
+    enabled: view === "tracking" && !!isRunning,
+    title: trackingNotif.title,
+    body: trackingNotif.body,
+  });
 
   // A gentle haptic when the bus reaches a stop — a native-only "real" cue.
   useEffect(() => {
@@ -105,9 +253,10 @@ export function LiveScreen() {
   const recenter = useCallback(() => {
     void Haptics.selectionAsync();
     setFollowing(true);
-    // Re-engage navigation mode: tight zoom, tilt, heading-locked.
-    // The LiveMap useEffect on `following` will also fire — animating
-    // here too gives instant feedback before the next render tick.
+    // Re-engage follow mode. We match LiveMap's follow framing (north-up,
+    // flat, zoom 16) so the bus motion stays legible and this doesn't
+    // fight the LiveMap `following` effect that fires on the next tick.
+    // Instant feedback before that render tick.
     if (liveState) {
       mapRef.current?.animateCamera(
         {
@@ -115,13 +264,8 @@ export function LiveScreen() {
             latitude: liveState.latitude,
             longitude: liveState.longitude,
           },
-          pitch: 50,
-          heading:
-            liveState.heading != null &&
-            liveState.heading >= 0 &&
-            liveState.heading <= 360
-              ? liveState.heading
-              : 0,
+          pitch: 0,
+          heading: 0,
           zoom: 17,
         },
         { duration: 600 },
@@ -269,6 +413,15 @@ export function LiveScreen() {
         stale={isStale || tripEnded}
         hybrid={hybrid}
         showTraffic={traffic}
+        darkMap={darkMap}
+        busLabel={
+          trips.find((t) => t.tripId === selectedTripId)?.busLabel ??
+          trips.find((t) => t.tripId === selectedTripId)?.routeName ??
+          null
+        }
+        nextStopName={isRunning ? eta?.nextStopName ?? null : null}
+        destinationStopName={destinationStopName}
+        busStatus={busStatus}
         onUserPan={() => setFollowing(false)}
       />
 
@@ -297,6 +450,9 @@ export function LiveScreen() {
             lastFetchAt={lastFetchAt}
           />
         </View>
+        {/* On-map live status — next stop, ETA, and speed visible without
+            opening the bottom sheet. This is the surface passengers watch. */}
+        <LiveStatusHud live={liveState} eta={eta} isRunning={isRunning} />
         <OfflineBanner
           status={connectionStatus}
           lastFetchAt={lastFetchAt}
@@ -328,16 +484,19 @@ export function LiveScreen() {
           onHybridChange={setHybrid}
           traffic={traffic}
           onTrafficChange={setTraffic}
+          darkMap={darkMap}
+          onDarkMapChange={setDarkMap}
         />
-        <Pressable onPress={recenter}>
-          <GlassSurface rounded="pill" style={styles.fab}>
-            <Icon
-              name="locate"
-              size={22}
-              color={following ? colors.primary : colors.mutedForeground}
-            />
-          </GlassSurface>
-        </Pressable>
+        {/* Re-center button — Google-Maps style: only shown once the
+            rider has panned/zoomed away from the bus. While the camera
+            is following, there's nothing to recenter, so it stays hidden. */}
+        {!following ? (
+          <Pressable onPress={recenter} accessibilityLabel="Re-center on bus">
+            <GlassSurface rounded="pill" style={styles.fab}>
+              <Icon name="locate" size={22} color={colors.primary} />
+            </GlassSurface>
+          </Pressable>
+        ) : null}
       </View>
 
       <TripSheet
@@ -352,6 +511,7 @@ export function LiveScreen() {
         passengerLocation={passengerLocation}
         refreshing={refreshing}
         onRefresh={retry}
+        destination={destination}
       />
 
       <HamburgerMenu

@@ -82,11 +82,35 @@ function normalizeSocketLocation(payload: any): LiveBusLocation | null {
   };
 }
 
-function isNewer(
+/**
+ * Decide whether an incoming live fix should replace the current one.
+ *
+ * The map MUST keep moving whenever the bus moves. A naive
+ * "incoming.updatedAt >= current.updatedAt" guard is dangerous here:
+ * the socket carries the GPS device's own `recordedAt` clock, while the
+ * current state may have been seeded from a REST response stamped with a
+ * different clock. If the device clock runs even slightly behind the
+ * server (or one bad fix arrives with a future timestamp), every later
+ * socket fix looks "older" and gets dropped forever — the bus freezes on
+ * the map even though ETA/progression (which has no such guard) keeps
+ * updating. That was exactly the reported failure.
+ *
+ * So: any change in POSITION is always accepted (a moving bus is never
+ * held back by clock skew). Only when the coordinates are identical do we
+ * fall back to a timestamp check, purely to refresh speed/heading without
+ * thrashing on exact-duplicate frames.
+ */
+function shouldApplyFix(
   incoming: LiveBusLocation,
   current: LiveBusLocation | null,
 ): boolean {
   if (!current || current.tripId !== incoming.tripId) return true;
+  if (
+    incoming.latitude !== current.latitude ||
+    incoming.longitude !== current.longitude
+  ) {
+    return true;
+  }
   if (!incoming.updatedAt || !current.updatedAt) return true;
   return (
     new Date(incoming.updatedAt).getTime() >=
@@ -411,7 +435,7 @@ export function usePassengerLiveTrip() {
     const onLocation = (payload: any) => {
       if (payload?.tripId !== tripId) return;
       const next = normalizeSocketLocation(payload);
-      if (!next || !isNewer(next, latestLive.current)) return;
+      if (!next || !shouldApplyFix(next, latestLive.current)) return;
       setLiveSafe(next);
       setTripEnded(false);
       setConnectionStatus("connected");

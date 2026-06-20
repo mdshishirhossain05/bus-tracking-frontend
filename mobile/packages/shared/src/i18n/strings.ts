@@ -27,6 +27,54 @@ export const STRINGS = {
   "common.m": { en: "m", bn: "মি" },
   "common.kmh": { en: "km/h", bn: "কিমি/ঘ" },
   "common.signOut": { en: "Sign out", bn: "সাইন আউট" },
+
+  // ---- on-map live status HUD ----
+  "hud.nextStop": { en: "Next stop", bn: "পরবর্তী স্টপ" },
+  "hud.arrivingIn": { en: "Arriving in", bn: "পৌঁছাবে" },
+  "hud.enRoute": { en: "On the way", bn: "পথে আছে" },
+  "hud.live": { en: "Live", bn: "লাইভ" },
+  "hud.tracking": { en: "Tracking bus…", bn: "বাস ট্র্যাক হচ্ছে…" },
+  "hud.stopped": { en: "Stopped", bn: "থেমেছে" },
+
+  // ---- on-map bus status callout ----
+  "busCallout.nextStop": { en: "NEXT STOP", bn: "পরবর্তী স্টপ" },
+  // Inline chip appended to the next-stop name when the bus's actual
+  // next stop happens to be the rider's chosen destination — so the
+  // callout still tells you the real next stop, and ALSO that it's
+  // yours. Example: "NEXT STOP: Library (your stop)".
+  "busCallout.yourStopTag": { en: "your stop", bn: "আপনার স্টপ" },
+  "busCallout.yourStop": { en: "YOUR STOP", bn: "আপনার স্টপ" },
+  // Passive callout — shown when the bus has a live position but the trip
+  // isn't running (parked / pre-trip / ended / stale feed).
+  "busCallout.passive.preTrip": {
+    en: "Getting ready",
+    bn: "প্রস্তুত হচ্ছে",
+  },
+  "busCallout.passive.preTripSub": {
+    en: "Trip hasn't started yet",
+    bn: "যাত্রা এখনো শুরু হয়নি",
+  },
+  "busCallout.passive.parked": { en: "Parked", bn: "দাঁড়িয়ে আছে" },
+  "busCallout.passive.parkedSub": {
+    en: "Waiting to depart",
+    bn: "ছাড়ার অপেক্ষায়",
+  },
+  "busCallout.passive.idle": { en: "Stopped", bn: "থেমে আছে" },
+  "busCallout.passive.ended": { en: "Trip ended", bn: "যাত্রা শেষ" },
+  "busCallout.passive.stale": { en: "Last position", bn: "সর্বশেষ অবস্থান" },
+  "busCallout.passive.lastSeenNow": {
+    en: "Last seen just now",
+    bn: "এইমাত্র দেখা গেছে",
+  },
+  "busCallout.passive.lastSeenMin": {
+    en: "Last seen {n} min ago",
+    bn: "{n} মিনিট আগে দেখা গেছে",
+  },
+
+  // ---- background live-tracking notification ----
+  "busNotif.title": { en: "Live bus tracking", bn: "লাইভ বাস ট্র্যাকিং" },
+  "busNotif.next": { en: "Next", bn: "পরবর্তী" },
+  "busNotif.yourStop": { en: "Your stop", bn: "আপনার স্টপ" },
   "common.map": { en: "Map", bn: "মানচিত্র" },
   "common.stops": { en: "Stops", bn: "স্টপ" },
   "common.search": { en: "Search", bn: "অনুসন্ধান" },
@@ -50,9 +98,14 @@ export const STRINGS = {
   },
   "today.section.live": { en: "Live now", bn: "এখন চলছে" },
   "today.section.preTrip": { en: "Departing soon", bn: "শীঘ্রই ছাড়বে" },
-  "today.section.upcoming": { en: "Upcoming today", bn: "আজকের পরবর্তী" },
+  // Splits the old "Upcoming today" pile so a trip departing in 5 min
+  // isn't sitting next to one departing in 8 hours — gives a clear
+  // current vs upcoming separation.
+  "today.section.upNext": { en: "Up next · within 30 min", bn: "৩০ মিনিটের মধ্যে" },
+  "today.section.upcoming": { en: "Later today", bn: "আজ পরে" },
+  "today.section.tomorrow": { en: "Tomorrow's schedule", bn: "আগামীকালের সময়সূচী" },
   "today.section.completed": { en: "Completed today", bn: "আজ শেষ হয়েছে" },
-  "today.section.notLive": { en: "Not live yet", bn: "এখনো শুরু হয়নি" },
+  "today.section.notLive": { en: "Missed · no trip started", bn: "মিসড · ট্রিপ শুরু হয়নি" },
   "today.section.favorites": { en: "Your favorites", bn: "আপনার পছন্দের" },
   "today.badge.notLive": { en: "Not live yet", bn: "শুরু হয়নি" },
   "today.badge.delayed": { en: "Departed, no trip yet", bn: "ছাড়ার সময় পেরিয়েছে" },
@@ -95,6 +148,11 @@ export const STRINGS = {
   "map.layers.trafficHelp": {
     en: "Highlights congestion on roads — handy for predicting delays.",
     bn: "রাস্তায় যানজট দেখায় — দেরি অনুমান করতে সহায়ক।",
+  },
+  "map.layers.dark": { en: "Dark map", bn: "ডার্ক মানচিত্র" },
+  "map.layers.darkHelp": {
+    en: "Switch to a dark Google Maps style — easier on the eyes at night.",
+    bn: "ডার্ক গুগল মানচিত্র শৈলীতে পরিবর্তন করুন — রাতে চোখের জন্য আরামদায়ক।",
   },
   "today.tab.today": { en: "Today", bn: "আজ" },
   "today.tab.tomorrow": { en: "Tomorrow", bn: "আগামীকাল" },
@@ -147,6 +205,12 @@ export const STRINGS = {
   "destination.set": { en: "Set destination", bn: "গন্তব্য নির্ধারণ" },
   "destination.clear": { en: "Clear destination", bn: "গন্তব্য মুছুন" },
   "destination.chip": { en: "Your stop", bn: "আপনার স্টপ" },
+  // Inline CTA shown in the timeline when no destination is chosen yet,
+  // so first-time riders know they can opt in to a get-off alert.
+  "destination.pickPrompt": {
+    en: "Tap a flag next to a stop to set your get-off alert",
+    bn: "নামার সতর্কতা পেতে স্টপের পাশের পতাকায় ট্যাপ করুন",
+  },
   "destination.approachingTitle": {
     en: "Get off at the next stop",
     bn: "পরের স্টপে নেমে যান",
@@ -319,6 +383,7 @@ export const STRINGS = {
   },
   "stop.badge.passed": { en: "Passed", bn: "অতিক্রান্ত" },
   "stop.badge.now": { en: "Next", bn: "পরবর্তী" },
+  "stop.badge.here": { en: "Bus here", bn: "বাস এখানে" },
   "stop.badge.destination": { en: "Your stop", bn: "আপনার স্টপ" },
 
   // ---- occupancy ----

@@ -110,7 +110,11 @@ export async function getRouteLiveBuses(
   const data = unwrap<any>(res.data);
   const list = Array.isArray(data)
     ? data
-    : (data?.buses ?? data?.items ?? data?.trips ?? []);
+    : (data?.activeTrips ??
+        data?.buses ??
+        data?.items ??
+        data?.trips ??
+        []);
   return (Array.isArray(list) ? list : [])
     .map(normalizeLiveBus)
     .filter((b: RouteLiveBus) => Boolean(b.tripId));

@@ -68,6 +68,7 @@ export const STRINGS = {
   "today.section.live": { en: "Live now", bn: "এখন চলছে" },
   "today.section.preTrip": { en: "Departing soon", bn: "শীঘ্রই ছাড়বে" },
   "today.section.upcoming": { en: "Upcoming today", bn: "আজকের পরবর্তী" },
+  "today.section.tomorrow": { en: "Tomorrow's schedule", bn: "আগামীকালের সময়সূচী" },
   "today.section.completed": { en: "Completed today", bn: "আজ শেষ হয়েছে" },
   "today.section.notLive": { en: "Not live yet", bn: "এখনো শুরু হয়নি" },
   "today.section.favorites": { en: "Your favorites", bn: "আপনার পছন্দের" },

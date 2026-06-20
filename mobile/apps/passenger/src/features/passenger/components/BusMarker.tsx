@@ -28,6 +28,14 @@ export interface BusMarkerStatus {
   finalReached: boolean;
   /** Bus is stopped/idling. */
   stationary: boolean;
+  /**
+   * When the bus has no live ETA (parked between runs, pre-trip, or
+   * last-seen-stale), set these instead of `nextStopName` to render a
+   * compact "passive" callout (e.g. headline "Parked", subline
+   * "Last seen 12 min ago").
+   */
+  passiveHeadline?: string | null;
+  passiveSubline?: string | null;
 }
 
 interface BusMarkerProps {
@@ -210,7 +218,9 @@ export function BusMarker({
   // A key that changes whenever any visible callout text changes.
   const contentKey = `${label ?? ""}|${status?.nextStopName ?? ""}|${
     status?.isYourStop ? "Y" : "N"
-  }|${etaLabel ?? ""}|${distanceLabel ?? ""}|${speedLabel ?? ""}`;
+  }|${etaLabel ?? ""}|${distanceLabel ?? ""}|${speedLabel ?? ""}|${
+    status?.passiveHeadline ?? ""
+  }|${status?.passiveSubline ?? ""}`;
   const calloutPulse = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     // Pulse the callout marker's bitmap so new text paints even if the
@@ -223,7 +233,10 @@ export function BusMarker({
     };
   }, [contentKey]);
 
-  const showCallout = !!status && !!status.nextStopName;
+  const showLiveCallout = !!status && !!status.nextStopName;
+  const showPassiveCallout =
+    !!status && !status.nextStopName && !!status.passiveHeadline;
+  const showCallout = showLiveCallout || showPassiveCallout;
 
   return (
     <>
@@ -296,31 +309,48 @@ export function BusMarker({
                 </View>
               ) : null}
 
-              <Text style={styles.calloutStopLabel} numberOfLines={1}>
-                {status.isYourStop ? t("busCallout.yourStop") : t("busCallout.nextStop")}
-              </Text>
-              <Text style={styles.calloutStopName} numberOfLines={1}>
-                {status.nextStopName}
-              </Text>
+              {showLiveCallout ? (
+                <>
+                  <Text style={styles.calloutStopLabel} numberOfLines={1}>
+                    {status.isYourStop
+                      ? t("busCallout.yourStop")
+                      : t("busCallout.nextStop")}
+                  </Text>
+                  <Text style={styles.calloutStopName} numberOfLines={1}>
+                    {status.nextStopName}
+                  </Text>
 
-              <View style={styles.calloutMetaRow}>
-                {etaLabel ? (
-                  <View style={styles.calloutMetaItem}>
-                    <Ionicons name="time-outline" size={12} color="#ffffff" />
-                    <Text style={styles.calloutMetaText}>{etaLabel}</Text>
+                  <View style={styles.calloutMetaRow}>
+                    {etaLabel ? (
+                      <View style={styles.calloutMetaItem}>
+                        <Ionicons name="time-outline" size={12} color="#ffffff" />
+                        <Text style={styles.calloutMetaText}>{etaLabel}</Text>
+                      </View>
+                    ) : null}
+                    {speedLabel ? (
+                      <View style={styles.calloutMetaItem}>
+                        <Ionicons
+                          name={status.stationary ? "pause" : "speedometer-outline"}
+                          size={12}
+                          color="#ffffff"
+                        />
+                        <Text style={styles.calloutMetaText}>{speedLabel}</Text>
+                      </View>
+                    ) : null}
                   </View>
-                ) : null}
-                {speedLabel ? (
-                  <View style={styles.calloutMetaItem}>
-                    <Ionicons
-                      name={status.stationary ? "pause" : "speedometer-outline"}
-                      size={12}
-                      color="#ffffff"
-                    />
-                    <Text style={styles.calloutMetaText}>{speedLabel}</Text>
-                  </View>
-                ) : null}
-              </View>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.calloutStopName} numberOfLines={1}>
+                    {status.passiveHeadline}
+                  </Text>
+                  {status.passiveSubline ? (
+                    <Text style={styles.calloutStopLabel} numberOfLines={1}>
+                      {status.passiveSubline}
+                    </Text>
+                  ) : null}
+                </>
+              )}
             </View>
             {/* Little downward tail pointing at the bus. */}
             <View

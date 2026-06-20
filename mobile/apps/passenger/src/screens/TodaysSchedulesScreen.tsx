@@ -350,7 +350,7 @@ export function TodaysSchedulesScreen() {
       return [
         {
           key: "tomorrow",
-          titleKey: "today.section.upcoming",
+          titleKey: "today.section.tomorrow",
           items: upcoming,
         },
       ];

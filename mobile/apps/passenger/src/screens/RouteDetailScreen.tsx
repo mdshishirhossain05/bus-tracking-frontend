@@ -31,10 +31,73 @@ import {
 import { usePassengerLocation } from "../features/journey/usePassengerLocation";
 import { SourceChip } from "../components/SourceChip";
 import { StopTimeline } from "../components/StopTimeline";
+import {
+  BusMarker,
+  type BusMarkerStatus,
+} from "../features/passenger/components/BusMarker";
 
 const POLL_MS = 5000;
 
+// Anything older than this fades the bus marker so a passenger reads
+// it as "not actively reporting". Backend already hides anything older
+// than 2 hours.
+const STALE_AFTER_MS = 30 * 60 * 1000;
+
 type ViewMode = "map" | "stops";
+
+/** Map a route's live-bus row onto the bus-marker status callout. */
+function busMarkerStatusFor(b: RouteLiveBus, ageMs: number | null): {
+  status: BusMarkerStatus;
+  stale: boolean;
+} {
+  const stale = ageMs != null && ageMs > STALE_AFTER_MS;
+  // RUNNING with a next-stop + ETA → existing live callout.
+  if (b.status === "RUNNING" && b.nextStopName) {
+    return {
+      stale,
+      status: {
+        nextStopName: b.nextStopName,
+        etaMinutes: b.etaMinutes ?? null,
+        distanceMeters: b.nextStopDistanceMeters ?? null,
+        isYourStop: false,
+        finalReached: b.finalStopReached ?? false,
+        stationary: (b.speedKmh ?? 0) < 3,
+      },
+    };
+  }
+  // PRE_TRIP / PARKED / stale RUNNING → passive callout. Tone the
+  // headline to the actual lifecycle state, with a "last seen" subline
+  // when the fix is older than a couple of minutes.
+  const headline =
+    b.status === "PRE_TRIP"
+      ? "Pre-trip"
+      : b.status === "PARKED"
+        ? "Parked"
+        : stale
+          ? "Last seen"
+          : "Idle";
+  const subline = (() => {
+    if (ageMs == null) return null;
+    const mins = Math.round(ageMs / 60_000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    return `${hrs} hr ago`;
+  })();
+  return {
+    stale,
+    status: {
+      nextStopName: null,
+      etaMinutes: null,
+      distanceMeters: null,
+      isYourStop: false,
+      finalReached: false,
+      stationary: true,
+      passiveHeadline: headline,
+      passiveSubline: subline,
+    },
+  };
+}
 
 interface Props {
   routeId: string;
@@ -320,18 +383,24 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
                 pinColor={colors.warning}
               />
             ) : null}
-            {liveBuses.map((b) => (
-              <Marker
-                key={b.tripId}
-                coordinate={{
-                  latitude: b.latitude as number,
-                  longitude: b.longitude as number,
-                }}
-                title={b.busLabel ?? "Bus"}
-                description={b.nextStopName ? `Heading to ${b.nextStopName}` : "Live"}
-                pinColor={colors.primary}
-              />
-            ))}
+            {liveBuses.map((b) => {
+              const ageMs = b.updatedAt
+                ? Date.now() - new Date(b.updatedAt).getTime()
+                : null;
+              const { status, stale } = busMarkerStatusFor(b, ageMs);
+              return (
+                <BusMarker
+                  key={b.tripId}
+                  latitude={b.latitude as number}
+                  longitude={b.longitude as number}
+                  heading={b.heading ?? null}
+                  speedKmh={b.speedKmh ?? null}
+                  label={b.busLabel ?? "Bus"}
+                  stale={stale}
+                  status={status}
+                />
+              );
+            })}
           </MapView>
         </View>
       ) : (

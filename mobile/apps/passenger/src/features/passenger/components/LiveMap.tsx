@@ -27,7 +27,9 @@ const DELTA = 0.025;
 // zoom and push the camera centre a little AHEAD of the bus along its
 // heading, so the rider always sees the road the bus is about to take —
 // the same "look-ahead" framing Google Maps navigation uses.
-const FOLLOW_ZOOM = 16;
+// Tighter than before (was 16) so road names and nearby cross-streets
+// are legible — riders asked to see exactly which road the bus is on.
+const FOLLOW_ZOOM = 17;
 const LOOK_AHEAD_METERS = 240;
 
 /** Returns a coordinate `meters` ahead of (lat,lng) along `headingDeg`. */
@@ -330,7 +332,15 @@ export function LiveMap({
       showsPointsOfInterest
       pitchEnabled
       rotateEnabled
+      // Pan breaks follow immediately (fires mid-drag). Pinch-zoom and
+      // two-finger rotate don't fire onPanDrag, so we also catch any
+      // user gesture on region-change-complete — `isGesture` is false
+      // for our own animateCamera calls, so following the bus doesn't
+      // fight itself.
       onPanDrag={onUserPan}
+      onRegionChangeComplete={(_region, details) => {
+        if (details?.isGesture) onUserPan();
+      }}
     >
       {/* Route polyline.
           • During the initial draw-in: a single premium two-layer line

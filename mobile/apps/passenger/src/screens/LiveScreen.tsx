@@ -207,7 +207,7 @@ export function LiveScreen() {
           },
           pitch: 0,
           heading: 0,
-          zoom: 16,
+          zoom: 17,
         },
         { duration: 600 },
       );
@@ -428,15 +428,16 @@ export function LiveScreen() {
           darkMap={darkMap}
           onDarkMapChange={setDarkMap}
         />
-        <Pressable onPress={recenter}>
-          <GlassSurface rounded="pill" style={styles.fab}>
-            <Icon
-              name="locate"
-              size={22}
-              color={following ? colors.primary : colors.mutedForeground}
-            />
-          </GlassSurface>
-        </Pressable>
+        {/* Re-center button — Google-Maps style: only shown once the
+            rider has panned/zoomed away from the bus. While the camera
+            is following, there's nothing to recenter, so it stays hidden. */}
+        {!following ? (
+          <Pressable onPress={recenter} accessibilityLabel="Re-center on bus">
+            <GlassSurface rounded="pill" style={styles.fab}>
+              <Icon name="locate" size={22} color={colors.primary} />
+            </GlassSurface>
+          </Pressable>
+        ) : null}
       </View>
 
       <TripSheet

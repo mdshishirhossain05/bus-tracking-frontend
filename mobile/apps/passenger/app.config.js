@@ -1,7 +1,21 @@
+const fs = require("fs");
+const path = require("path");
+
 const LOCATION_USAGE =
   "Your location is used to show nearby stops and your position on the live route map.";
 const BACKGROUND_LOCATION_USAGE =
   "While you are tracking a trip, UniBus Live keeps the bus status in your notifications even when the app is in the background, so you can keep an eye on your bus without staying in the app.";
+
+// Android remote push (Expo) needs Firebase Cloud Messaging. Drop the
+// Firebase `google-services.json` next to this file (or point
+// GOOGLE_SERVICES_JSON at it) and it gets wired into the build. We only
+// reference it when the file actually exists so a build without FCM set
+// up yet doesn't fail — local + foreground-service notifications still
+// work without it; only server push needs it.
+const googleServicesJson =
+  process.env.GOOGLE_SERVICES_JSON ??
+  path.resolve(__dirname, "google-services.json");
+const hasGoogleServices = fs.existsSync(googleServicesJson);
 
 /**
  * Dynamic config so the Google Maps key and permission strings come from env.
@@ -32,16 +46,25 @@ module.exports = ({ config }) => ({
   android: {
     ...config.android,
     package: "edu.unibus.live",
+    ...(hasGoogleServices ? { googleServicesFile: googleServicesJson } : {}),
     // ACCESS_BACKGROUND_LOCATION + the two FOREGROUND_SERVICE permissions are
     // what let the passenger app run a keep-alive location foreground service,
     // so the live-tracking notification stays on screen (and the trip socket
     // keeps streaming) after the rider leaves the app during a trip.
+    //
+    // POST_NOTIFICATIONS is REQUIRED on Android 13+ (API 33) for ANY
+    // notification to appear — push, local, AND the foreground-service
+    // tracking notification. Because we declare an explicit permissions
+    // allowlist here, it overrides what expo-notifications would add, so
+    // POST_NOTIFICATIONS has to be listed explicitly or every
+    // notification is silently dropped by the OS.
     permissions: [
       "ACCESS_FINE_LOCATION",
       "ACCESS_COARSE_LOCATION",
       "ACCESS_BACKGROUND_LOCATION",
       "FOREGROUND_SERVICE",
       "FOREGROUND_SERVICE_LOCATION",
+      "POST_NOTIFICATIONS",
     ],
     config: {
       ...(config.android?.config ?? {}),

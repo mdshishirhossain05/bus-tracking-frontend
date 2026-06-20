@@ -118,11 +118,29 @@ export function BusMarker({
     [],
   );
 
-  const [tracking, setTracking] = useState(true);
+  // Tracking is split into two:
+  //
+  //   - `bodyTracking` keeps the BUS ICON's bitmap repainting whenever
+  //     fixes are arriving. The previous "settle to false ~400ms after
+  //     each fix" caused a bitmap-cache race on Android where the
+  //     marker's position would visibly stop moving even though the
+  //     AnimatedRegion's coordinate was still animating — riders saw
+  //     ETA updates flow in but the bus icon stayed pinned. We now hold
+  //     it TRUE for several seconds after the most recent fix, so any
+  //     normal-cadence GPS feed never drops the cache mid-motion. The
+  //     marker is a small icon, so the perf cost is negligible.
+  //
+  //   - `calloutTracking` retains the brief toggle for the status
+  //     callout (where text rendering is the real cost) — pulsed on
+  //     coordinate OR content change.
+  const [bodyTracking, setBodyTracking] = useState(true);
+  const [calloutTracking, setCalloutTracking] = useState(true);
+  const bodySettleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setTracking(true);
+    setBodyTracking(true);
+    setCalloutTracking(true);
     coordinate
       .timing({
         latitude,
@@ -135,9 +153,19 @@ export function BusMarker({
       .start();
 
     if (settleTimer.current) clearTimeout(settleTimer.current);
-    settleTimer.current = setTimeout(() => setTracking(false), glideMs + 400);
+    settleTimer.current = setTimeout(
+      () => setCalloutTracking(false),
+      glideMs + 400,
+    );
+    if (bodySettleTimer.current) clearTimeout(bodySettleTimer.current);
+    // Body stays "alive" for ~6 seconds after the last fix — longer than
+    // any normal GPS cadence, so a moving bus never has its bitmap
+    // cached. If fixes stop coming for that long the bus is genuinely
+    // idle and we drop the cost.
+    bodySettleTimer.current = setTimeout(() => setBodyTracking(false), 6000);
     return () => {
       if (settleTimer.current) clearTimeout(settleTimer.current);
+      if (bodySettleTimer.current) clearTimeout(bodySettleTimer.current);
     };
   }, [latitude, longitude, coordinate, glideMs]);
 
@@ -225,9 +253,9 @@ export function BusMarker({
   useEffect(() => {
     // Pulse the callout marker's bitmap so new text paints even if the
     // bus didn't move on this update tick.
-    setTracking(true);
+    setCalloutTracking(true);
     if (calloutPulse.current) clearTimeout(calloutPulse.current);
-    calloutPulse.current = setTimeout(() => setTracking(false), 500);
+    calloutPulse.current = setTimeout(() => setCalloutTracking(false), 500);
     return () => {
       if (calloutPulse.current) clearTimeout(calloutPulse.current);
     };
@@ -249,7 +277,7 @@ export function BusMarker({
         // RNAnimated.Value is accepted by Marker's `rotation` prop at
         // runtime; the type signature is plain number so we cast.
         rotation={rotationAnim as unknown as number}
-        tracksViewChanges={tracking}
+        tracksViewChanges={bodyTracking}
         zIndex={60}
       >
         <View style={styles.container}>
@@ -289,7 +317,7 @@ export function BusMarker({
           coordinate={coordinate as unknown as { latitude: number; longitude: number }}
           anchor={{ x: 0.5, y: 1 }}
           centerOffset={{ x: 0, y: -(SIZE / 2) - 10 }}
-          tracksViewChanges={tracking}
+          tracksViewChanges={calloutTracking}
           zIndex={70}
         >
           <View style={styles.calloutWrap}>

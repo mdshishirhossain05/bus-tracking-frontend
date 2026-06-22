@@ -5,7 +5,6 @@ import MapView, {
   Marker,
   Polyline,
   PROVIDER_GOOGLE,
-  type MapStyleElement,
 } from "react-native-maps";
 import * as Haptics from "expo-haptics";
 import {
@@ -16,7 +15,6 @@ import {
   spacing,
   radius,
   env,
-  MAP_STYLE_DARK,
 } from "@ubts/shared";
 import type { RoutePresentation, RouteLiveBus, RouteStop } from "@ubts/shared";
 import { useNav } from "../navigation/NavigationContext";
@@ -338,12 +336,21 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
             ref={mapRef}
             style={StyleSheet.absoluteFill}
             provider={PROVIDER_GOOGLE}
-            customMapStyle={MAP_STYLE_DARK as unknown as MapStyleElement[]}
+            // Use the standard bright Google Maps look here too — same as
+            // the home Live page — so the rider gets the SAME map UI
+            // they already know on both screens. Place names + POI labels
+            // visible by default so riders can orient themselves on the
+            // route (areas, landmarks). Tighter initial zoom (0.015 vs
+            // the old 0.06) so the route and the bus are immediately
+            // legible without pinching in.
+            showsBuildings
+            showsIndoors={false}
+            showsPointsOfInterests
             initialRegion={{
               latitude: env.map.defaultLat,
               longitude: env.map.defaultLng,
-              latitudeDelta: 0.06,
-              longitudeDelta: 0.06,
+              latitudeDelta: 0.015,
+              longitudeDelta: 0.015,
             }}
           >
             {presentation && presentation.polyline.length > 1 ? (

@@ -70,6 +70,14 @@ export const STRINGS = {
     en: "Last seen {n} min ago",
     bn: "{n} মিনিট আগে দেখা গেছে",
   },
+  // Shown right after a trip flips to RUNNING but the first ETA hasn't
+  // arrived yet — keeps the bus marker callout alive instead of
+  // disappearing for the first few seconds.
+  "busCallout.passive.live": { en: "Live", bn: "লাইভ" },
+  "busCallout.passive.liveSub": {
+    en: "Tracking the bus — ETA arriving",
+    bn: "বাস ট্র্যাক করা হচ্ছে — ETA শীঘ্রই",
+  },
 
   // ---- background live-tracking notification ----
   "busNotif.title": { en: "Live bus tracking", bn: "লাইভ বাস ট্র্যাকিং" },

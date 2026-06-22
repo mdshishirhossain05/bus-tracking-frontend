@@ -145,6 +145,29 @@ export function LiveScreen() {
         !!nextStopName &&
         nextStopName.trim().toLowerCase() ===
           destinationStopName.trim().toLowerCase();
+      // When the trip is RUNNING but ETA hasn't loaded yet (first few
+      // seconds after the trip starts, or no schedule resolved) we
+      // STILL want a callout above the bus — the rider should always
+      // see WHAT the bus is doing. Fall back to a "Live · tracking"
+      // passive headline (+ speed via the same status object) instead
+      // of returning a callout-less record. Without this the marker
+      // sat naked on the map until the first ETA arrived.
+      if (!nextStopName) {
+        return {
+          nextStopName: null,
+          etaMinutes: null,
+          distanceMeters: null,
+          isYourStop: false,
+          finalReached: false,
+          stationary,
+          passiveHeadline: stationary
+            ? t("busCallout.passive.parked")
+            : t("busCallout.passive.live"),
+          passiveSubline: stationary
+            ? t("busCallout.passive.parkedSub")
+            : t("busCallout.passive.liveSub"),
+        };
+      }
       return {
         nextStopName,
         etaMinutes: eta?.etaMinutes ?? null,

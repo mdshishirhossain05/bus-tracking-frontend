@@ -329,7 +329,7 @@ export function LiveMap({
       toolbarEnabled={false}
       showsBuildings
       showsIndoors={false}
-      showsPointsOfInterest
+      showsPointsOfInterests
       pitchEnabled
       rotateEnabled
       // Pan breaks follow immediately (fires mid-drag). Pinch-zoom and

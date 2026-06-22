@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "75015671732",
+    "project_id": "unibus-27b49",
+    "storage_bucket": "unibus-27b49.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:75015671732:android:07c6b81354757d1ef22ce1",
+        "android_client_info": {
+          "package_name": "edu.unibus.live"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6Bp199YCZ0alsWzhHKa2ty_QK7rfeOGQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

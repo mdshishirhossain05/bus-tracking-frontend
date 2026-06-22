@@ -17,10 +17,13 @@ import type {
 } from "@ubts/shared";
 import { BusMarker, type BusMarkerStatus } from "./BusMarker";
 
-// Default region delta — wide enough that the bus, the route, and a few
-// stops are visible together. We deliberately keep this looser than a
-// navigation-app first-person view so motion is easy to see.
-const DELTA = 0.025;
+// Default region delta — chosen to match the zoom we settle on once the
+// bus position arrives (FOLLOW_ZOOM=17 ≈ ~0.005 delta). With the old
+// 0.025 delta the first frame was district-wide and then snapped tight
+// the moment the first fix arrived — a visible zoom-in that read as
+// jank. Starting at the same close-in framing means the map opens at
+// "navigation-app" zoom and stays there.
+const DELTA = 0.005;
 
 // Navigation-style follow camera. We keep the world north-up (so the bus
 // marker visibly travels rather than the map spinning) but tighten the

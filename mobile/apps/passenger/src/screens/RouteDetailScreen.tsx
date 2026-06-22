@@ -43,6 +43,25 @@ const POLL_MS = 5000;
 // so no single bus hijacks the camera and hides the others.
 const FOLLOW_ZOOM = 16;
 
+/** Great-circle distance in metres — used to find the polyline vertex
+ *  nearest the followed bus so we can split travelled vs remaining. */
+function metersBetween(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number,
+): number {
+  const R = 6378137;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const lat1 = (aLat * Math.PI) / 180;
+  const lat2 = (bLat * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
 // Anything older than this fades the bus marker so a passenger reads
 // it as "not actively reporting". Backend already hides anything older
 // than 2 hours.
@@ -242,6 +261,45 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
       ? liveBuses[0]
       : null;
 
+  // Navigation-style PROGRESS split of the route line — only when a single
+  // bus is being tracked (same reasoning as the follow camera). Find the
+  // polyline vertex nearest the bus; everything before it is "travelled"
+  // (faded grey), everything after is "remaining" (bright blue + dashed
+  // direction overlay). Mirrors the home Live map. With several buses we
+  // fall back to one plain line so no single bus owns the split.
+  const polyCoords = useMemo(
+    () =>
+      presentation?.polyline.map(([latitude, longitude]) => ({
+        latitude,
+        longitude,
+      })) ?? [],
+    [presentation],
+  );
+
+  const busIndex = useMemo(() => {
+    if (!singleBus || polyCoords.length < 2) return -1;
+    let best = -1;
+    let bestD = Infinity;
+    for (let i = 0; i < polyCoords.length; i++) {
+      const d = metersBetween(
+        singleBus.latitude as number,
+        singleBus.longitude as number,
+        polyCoords[i].latitude,
+        polyCoords[i].longitude,
+      );
+      if (d < bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    // Off-route (>600 m from every vertex) → don't split.
+    return bestD <= 600 ? best : -1;
+  }, [singleBus, polyCoords]);
+
+  const useSplit = busIndex >= 0 && polyCoords.length > 1;
+  const traveledLine = useSplit ? polyCoords.slice(0, busIndex + 1) : [];
+  const remainingLine = useSplit ? polyCoords.slice(busIndex) : polyCoords;
+
   useEffect(() => {
     if (!presentation || !mapRef.current) return;
 
@@ -401,15 +459,46 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
               }
             }}
           >
-            {presentation && presentation.polyline.length > 1 ? (
+            {/* Plain line when NOT splitting (multiple buses / no bus). */}
+            {!useSplit && polyCoords.length > 1 ? (
               <Polyline
-                coordinates={presentation.polyline.map(([latitude, longitude]) => ({
-                  latitude,
-                  longitude,
-                }))}
+                coordinates={polyCoords}
                 strokeColor={colors.primary}
                 strokeWidth={4}
               />
+            ) : null}
+
+            {/* Travelled portion behind the tracked bus — faded. */}
+            {useSplit && traveledLine.length > 1 ? (
+              <Polyline
+                coordinates={traveledLine}
+                strokeColor="rgba(100, 116, 139, 0.45)"
+                strokeWidth={5}
+                lineCap="round"
+                lineJoin="round"
+              />
+            ) : null}
+
+            {/* Remaining portion ahead — bright brand line + white dashed
+                direction overlay, exactly like the home Live map. */}
+            {useSplit && remainingLine.length > 1 ? (
+              <>
+                <Polyline
+                  coordinates={remainingLine}
+                  strokeColor={colors.primary}
+                  strokeWidth={5}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+                <Polyline
+                  coordinates={remainingLine}
+                  strokeColor="rgba(255, 255, 255, 0.9)"
+                  strokeWidth={2.5}
+                  lineCap="butt"
+                  lineJoin="round"
+                  lineDashPattern={[10, 14]}
+                />
+              </>
             ) : null}
             {presentation?.origin ? (
               <Marker

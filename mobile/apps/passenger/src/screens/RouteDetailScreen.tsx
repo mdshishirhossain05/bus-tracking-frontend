@@ -11,6 +11,7 @@ import {
   Text,
   ScreenHeader,
   Icon,
+  GlassSurface,
   colors,
   spacing,
   radius,
@@ -35,6 +36,12 @@ import {
 } from "../features/passenger/components/BusMarker";
 
 const POLL_MS = 5000;
+
+// When exactly one bus is live on the route we FOLLOW it like the home
+// tracker (close-in, north-up) so the rider watches it move without
+// panning. With several buses we keep the whole-route overview instead,
+// so no single bus hijacks the camera and hides the others.
+const FOLLOW_ZOOM = 16;
 
 // Anything older than this fades the bus marker so a passenger reads
 // it as "not actively reporting". Backend already hides anything older
@@ -172,6 +179,9 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
   const [autoSet, setAutoSet] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [view, setView] = useState<ViewMode>("map");
+  // Follow-camera engaged by default; a user pan/zoom drops it and shows
+  // the recenter pill (same UX as the home Live map).
+  const [following, setFollowing] = useState(true);
 
   const { coords, ready } = usePassengerLocation();
 
@@ -219,12 +229,39 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
   const myIndex = myStopId ? stops.findIndex((s) => s.id === myStopId) : -1;
   const liveBuses = buses.filter((b) => b.latitude != null && b.longitude != null);
 
-  // Fit the camera so the route polyline AND every live bus on the
-  // route are framed together. Re-fits whenever buses appear or move
-  // significantly — passengers always see the whole journey shape and
-  // every active vehicle on it.
+  // Camera behaviour, mirroring the home Live map:
+  //   • Exactly ONE live bus + following → keep the camera centred on it,
+  //     north-up at FOLLOW_ZOOM, so the rider watches it travel without
+  //     touching the screen. Re-centres on every new fix.
+  //   • Several buses, or no bus, or the user has panned away → frame the
+  //     whole route polyline + every bus together (the overview).
+  const singleBus =
+    liveBuses.length === 1 &&
+    liveBuses[0].latitude != null &&
+    liveBuses[0].longitude != null
+      ? liveBuses[0]
+      : null;
+
   useEffect(() => {
     if (!presentation || !mapRef.current) return;
+
+    if (following && singleBus) {
+      mapRef.current.animateCamera(
+        {
+          center: {
+            latitude: singleBus.latitude as number,
+            longitude: singleBus.longitude as number,
+          },
+          pitch: 0,
+          heading: 0,
+          zoom: FOLLOW_ZOOM,
+        },
+        { duration: 800 },
+      );
+      return;
+    }
+
+    // Overview: fit the route + all buses.
     const coords: { latitude: number; longitude: number }[] = [];
     coords.push(
       ...presentation.polyline.map(([latitude, longitude]) => ({
@@ -245,7 +282,7 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
       edgePadding: { top: 80, right: 70, bottom: 100, left: 70 },
       animated: true,
     });
-  }, [presentation, liveBuses]);
+  }, [presentation, liveBuses, following, singleBus]);
   const best = useMemo(
     () => pickBestBus(stops, buses, myStopId),
     [stops, buses, myStopId],
@@ -352,6 +389,17 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
               latitudeDelta: 0.015,
               longitudeDelta: 0.015,
             }}
+            // A user pan/zoom drops follow-mode so they can explore freely;
+            // the recenter pill re-engages it. Only relevant when a single
+            // bus is being followed.
+            onPanDrag={() => {
+              if (following && singleBus) setFollowing(false);
+            }}
+            onRegionChangeComplete={(_region, details) => {
+              if (details?.isGesture && following && singleBus) {
+                setFollowing(false);
+              }
+            }}
           >
             {presentation && presentation.polyline.length > 1 ? (
               <Polyline
@@ -409,6 +457,36 @@ export function RouteDetailScreen({ routeId, routeName }: Props) {
               );
             })}
           </MapView>
+
+          {/* Recenter pill — only while a single bus is being tracked and
+              the rider has panned away. Tapping re-engages follow mode and
+              snaps back to the bus. Hidden otherwise (overview / no bus). */}
+          {singleBus && !following ? (
+            <Pressable
+              style={styles.recenterFab}
+              accessibilityLabel="Re-center on bus"
+              onPress={() => {
+                void Haptics.selectionAsync();
+                setFollowing(true);
+                mapRef.current?.animateCamera(
+                  {
+                    center: {
+                      latitude: singleBus.latitude as number,
+                      longitude: singleBus.longitude as number,
+                    },
+                    pitch: 0,
+                    heading: 0,
+                    zoom: FOLLOW_ZOOM,
+                  },
+                  { duration: 500 },
+                );
+              }}
+            >
+              <GlassSurface rounded="pill" style={styles.recenterInner}>
+                <Icon name="locate" size={22} color={colors.primary} />
+              </GlassSurface>
+            </Pressable>
+          ) : null}
         </View>
       ) : (
         <StopTimeline
@@ -578,6 +656,17 @@ const styles = StyleSheet.create({
   },
   toggleActive: { backgroundColor: colors.primary },
   mapWrap: { flex: 1, overflow: "hidden" },
+  recenterFab: {
+    position: "absolute",
+    right: spacing.lg,
+    bottom: spacing.lg,
+  },
+  recenterInner: {
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   pickerOverlay: {
     position: "absolute",
     top: 0,

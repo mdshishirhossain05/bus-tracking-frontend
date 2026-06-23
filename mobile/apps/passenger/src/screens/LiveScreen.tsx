@@ -28,6 +28,7 @@ import { usePassengerLiveTrip } from "../features/passenger/hooks/usePassengerLi
 import { useMapPrefs } from "../features/passenger/hooks/useMapPrefs";
 import { useDestinationStop } from "../features/passenger/hooks/useDestinationStop";
 import { useBackgroundTrackingNotification } from "../features/passenger/hooks/useBackgroundTrackingNotification";
+import type { LiveBusLocation } from "@ubts/shared";
 import { LiveMap } from "../features/passenger/components/LiveMap";
 import type { BusMarkerStatus } from "../features/passenger/components/BusMarker";
 import { TripSheet } from "../features/passenger/components/TripSheet";
@@ -116,6 +117,57 @@ export function LiveScreen() {
   const isRunning =
     !tripEnded && !preTripPhase && selectedTrip?.status === "RUNNING";
 
+  // Before the real GPS feed kicks in (PRE_TRIP, bus still parked at the
+  // depot) `liveState` is null, so the BusMarker never rendered on this
+  // screen — a glaring mismatch with the route-detail map, which DOES
+  // place a marker at the depot with a "Pre-trip" callout. To match,
+  // synthesize a stand-in fix at the route's origin so the marker (and
+  // its passive callout) appear at the depot until a real fix arrives.
+  // We do this only for the map; the bottom sheet + HUD keep using the
+  // real `liveState` so their copy ("Trip hasn't started yet") still
+  // tells the truth.
+  const effectiveLive = useMemo<LiveBusLocation | null>(() => {
+    if (liveState) return liveState;
+    if (!preTripPhase) return null;
+    const originLat = route?.origin?.latitude;
+    const originLng = route?.origin?.longitude;
+    if (
+      originLat == null ||
+      originLng == null ||
+      !selectedTripId ||
+      !route?.routeId
+    ) {
+      return null;
+    }
+    return {
+      tripId: selectedTripId,
+      routeId: route.routeId,
+      busId: selectedTrip?.busId ?? null,
+      latitude: originLat,
+      longitude: originLng,
+      speed: 0,
+      displaySpeedKmh: 0,
+      filteredSpeedKmh: 0,
+      heading: null,
+      isStationary: true,
+      source: "PRE_TRIP_DEPOT",
+      updatedAt:
+        selectedTrip?.preTripStartedAt ??
+        selectedTrip?.startedAt ??
+        new Date(0).toISOString(),
+    };
+  }, [
+    liveState,
+    preTripPhase,
+    route?.origin?.latitude,
+    route?.origin?.longitude,
+    route?.routeId,
+    selectedTripId,
+    selectedTrip?.busId,
+    selectedTrip?.preTripStartedAt,
+    selectedTrip?.startedAt,
+  ]);
+
   const destinationStopName = useMemo(() => {
     if (!destination.destinationStopId || !route?.stops) return null;
     return (
@@ -131,14 +183,14 @@ export function LiveScreen() {
   // PASSIVE callout instead — so the rider can always see where the bus is
   // and what it's doing, even before the trip starts.
   const busStatus = useMemo<BusMarkerStatus | null>(() => {
-    if (!liveState) return null;
+    if (!effectiveLive) return null;
     const rawSpeed =
-      liveState.displaySpeedKmh ??
-      liveState.filteredSpeedKmh ??
-      liveState.speed ??
+      effectiveLive.displaySpeedKmh ??
+      effectiveLive.filteredSpeedKmh ??
+      effectiveLive.speed ??
       null;
     const stationary =
-      liveState.isStationary === true || (rawSpeed != null && rawSpeed < 3);
+      effectiveLive.isStationary === true || (rawSpeed != null && rawSpeed < 3);
 
     if (isRunning) {
       const nextStopName = eta?.nextStopName ?? null;
@@ -191,8 +243,8 @@ export function LiveScreen() {
     } else if (isStale) {
       // Feed has gone quiet — tell the rider how old the last fix is so a
       // frozen marker doesn't read as a live one.
-      const updatedMs = liveState.updatedAt
-        ? new Date(liveState.updatedAt).getTime()
+      const updatedMs = effectiveLive.updatedAt
+        ? new Date(effectiveLive.updatedAt).getTime()
         : NaN;
       const mins = Number.isNaN(updatedMs)
         ? null
@@ -223,7 +275,7 @@ export function LiveScreen() {
     };
   }, [
     isRunning,
-    liveState,
+    effectiveLive,
     eta,
     destinationStopName,
     preTripPhase,
@@ -473,7 +525,7 @@ export function LiveScreen() {
     <View style={styles.root}>
       <LiveMap
         mapRef={mapRef}
-        live={liveState}
+        live={effectiveLive}
         route={route}
         passenger={passengerLocation}
         following={following}

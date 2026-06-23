@@ -176,8 +176,21 @@ export function TripSheet({
         ? localizeNumber(eta.etaMinutes, locale)
         : "—";
   const showsUnit = !tripEnded && !eta?.finalStopReached && eta?.etaMinutes != null;
+  // Speed: prefer instantaneous → smoothed → rolling-average. Falling
+  // through to the rolling average means the rider sees a meaningful
+  // km/h even when the current GPS fix carries no speed (low-end devices
+  // often report `speed=null` while parked or at low velocity, even as
+  // the position keeps updating). Only when every source is null do we
+  // render the placeholder.
+  const rawSpeed =
+    live?.displaySpeedKmh ??
+    live?.filteredSpeedKmh ??
+    live?.averageSpeedKmh ??
+    eta?.rollingAverageSpeedKmh ??
+    live?.speed ??
+    null;
   const speed =
-    live?.displaySpeedKmh != null ? Math.round(live.displaySpeedKmh) : null;
+    rawSpeed != null && rawSpeed >= 0 ? Math.round(rawSpeed) : null;
 
   // Trip-status hero block — one always-visible "what's happening right
   // now" answer at the top of the sheet so passengers don't conflate

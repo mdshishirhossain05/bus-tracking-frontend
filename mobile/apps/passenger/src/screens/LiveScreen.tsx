@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
+  BackHandler,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -273,6 +275,48 @@ export function LiveScreen() {
     }
   }, [recentArrival]);
 
+  // When the rider leaves the live tracking view (back pill or hardware
+  // back) the foreground-service notification is torn down — fine when
+  // they're done, surprising when it's an accidental swipe. We confirm
+  // before exiting BUT only while the FG service is actually active
+  // (tracking view + RUNNING trip). On any other view we just go home.
+  const confirmExitTracking = useCallback(
+    (onConfirm: () => void) => {
+      const fgActive = view === "tracking" && isRunning;
+      if (!fgActive) {
+        onConfirm();
+        return;
+      }
+      Alert.alert(
+        t("liveExit.title"),
+        t("liveExit.body"),
+        [
+          { text: t("liveExit.cancel"), style: "cancel" },
+          {
+            text: t("liveExit.confirm"),
+            style: "destructive",
+            onPress: onConfirm,
+          },
+        ],
+        { cancelable: true },
+      );
+    },
+    [view, isRunning, t],
+  );
+
+  // Android hardware back: while we're actively tracking, intercept the
+  // back press and run the same confirmation; otherwise let the OS
+  // default behaviour handle it (which on a single-stack app means
+  // backgrounding to home).
+  useEffect(() => {
+    if (view !== "tracking") return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      confirmExitTracking(() => setView("home"));
+      return true; // consumed — block default back
+    });
+    return () => sub.remove();
+  }, [view, confirmExitTracking]);
+
   const recenter = useCallback(() => {
     void Haptics.selectionAsync();
     setFollowing(true);
@@ -453,7 +497,7 @@ export function LiveScreen() {
           <Pressable
             onPress={() => {
               void Haptics.selectionAsync();
-              setView("home");
+              confirmExitTracking(() => setView("home"));
             }}
             accessibilityRole="button"
             accessibilityLabel={t("home.backToTrips")}

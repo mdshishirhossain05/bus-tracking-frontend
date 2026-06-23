@@ -79,6 +79,18 @@ export const STRINGS = {
     bn: "বাস ট্র্যাক করা হচ্ছে — ETA শীঘ্রই",
   },
 
+  // ---- exit-tracking confirmation dialog ----
+  // Shown when the rider taps the back pill (or hardware back on
+  // Android) while the live tracking foreground service is active, so
+  // an accidental swipe doesn't silently kill their tracking.
+  "liveExit.title": { en: "Stop tracking this bus?", bn: "ট্র্যাকিং বন্ধ করবেন?" },
+  "liveExit.body": {
+    en: "You'll stop getting live updates and the bus notification will disappear.",
+    bn: "লাইভ আপডেট এবং বাসের নোটিফিকেশন বন্ধ হয়ে যাবে।",
+  },
+  "liveExit.cancel": { en: "Keep tracking", bn: "ট্র্যাকিং চালিয়ে যান" },
+  "liveExit.confirm": { en: "Stop tracking", bn: "ট্র্যাকিং বন্ধ" },
+
   // ---- background live-tracking notification ----
   "busNotif.title": { en: "Live bus tracking", bn: "লাইভ বাস ট্র্যাকিং" },
   "busNotif.next": { en: "Next", bn: "পরবর্তী" },

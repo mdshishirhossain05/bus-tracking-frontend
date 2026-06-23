@@ -327,6 +327,15 @@ export function LiveMap({
           : undefined
       }
       initialRegion={initialRegion}
+      // Tell the map which parts of itself are obscured by overlays —
+      // the top stack (banners + HUD + connection pill) and the bottom
+      // TripSheet. animateCamera then centres the bus inside the
+      // VISIBLE window, not the geometric one, so the bus marker stops
+      // hugging the top edge and the status callout above it has room
+      // to render. Without this, in PRE_TRIP the bus sat behind the
+      // pre-trip banner and the callout was invisible — exactly the
+      // mismatch the user spotted between this screen and route-detail.
+      mapPadding={{ top: 220, right: 0, bottom: 320, left: 0 }}
       showsCompass={false}
       showsMyLocationButton={false}
       toolbarEnabled={false}

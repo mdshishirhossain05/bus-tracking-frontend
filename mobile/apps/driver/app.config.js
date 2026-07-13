@@ -64,15 +64,18 @@ module.exports = ({ config }) => ({
       "expo-build-properties",
       {
         android: {
-          // ProGuard + resource shrinking trim ~30-50% of the release APK
-          // by removing unused Java code and Android resources, and dex2oat
-          // has much less to compile at install time, so install + cold
-          // start drop noticeably.
-          enableProguardInReleaseBuilds: true,
-          enableShrinkResourcesInReleaseBuilds: true,
+          // Kept OFF for the driver app: it registers a background
+          // location task through expo-task-manager, which the OS invokes
+          // reflectively, and code stripping can break that path. The APK
+          // is distributed directly to a handful of drivers, so size is
+          // not a concern here.
+          enableProguardInReleaseBuilds: false,
+          enableShrinkResourcesInReleaseBuilds: false,
         },
       },
     ],
-    "./plugins/withArm64Only",
+    // NOTE: "./plugins/withArm64Only" is intentionally not applied here.
+    // Driver handsets are not controlled hardware; the APK must also run
+    // on older 32-bit ARM phones, so all ABIs are shipped.
   ],
 });
